@@ -7,44 +7,43 @@
 
 #ifndef STREAM_H_
 #define STREAM_H_
-
+#include <stdint.h>
+#include "Erc.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "croutine.h"
 namespace Micro {
 
+class Stream;
+
 typedef struct {
-	Stream* dst, src;
+	Stream* dst;
+	Stream* src;
 	uint32_t type;
 } EventHdr;
 
 typedef struct {
 	EventHdr hdr;
 	union {
-		uint8_t bData[];
-		uint32_t lData[];
+		uint8_t bData[1];
+		uint32_t lData[1];
 		void* pData;
 	};
 } Event;
-
-typedef struct {
-} MqttConnect;
-
-typedef struct {
-	EventHdr hdr;
-	MqttConnect mqttConnect;
-} EventMQttConnect;
-
-MqttConnect* qc = (EventMqttConnect*) pEvent;
 
 //_____________________________________________________________________________________
 
 class Stream {
 public:
-	virtual void post(Event *pEvent)=0; // define how to store or queue events
+	virtual Erc post(Event *pEvent)=0; // define how to store or queue events
 	inline Stream* upStream() {
 		return _upStream;
 	}
 	void upStream(Stream* up) {
 		_upStream = up;
 	}
+
 private:
 	Stream* _upStream;
 };
@@ -55,6 +54,9 @@ class Thread {
 public:
 	Thread(const char *name, unsigned short stackDepth, char priority);
 	virtual void run()=0; // free running thread
+private:
+	xTaskHandle _taskHandle;
+
 };
 
 extern "C" void pvTaskCode(void *pvParameters) {
@@ -69,7 +71,18 @@ Thread::Thread(const char *name, unsigned short stackDepth, char priority) {
 //_____________________________________________________________________________________
 
 class ThreadStream: public Thread, public Stream {
-
+public:
+	ThreadStream(const char *name, unsigned short stackDepth, char priority) :
+			Thread(name, stackDepth, priority) {
+		_queue = xQueueCreate(10, 4);
+	}
+	inline Erc post(Event* pEvent) {
+		if (xQueueSend(_queue, &pEvent, 0))
+			return E_LACK_RESOURCE;
+		return E_OK;
+	}
+private:
+	xQueueHandle _queue;
 };
 
 //_____________________________________________________________________________________
@@ -101,6 +114,10 @@ CoRoutine::~CoRoutine() {
 //_____________________________________________________________________________________
 
 class CoRoutineStream: public CoRoutine, public Stream {
+public:
+	Erc post(Event *pEvent) {
+
+	}
 };
 
 class RunToCompletionStream {
