@@ -15,7 +15,8 @@
 #include "QueueWrapper.h"
 class Stream {
 public:
-    Stream();
+	virtual Erc push(Event* pEvent)=0;
+/*    Stream();
     Stream(Stream* upStream);
     ~Stream();
     virtual Erc event(Event* event)=0;
@@ -27,7 +28,7 @@ public:
     void setUpStream(Stream* stream);
     Queue* getQueue();
     void setQueue(Queue* q);
-    static Queue* getDefaultQueue();
+    static Queue* getDefaultQueue();*/
 
 private:
     Stream* _upStream;
