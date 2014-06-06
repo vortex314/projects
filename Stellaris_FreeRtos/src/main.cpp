@@ -36,27 +36,7 @@ extern "C" void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 
 //_____________________________________________________________________________________
 
-
-
-//_____________________________________________________________________________________
-
-class Thread {
-public:
-	Thread(const char *name, unsigned short stackDepth, char priority);
-	virtual void run()=0; // free running thread
-private:
-	xTaskHandle _taskHandle;
-
-};
-
-extern "C" void pvTaskCode(void *pvParameters) {
-	(static_cast<Thread*>(pvParameters))->run();
-}
-
-Thread::Thread(const char *name, unsigned short stackDepth, char priority) {
-	xTaskCreate((pdTASK_CODE) pvTaskCode, (const signed char *) name,
-			stackDepth, (void*) this, priority, &_taskHandle);
-}
+#include "Thread.h"
 
 //_____________________________________________________________________________________
 
@@ -77,7 +57,7 @@ private:
 };
 
 
-
+#include "CoRoutine.h"
 //_____________________________________________________________________________________
 
 class CoRoutineStream: public CoRoutine, public Stream {
@@ -116,10 +96,7 @@ public:
 	Wiz810Thread() :
 			ThreadStream("wiz810", configMINIMAL_STACK_SIZE, 5) {
 		_spi = new Spi(0);
-		_spi->setUpStream(this);
-	}
-	Erc event(Event* pEvent) {
-		return E_OK;
+		_spi->upStream(this);
 	}
 
 	Erc write(uint16_t addr,uint8_t data) {
@@ -133,17 +110,6 @@ public:
 		while ( _spi->hasData() )
 			response.write(_spi->read());
 		if ( response.length() != 4  ) return E_CONN_LOSS;
-		if (rxd != 0x00010203)
-					return E_AGAIN;
-/*		Event* pEvent;
-		_spi->send(out);
-		in.clear();
-		if (getQueue()->receive(&pEvent, 500) == false) // wait 500msec
-			return E_TIMEOUT;
-		if (pEvent->src() != _spi) // unexpected event
-			while (1)
-				;
-		Sys::free(pEvent);*/
 		return E_OK;
 	}
 
@@ -161,7 +127,6 @@ private:
 		for (;;) {
 			out.clear();
 			out.write((uint8_t*) "Hello", 0, 5);
-			spiExchange(out, in);
 			vTaskDelay(10);
 		}
 	}

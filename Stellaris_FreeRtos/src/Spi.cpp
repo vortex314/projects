@@ -64,7 +64,7 @@ void Spi::intHandler(void) {
 			;
 		}
 		if (_count == 0)
-			enqueue(new Event( getUpStream(),this, Spi::RXD));
+			post(new Event( upStream(),this, Spi::RXD));
 
 		//		SSIIntDisable(SSI0_BASE, SSI_RXFF);
 	}
