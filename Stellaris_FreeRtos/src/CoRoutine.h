@@ -12,7 +12,7 @@
 #include "croutine.h"
 
 
-class CoRoutine {
+class CoRoutine  {
 public:
 	xCoRoutineHandle _coRoutineHandle;
 public:

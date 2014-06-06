@@ -8,12 +8,14 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-#include "Thread.h"
+#include "croutine.h"
 #include "Spi.h"
 #include <stdint.h>
 #include "Erc.h"
+#include "Event.h"
+#include "Spi.h"
 
-#include "croutine.h"
+
 
 extern void SysTickHandler(void);
 
@@ -31,40 +33,10 @@ extern "C" void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 }
 
 
-namespace Micro {
-
-class Stream;
-
-typedef struct {
-	Stream* dst;
-	Stream* src;
-	uint32_t type;
-} EventHdr;
-
-typedef struct {
-	EventHdr hdr;
-	union {
-		uint8_t bData[1];
-		uint32_t lData[1];
-		void* pData;
-	};
-} Event;
 
 //_____________________________________________________________________________________
 
-class Stream {
-public:
-	virtual Erc post(Event *pEvent)=0; // define how to store or queue events
-	inline Stream* upStream() {
-		return _upStream;
-	}
-	void upStream(Stream* up) {
-		_upStream = up;
-	}
 
-private:
-	Stream* _upStream;
-};
 
 //_____________________________________________________________________________________
 
@@ -92,42 +64,19 @@ class ThreadStream: public Thread, public Stream {
 public:
 	ThreadStream(const char *name, unsigned short stackDepth, char priority) :
 			Thread(name, stackDepth, priority) {
-		_queue = xQueueCreate(10, 4);
+		_queue = new Queue(10,4);
 	}
 	inline Erc post(Event* pEvent) {
 		if (xQueueSend(_queue, &pEvent, 0))
 			return E_LACK_RESOURCE;
 		return E_OK;
 	}
+	Queue* queue() { return _queue;};
 private:
-	xQueueHandle _queue;
+	Queue* _queue;
 };
 
-//_____________________________________________________________________________________
 
-class CoRoutine {
-public:
-	xCoRoutineHandle _coRoutineHandle;
-public:
-	CoRoutine(int priority);
-	virtual ~CoRoutine();
-	virtual void run(xCoRoutineHandle handle)=0;
-};
-
-//_____________________________________________________________________________________
-
-extern "C" void pvCoRoutineCode(xCoRoutineHandle handle, void* me) { // re-use index parameter as pointer to class instance
-	(static_cast<CoRoutine*>(me))->run(handle);
-}
-
-CoRoutine::CoRoutine(int priority) {
-	xCoRoutineCreate((crCOROUTINE_CODE) pvCoRoutineCode, priority,
-			(unsigned long) this);
-}
-
-CoRoutine::~CoRoutine() {
-
-}
 
 //_____________________________________________________________________________________
 
@@ -141,19 +90,19 @@ return E_OK;
 class RunToCompletionStream {
 };
 
-} /* namespace Micro */
 
-class MainThread: public StreamThread {
+
+class MainThread: public ThreadStream {
 public:
 	MainThread() :
-			Thread("Main", configMINIMAL_STACK_SIZE, 4) {
+			ThreadStream("Main", configMINIMAL_STACK_SIZE, 4) {
 	}
 
 	void run() {
 		Event* pEvent;
 		while (true) { // EVENTPUMP
-			if (Stream::getDefaultQueue()->receive(&pEvent)) {
-				pEvent->dest()->event(pEvent);
+			if (queue()->receive(&pEvent)) {
+				//TODO handle event
 				Sys::free(pEvent); // free up event
 			}
 		}
@@ -162,10 +111,10 @@ public:
 
 #include "Wiz5100.h"
 
-class Wiz810Thread: public Stream, public Thread {
+class Wiz810Thread: public ThreadStream {
 public:
 	Wiz810Thread() :
-			Thread("wiz810", configMINIMAL_STACK_SIZE, 5), Stream() {
+			ThreadStream("wiz810", configMINIMAL_STACK_SIZE, 5) {
 		_spi = new Spi(0);
 		_spi->setUpStream(this);
 	}
