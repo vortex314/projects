@@ -77,13 +77,13 @@ void Wiz5100::poll() {
     uint8_t reg;
     read(Sx_IR(_socket), &reg);
     if (IR != reg) {
-        upQueue(Wiz5100::INTERRUPT + reg);
+        upStream()->post(new Event(upStream(),this,Wiz5100::INTERRUPT + reg));
         IR = reg;
     };
     write(Sx_IR(_socket), reg); //clear IR flags
     read(Sx_SR(_socket), &reg);
     if (SR != reg) {
-        upQueue(Wiz5100::STATUS_CHANGE + reg);
+    	upStream()->post(new Event(upStream(),this,Wiz5100::STATUS_CHANGE + reg));
         SR = reg;
     };
 }

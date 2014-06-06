@@ -17,7 +17,7 @@ Str::Str() : Bytes() {
 }
 
 Str& Str::append(const char* s) {
-    while (*s != '\0') {
+     while (*s != '\0') {
         write((uint8_t) (* s));
         s++;
     }
