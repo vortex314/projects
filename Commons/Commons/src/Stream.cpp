@@ -6,7 +6,7 @@
  */
 
 #include "Stream.h"
-
+/*
 Queue* Stream::_defaultQueue=NULL;
 
 Queue* Stream::getDefaultQueue() {
@@ -56,3 +56,4 @@ void Stream::setQueue(Queue* q) {
 Queue* Stream::getQueue() {
 	return _queue;
 }
+*/

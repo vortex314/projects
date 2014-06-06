@@ -13,10 +13,26 @@
 #include "QueueTemplate.h"
 #include "Event.h"
 #include "QueueWrapper.h"
+
+class Stream {
+public:
+	virtual Erc post(Event *pEvent){
+		return E_OK; // define how to store or queue events
+	}
+	inline Stream* upStream() {
+		return _upStream;
+	}
+	void upStream(Stream* up) {
+		_upStream = up;
+	}
+
+private:
+	Stream* _upStream;
+};/*
 class Stream {
 public:
 	virtual Erc push(Event* pEvent)=0;
-/*    Stream();
+   Stream();
     Stream(Stream* upStream);
     ~Stream();
     virtual Erc event(Event* event)=0;
@@ -28,7 +44,7 @@ public:
     void setUpStream(Stream* stream);
     Queue* getQueue();
     void setQueue(Queue* q);
-    static Queue* getDefaultQueue();*/
+    static Queue* getDefaultQueue();
 
 private:
     Stream* _upStream;
@@ -39,7 +55,7 @@ private:
 
 };
 
-
+*/
 
 
 #endif	/* STREAMS_H */
