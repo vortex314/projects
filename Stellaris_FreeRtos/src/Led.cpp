@@ -101,7 +101,7 @@ Erc Led::event(Event* event) {
 #define GREEN_GPIO_PIN_CFG      GPIO_PF3_T1CCP1
 
 void Led::init() {
-/*	if (_led == LED_GREEN) {
+	if (_led == LED_GREEN) {
 		SysCtlPeripheralEnable(GREEN_GPIO_PERIPH);
 		GPIOPinConfigure(GREEN_GPIO_PIN_CFG);
 		GPIOPadConfigSet(GREEN_GPIO_BASE, GREEN_GPIO_PIN, GPIO_STRENGTH_8MA_SC,
@@ -119,7 +119,7 @@ void Led::init() {
 		GPIOPinConfigure(RED_GPIO_PIN_CFG);
 		GPIOPadConfigSet(RED_GPIO_BASE, RED_GPIO_PIN, GPIO_STRENGTH_8MA_SC,
 				GPIO_PIN_TYPE_STD);
-	}*/
+	};
 	_timer.start();
 }
 

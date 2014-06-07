@@ -21,6 +21,7 @@
  */
 #include "QueueWrapper.h"
 #include "Event.h"
+#include "Stream.h"
 
 class CoRoutine : public Stream {
 public:
@@ -32,7 +33,7 @@ public:
 	}
 	CoRoutine(int priority);
 	virtual ~CoRoutine();
-	Queue*  getDefaultQueue(){
+	static Queue*  getDefaultQueue(){
 		if ( _queue== NULL ) _queue=new Queue(10,4);
 		return _queue;
 	}
@@ -44,6 +45,7 @@ public:
 	Erc post(Event* pEvent){
 		return _queue->send(&pEvent);
 	}
+	virtual void runCR(xCoRoutineHandle handle);
 };
 
 #endif /* COROUTINE_H_ */

@@ -15,8 +15,6 @@
 #include "Event.h"
 #include "Spi.h"
 
-
-
 extern void SysTickHandler(void);
 
 extern "C" void vApplicationTickHook(void) {
@@ -32,8 +30,6 @@ extern "C" void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 		;
 }
 
-
-
 //_____________________________________________________________________________________
 
 #include "Thread.h"
@@ -44,33 +40,39 @@ class ThreadStream: public Thread, public Stream {
 public:
 	ThreadStream(const char *name, unsigned short stackDepth, char priority) :
 			Thread(name, stackDepth, priority) {
-		_queue = new Queue(10,4);
+		_queue = new Queue(10, 4);
 	}
 	inline Erc post(Event* pEvent) {
-		if (xQueueSend(_queue, &pEvent, 0))
+		if (_queue->send(&pEvent))
 			return E_LACK_RESOURCE;
+		wakeup();
 		return E_OK;
 	}
-	Queue* queue() { return _queue;};
+	Erc postFromIsr(Event* pEvent) {
+		if (_queue->sendFromIsr(&pEvent))
+			return E_LACK_RESOURCE;
+		wakeup();
+		return E_OK;
+	}
+	Event* wait(Stream* str, uint32_t event, uint32_t timeout) {
+		Event* pEvent;
+		while (true) {
+			if (_queue->receive(&pEvent, timeout) == pdFALSE)
+				return NULL;
+			if ((str == pEvent->src()) && (pEvent->is(event)))
+				return pEvent;
+		}
+	}
+	Queue* queue() {
+		return _queue;
+	}
+
 private:
 	Queue* _queue;
 };
 
-
 #include "CoRoutine.h"
 //_____________________________________________________________________________________
-
-class CoRoutineStream: public CoRoutine, public Stream {
-public:
-	Erc post(Event *pEvent) {
-return E_OK;
-	}
-};
-
-class RunToCompletionStream {
-};
-
-
 
 class MainThread: public ThreadStream {
 public:
@@ -99,17 +101,21 @@ public:
 		_spi->upStream(this);
 	}
 
-	Erc write(uint16_t addr,uint8_t data) {
+	Erc spiSend(uint16_t addr, uint8_t data) {
+		Event *pEvent;
 		Bytes response(10);
 		_spi->write(W5100_WRITE_OPCODE);
-		_spi->write(addr>>8);
-		_spi->write(addr&0xFF);
+		_spi->write(addr >> 8);
+		_spi->write(addr & 0xFF);
 		_spi->write(data);
 		_spi->flush();
-//		wait(_spi,_spi->RXD,10);
-		while ( _spi->hasData() )
+		if (pEvent = wait(_spi, Spi::RXD, 1000))
+			return E_NO_DATA;
+
+		while (_spi->hasData())
 			response.write(_spi->read());
-		if ( response.length() != 4  ) return E_CONN_LOSS;
+		if (response.length() != 4)
+			return E_CONN_LOSS;
 		return E_OK;
 	}
 
@@ -119,14 +125,10 @@ public:
 
 	}
 
-
-private:
 	void run() {
-		Bytes out(10);
-		Bytes in(10);
+
 		for (;;) {
-			out.clear();
-			out.write((uint8_t*) "Hello", 0, 5);
+			spiSend(0x0500, 5);
 			vTaskDelay(10);
 		}
 	}
@@ -146,23 +148,29 @@ public:
 			CoRoutine(4) {
 	}
 
-	void run(xCoRoutineHandle handle) {
-		crSTART(handle);
+	void runCR(xCoRoutineHandle handle) {
+		crSTART(handle)
+		;
 		for (;;) {
 			crDELAY(handle, 100);
 			ledBlue.toggle();
 		}
-		crEND();
-	}
+	crEND();
+}
 
 };
 
 CoR* cor;
 
-extern "C" void vApplicationIdleHook( void )
-   {
-       vCoRoutineSchedule(  );
-   }
+extern "C" void vApplicationIdleHook(void) {
+	Event* pEvent;
+	vCoRoutineSchedule();
+	Queue *q = CoRoutine::getDefaultQueue();
+	while (q->receive(&pEvent, 0)) {
+		((CoRoutine*) (pEvent->dest()))->run(pEvent);
+		Sys::free(pEvent);
+	}
+}
 
 int main(void) {
 	Sys::init();

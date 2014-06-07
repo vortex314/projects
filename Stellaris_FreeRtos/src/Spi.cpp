@@ -64,7 +64,7 @@ void Spi::intHandler(void) {
 			;
 		}
 		if (_count == 0)
-			post(new Event( upStream(),this, Spi::RXD));
+			upStream()->postFromIsr(new Event( upStream(),this, Spi::RXD));
 
 		//		SSIIntDisable(SSI0_BASE, SSI_RXFF);
 	}
@@ -73,8 +73,10 @@ void Spi::intHandler(void) {
 			if (SSIDataPutNonBlocking(SSI, _out.peek()))
 				_out.read();
 		}
-		if (_out.hasData() == 0)
+		if (_out.hasData() == false) {
 			SSIIntDisable(SSI, SSI_TXFF);
+			_out.clear();
+		}
 	}
 }
 
@@ -116,7 +118,10 @@ Erc Spi::write(uint8_t b) {
 }
 
 Erc Spi::flush(){
+	_count = _out.length();
+	_out.offset(0);
 	SSIIntEnable(SSI, SSI_TXFF); // interrupt will be generated if fifo is empty
+	return E_OK;
 }
 
 Erc Spi::send(Bytes& b) {

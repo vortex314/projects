@@ -6,9 +6,9 @@
  */
 
 #include "CoRoutine.h"
-
+Queue* CoRoutine::_queue=NULL;
 extern "C" void pvCoRoutineCode(xCoRoutineHandle handle,void* me) { // re-use index parameter as pointer to class instance
-	(static_cast<CoRoutine*>(me))->run(handle);
+	(static_cast<CoRoutine*>(me))->runCR(handle);
 }
 
 CoRoutine::CoRoutine(int priority) {
@@ -19,3 +19,6 @@ CoRoutine::~CoRoutine() {
 
 }
 
+void CoRoutine::runCR(xCoRoutineHandle handle) {
+
+}

@@ -14,3 +14,18 @@ extern "C" void pvTaskCode(void *pvParameters) {
 Thread::Thread(const char *name, unsigned short stackDepth, char priority) {
     xTaskCreate((pdTASK_CODE)pvTaskCode, (const signed char *) name, stackDepth, (void*) this, priority, &_taskHandle);
 }
+
+Erc Thread::sleep(uint32_t time){
+	vTaskDelay(time);
+	return E_OK;
+}
+
+Erc Thread::yield(){
+	taskYIELD();
+	return E_OK;
+}
+
+Erc Thread::wakeup(){
+	vTaskResume(_taskHandle);
+	return E_OK;
+}
