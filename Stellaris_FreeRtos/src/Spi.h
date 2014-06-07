@@ -8,6 +8,7 @@
 #ifndef SPI_H_
 #define SPI_H_
 
+#include "Event.h"
 #include "Stream.h"
 #include "Bytes.h"
 
@@ -35,5 +36,9 @@ private :
 	uint32_t _readMax;
 
 };
+
+typedef struct {
+
+} ;
 
 #endif /* SPI_H_ */

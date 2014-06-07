@@ -109,14 +109,15 @@ public:
 		_spi->write(addr & 0xFF);
 		_spi->write(data);
 		_spi->flush();
-		if (pEvent = wait(_spi, Spi::RXD, 1000))
-			return E_NO_DATA;
+		if (pEvent = wait(_spi, Spi::RXD, 10)) {
+			while (_spi->hasData())
+				response.write(_spi->read());
+			if (response.length() != 4)
+				return E_CONN_LOSS;
+			return E_OK;
+		}
+		return E_TIMEOUT;
 
-		while (_spi->hasData())
-			response.write(_spi->read());
-		if (response.length() != 4)
-			return E_CONN_LOSS;
-		return E_OK;
 	}
 
 	int exchange(uint32_t out, uint32_t& in) {
@@ -129,7 +130,7 @@ public:
 
 		for (;;) {
 			spiSend(0x0500, 5);
-			vTaskDelay(10);
+			vTaskDelay(1000);
 		}
 	}
 

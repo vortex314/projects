@@ -95,7 +95,7 @@ Spi::Spi(uint32_t id) :
 	SSIIntEnable(SSI, SSI_TXFF | SSI_RXFF);
 	IntEnable(SSI_INT[id]);
 
-//	HWREG(SSI + SSI_O_CR1) |= SSI_CR1_LBM; //enable SSI (internal) loopback mode, testing purpose
+	HWREG(SSI + SSI_O_CR1) |= SSI_CR1_LBM; //enable SSI (internal) loopback mode, testing purpose
 }
 
 bool Spi::hasData(){
