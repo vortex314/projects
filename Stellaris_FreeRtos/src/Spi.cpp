@@ -63,8 +63,9 @@ void Spi::intHandler(void) {
 			_count--;
 			;
 		}
-		if (_count == 0)
-			upStream()->postFromIsr(new Event( upStream(),this, Spi::RXD));
+//		if (_count == 0)
+//			upStream()->postFromIsr(new Event( upStream(),this, Spi::RXD));
+//			upStream()->post(this, Spi::RXD, &_in);
 
 		//		SSIIntDisable(SSI0_BASE, SSI_RXFF);
 	}
@@ -92,17 +93,18 @@ Spi::Spi(uint32_t id) :
 	SSIConfigSetExpClk(SSI, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0,
 			SSI_MODE_MASTER, _clock, 8);
 	SSIEnable(SSI);
-	SSIIntEnable(SSI, SSI_TXFF | SSI_RXFF);
-	IntEnable(SSI_INT[id]);
+	SSIIntDisable(SSI, SSI_TXFF | SSI_RXFF);
+//	SSIIntEnable(SSI, SSI_TXFF | SSI_RXFF);
+//	IntEnable(SSI_INT[id]);
 
-	HWREG(SSI + SSI_O_CR1) |= SSI_CR1_LBM; //enable SSI (internal) loopback mode, testing purpose
+//	HWREG(SSI + SSI_O_CR1) |= SSI_CR1_LBM; //enable SSI (internal) loopback mode, testing purpose
 }
 
-bool Spi::hasData(){
+bool Spi::hasData() {
 	return _out.hasData();
 }
 
-uint8_t Spi::read(){
+uint8_t Spi::read() {
 	return _out.read();
 }
 
@@ -117,10 +119,31 @@ Erc Spi::write(uint8_t b) {
 	return _out.write(b);
 }
 
-Erc Spi::flush(){
+Erc Spi::flush() {
 	_count = _out.length();
 	_out.offset(0);
 	SSIIntEnable(SSI, SSI_TXFF); // interrupt will be generated if fifo is empty
+	return E_OK;
+}
+
+#include "task.h"
+
+Erc Spi::exchange(uint8_t* out, uint8_t* in, uint32_t length) {
+	int i;
+	unsigned long temp;
+	while (SSIDataGetNonBlocking(SSI, (unsigned long*) &temp))
+		; // empty the FIFO
+	for (i = 0; i < length; i++) {
+		temp = *(out + i);
+		while (SSIDataPutNonBlocking(SSI, temp) == 0)
+			taskYIELD();
+	}
+	for (i = 0; i < length; i++) {
+
+		while (SSIDataGetNonBlocking(SSI, &temp) == 0)
+			taskYIELD();
+		*(in + i) = temp;
+	}
 	return E_OK;
 }
 
@@ -136,13 +159,13 @@ Erc Spi::send(Bytes& b) {
 			_out.read();
 	};
 	/*	int i;
-	unsigned long ulData;
-	b.clear();
-	for (i = 0; i < _count; i++) {
-		while (SSIDataGetNonBlocking(SSI, &ulData) == 0)
-			taskYIELD();
-		b.write(ulData);
-	}*/
+	 unsigned long ulData;
+	 b.clear();
+	 for (i = 0; i < _count; i++) {
+	 while (SSIDataGetNonBlocking(SSI, &ulData) == 0)
+	 taskYIELD();
+	 b.write(ulData);
+	 }*/
 	/*	while (SSIDataGetNonBlocking(SSI, &ulData))
 	 ;
 	 b.offset(0);

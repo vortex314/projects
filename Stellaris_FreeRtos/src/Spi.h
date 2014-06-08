@@ -12,14 +12,17 @@
 #include "Stream.h"
 #include "Bytes.h"
 
-
-class Spi : public Stream {
+class Spi: public Stream {
 public:
-	enum { RXD,TXD }  SpiEvent;
-	Spi(uint32_t port );
+	enum {
+		RXD, TXD
+	} SpiEvent;
+	Spi(uint32_t port);
 	virtual ~Spi();
+	Erc exchange(uint8_t* out, uint8_t* in, uint32_t length);
 	Erc write(uint8_t b);
 	Erc flush();
+	Erc readIn(Bytes& in);
 	uint8_t read();
 	bool hasData();
 	Erc send(Bytes& b);
@@ -27,7 +30,7 @@ public:
 	uint32_t getClock();
 	Erc event(Event* event);
 	void intHandler(void);
-private :
+private:
 	Bytes _in;
 	Bytes _out;
 	void* _port;
@@ -38,7 +41,7 @@ private :
 };
 
 typedef struct {
-
-} ;
+	Bytes data();
+} SpiData;
 
 #endif /* SPI_H_ */

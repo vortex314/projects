@@ -84,7 +84,7 @@ public:
 		Event* pEvent;
 		while (true) { // EVENTPUMP
 			if (queue()->receive(&pEvent)) {
-				//TODO handle event
+				pEvent->dest()->event(pEvent);
 				Sys::free(pEvent); // free up event
 			}
 		}
@@ -92,56 +92,67 @@ public:
 };
 
 #include "Wiz5100.h"
+#include "Tcp.h"
+#include "MqttIn.h"
+#include "MqttOut.h"
 
-class Wiz810Thread: public ThreadStream {
+uint8_t mac[] = { 0x9B, 0xA9, 0xE9, 0xF2, 0xF3, 0x46 };
+uint8_t ip[] = { 192, 168, 0, 255 };
+uint8_t gtw[] = { 192, 168, 0, 1 };
+uint8_t mask[] = { 255, 255, 255, 0 };
+uint8_t test_mosquitto_org[] = { 85, 119, 83, 194 };
+
+class ConnectTask: public Thread, public Stream {
 public:
-	Wiz810Thread() :
-			ThreadStream("wiz810", configMINIMAL_STACK_SIZE, 5) {
+	ConnectTask(const char *name, unsigned short stackDepth, char priority) :
+			Thread(name, stackDepth, priority) {
+		_queue = new Queue(10, 4);
 		_spi = new Spi(0);
-		_spi->upStream(this);
+		_wiz = new Wiz5100(_spi, 0);
+		_tcp = new Tcp(_wiz, 0); // use socket 0
+		_tcp->upStream(this);
+		_mqttIn = new MqttIn(256);
+		_mqttOut = new MqttOut(256);
 	}
-
-	Erc spiSend(uint16_t addr, uint8_t data) {
-		Event *pEvent;
-		Bytes response(10);
-		_spi->write(W5100_WRITE_OPCODE);
-		_spi->write(addr >> 8);
-		_spi->write(addr & 0xFF);
-		_spi->write(data);
-		_spi->flush();
-		if (pEvent = wait(_spi, Spi::RXD, 10)) {
-			while (_spi->hasData())
-				response.write(_spi->read());
-			if (response.length() != 4)
-				return E_CONN_LOSS;
-			return E_OK;
-		}
-		return E_TIMEOUT;
-
-	}
-
-	int exchange(uint32_t out, uint32_t& in) {
-		Bytes outB(4);
-		Bytes inB(4);
-
-	}
-
 	void run() {
+		_wiz->init();
+		_wiz->reset();
+		_wiz->loadCommon(mac, ip, gtw, mask);
 
-		for (;;) {
-			spiSend(0x0500, 5);
+		while (true) {
+			_tcp->init();
+			_tcp->setDstIp(test_mosquitto_org);
+			_tcp->setDstPort(1883);
+			while (_tcp->connect() == E_CONN_LOSS)
+				vTaskDelay(3000);
+			_mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION, "willTopic",
+					"willMsg", "userName", "password", 1000);
+			_tcp->write(_mqttOut);
+			_tcp->flush();
+			while (_tcp->hasData()) {
+				_mqttIn->add(_tcp->read());
+			}
+			_tcp->disconnect();
 			vTaskDelay(1000);
 		}
 	}
-
+private:
+	Queue* _queue;
 	Spi* _spi;
+	Wiz5100* _wiz;
+	Tcp* _tcp;
+	MqttIn* _mqttIn;
+	MqttOut* _mqttOut;
 };
 
-Wiz810Thread* wiz;
 MainThread* mainT;
+
 #include "CoRoutine.h"
+
 Led ledRed(Led::LED_RED);
 Led ledBlue(Led::LED_BLUE);
+Led ledGreen(Led::LED_GREEN);
+
 class CoR: public CoRoutine {
 
 public:
@@ -164,13 +175,13 @@ public:
 CoR* cor;
 
 extern "C" void vApplicationIdleHook(void) {
-	Event* pEvent;
+/*	Event* pEvent;
 	vCoRoutineSchedule();
 	Queue *q = CoRoutine::getDefaultQueue();
 	while (q->receive(&pEvent, 0)) {
 		((CoRoutine*) (pEvent->dest()))->run(pEvent);
 		Sys::free(pEvent);
-	}
+	}*/
 }
 
 int main(void) {
@@ -183,9 +194,11 @@ int main(void) {
 //	ledBlue.blink(3);
 //	ledRed.light(false);
 //	ledBlue.light(false);
-	wiz = new Wiz810Thread();
+
 	mainT = new MainThread();
-	cor = new CoR();
+	ConnectTask* connect = new ConnectTask("Conn",
+			configMINIMAL_STACK_SIZE + 100, 4);
+//	cor = new CoR();
 
 	vTaskStartScheduler();
 

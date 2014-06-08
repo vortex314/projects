@@ -12,6 +12,7 @@
 #include "Stream.h"
 #include "Sys.h"
 #include "Timer.h"
+#include "Spi.h"
 
 #define WIZ 'W'
 
@@ -28,34 +29,35 @@ public:
         STATUS_CHANGE = EVENT(WIZ, 'S')
     };
 
-    Wiz5100(uint32_t socket);
+    enum QueueEvents {
+    	SPI_RXD,
+    	WIZ810_INT
+    };
+
+    Wiz5100(Spi* spi,uint32_t socket);
     ~Wiz5100();
     int init();
-    static void reset();
-    static void SpiInit();
-    static Erc loadCommon(uint8_t mac[6], uint8_t ipAddress[4], uint8_t gtwAddr[4], uint8_t netmask[4]);
+    void reset();
 
-    static int write(uint16_t address, uint8_t data);
-    static int write16(uint16_t address, uint16_t data);
-    static int read(uint16_t address, uint8_t* data);
-    static int read16(uint16_t address, uint16_t* data);
+    Erc loadCommon(uint8_t mac[6], uint8_t ipAddress[4], uint8_t gtwAddr[4], uint8_t netmask[4]);
+
+    Erc write(uint16_t address, uint8_t data);
+    Erc write16(uint16_t address, uint16_t data);
+    Erc read(uint16_t address, uint8_t* data);
+    Erc read16(uint16_t address, uint16_t* data);
     static int exchange(uint32_t txd, uint32_t* rxd);
-    int socketCmd(uint8_t cmd);
-    uint8_t getSR();
-    void setCR(uint8_t cmd);
-    uint8_t getCR();
-    uint8_t getIR();
+    int socketCmd(uint32_t socket,uint8_t cmd);
+    uint8_t getSR(uint32_t socket);
+    void setCR(uint32_t socket,uint8_t cmd);
+    uint8_t getCR(uint32_t socket);
+    uint8_t getIR(uint32_t socket);
 //    void setIR(uint8_t);
-    int socket();
-    void poll();
+
+    void poll(uint32_t socket);
     Erc event(Event& event);
 private:
-    uint32_t _socket;
-    uint16_t _socketAddr;
-    uint8_t SR;
-    uint8_t IR;
-    uint16_t _ipPort;
-    Timer _timer;
+    Spi* _spi;
+//    Timer _timer;
 };
 
 /*
