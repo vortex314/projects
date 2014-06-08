@@ -46,8 +46,8 @@ void MqttOut::addString(const char *str) {
     addBytes((uint8_t*) str, strlen(str));
 }
 
-void MqttOut::addStr(Str& str) {
-    addUint16(str.length());
+void MqttOut::addStr(Str* str) {
+    addUint16(str->length());
     addBytes(str);
 }
 
@@ -62,10 +62,10 @@ void MqttOut::addMessage(uint8_t* src, uint32_t length) {
     addBytes(src, length);
 }
 
-void MqttOut::addBytes(Bytes& bytes) {
-    bytes.offset(0);
-    for (int i = 0; i < bytes.length(); i++)
-        write(bytes.read());
+void MqttOut::addBytes(Bytes* bytes) {
+    bytes->offset(0);
+    for (int i = 0; i < bytes->length(); i++)
+        write(bytes->read());
 }
 
 void MqttOut::addBytes(uint8_t* bytes, uint32_t length) {
@@ -132,11 +132,11 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     }
 }
 
-void MqttOut::Publish(uint8_t hdr, Str& topic, Bytes& msg,
+void MqttOut::Publish(uint8_t hdr, Str* topic, Bytes* msg,
         uint16_t messageId) {
     addHeader(MQTT_MSG_PUBLISH + hdr);
     bool addMessageId = (hdr & MQTT_QOS_MASK) ? true : false;
-    int remLen = topic.length() + 2 + msg.length();
+    int remLen = topic->length() + 2 + msg->length();
     if (addMessageId)
         remLen += 2;
     addRemainingLength(remLen);

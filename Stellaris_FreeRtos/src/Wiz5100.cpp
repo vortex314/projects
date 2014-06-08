@@ -48,11 +48,14 @@ void Wiz5100::reset() {
 Erc Wiz5100::loadCommon(uint8_t mac[6], uint8_t ipAddress[4],
 		uint8_t gtwAddr[4], uint8_t netmask[4]) {
 	int i;
+	uint8_t reg;
 	int erc = 0;
 	if (erc)
 		return erc;
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 4; i++) {
 		erc += write(W5100_GAR + i, gtwAddr[i]); // set up the gateway address
+		read(W5100_GAR + i,&reg);
+	}
 	Sys::delay_ms(1);
 	for (i = 0; i < 6; i++)
 		erc += write(W5100_SHAR + i, mac[i]); // set up the MAC address
@@ -78,10 +81,10 @@ Wiz5100::Wiz5100(Spi* spi, uint32_t socket) {
 Wiz5100::~Wiz5100() {
 }
 /*
-int Wiz5100::socket() {
-	return _socket;
-}
-*/
+ int Wiz5100::socket() {
+ return _socket;
+ }
+ */
 int Wiz5100::init() {
 	return E_OK;
 }
@@ -93,20 +96,20 @@ Erc Wiz5100::event(Event& event) {
 }
 
 void Wiz5100::poll(uint32_t socket) {
-/*	// poll socket
-	uint8_t reg;
-	read(Sx_IR(socket), &reg);
-	if (IR != reg) {
-		upStream()->post(new Event(upStream(), this, Wiz5100::INTERRUPT + reg));
-		IR = reg;
-	};
-	write(Sx_IR(socket), reg); //clear IR flags
-	read(Sx_SR(socket), &reg);
-	if (SR != reg) {
-		upStream()->post(
-				new Event(upStream(), this, Wiz5100::STATUS_CHANGE + reg));
-		SR = reg;
-	};*/
+	/*	// poll socket
+	 uint8_t reg;
+	 read(Sx_IR(socket), &reg);
+	 if (IR != reg) {
+	 upStream()->post(new Event(upStream(), this, Wiz5100::INTERRUPT + reg));
+	 IR = reg;
+	 };
+	 write(Sx_IR(socket), reg); //clear IR flags
+	 read(Sx_SR(socket), &reg);
+	 if (SR != reg) {
+	 upStream()->post(
+	 new Event(upStream(), this, Wiz5100::STATUS_CHANGE + reg));
+	 SR = reg;
+	 };*/
 }
 
 #include "task.h"
@@ -116,7 +119,7 @@ Erc Wiz5100::write(uint16_t address, uint8_t data) {
 		uint8_t rxd[4];
 		uint32_t iRxd;
 	};
-	static uint8_t txd[] = { W5100_WRITE_OPCODE, address >> 8, address, data };
+	uint8_t txd[] = { W5100_WRITE_OPCODE, address >> 8, address, data };
 	Erc erc = _spi->exchange(txd, rxd, 4);
 	if (erc)
 		return erc;
@@ -130,11 +133,11 @@ Erc Wiz5100::read(uint16_t address, uint8_t* data) {
 		uint8_t rxd[4];
 		uint32_t iRxd;
 	};
-	static uint8_t txd[] = { W5100_READ_OPCODE, address >> 8, address, 0};
+	uint8_t txd[] = { W5100_READ_OPCODE, address >> 8, address, 0 };
 	Erc erc = _spi->exchange(txd, rxd, 4);
 	if (erc)
 		return erc;
-	if (iRxd != 0x00020100)
+	if ((iRxd & 0x00FFFFFF) != 0x00020100)
 		return E_AGAIN;
 	*data = rxd[3];
 	return E_OK;
@@ -164,7 +167,7 @@ Erc Wiz5100::write16(uint16_t address, uint16_t data) {
 	return E_OK;
 }
 
-int Wiz5100::socketCmd(uint32_t socket,uint8_t cmd) {
+int Wiz5100::socketCmd(uint32_t socket, uint8_t cmd) {
 	int erc = write(Sx_CR(socket), cmd); // put socket in listen state
 	if (erc)
 		return erc;
@@ -209,7 +212,7 @@ int Wiz5100::socketCmd(uint32_t socket,uint8_t cmd) {
  return 0;
  }
  */
-void Wiz5100::setCR(uint32_t socket,uint8_t cmd) {
+void Wiz5100::setCR(uint32_t socket, uint8_t cmd) {
 	write(Sx_CR(socket), cmd);
 }
 
@@ -223,7 +226,6 @@ uint8_t Wiz5100::getCR(uint32_t socket) {
  void Wiz5100::setIR(uint8_t cmd) {
  write(Sx_IR(_socket), cmd);
  }*/
-
 
 /*
  int Wiz5100::socketConnect() {

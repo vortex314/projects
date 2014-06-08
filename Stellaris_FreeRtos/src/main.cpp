@@ -41,28 +41,28 @@ public:
 	ThreadStream(const char *name, unsigned short stackDepth, char priority) :
 			Thread(name, stackDepth, priority) {
 	}
-/*	inline Erc post(Event* pEvent) {
-		if (_queue->send(&pEvent))
-			return E_LACK_RESOURCE;
-		wakeup();
-		return E_OK;
-	}
-	Erc postFromIsr(Event* pEvent) {
-		if (_queue->sendFromIsr(&pEvent))
-			return E_LACK_RESOURCE;
-		wakeup();
-		return E_OK;
-	}
-	Event* wait(Stream* str, uint32_t event, uint32_t timeout) {
-		Event* pEvent;
-		while (true) {
-			if (_queue->receive(&pEvent, timeout) == pdFALSE)
-				return NULL;
-			if ((str == pEvent->src()) && (pEvent->is(event)))
-				return pEvent;
-		}
-	}
-*/
+	/*	inline Erc post(Event* pEvent) {
+	 if (_queue->send(&pEvent))
+	 return E_LACK_RESOURCE;
+	 wakeup();
+	 return E_OK;
+	 }
+	 Erc postFromIsr(Event* pEvent) {
+	 if (_queue->sendFromIsr(&pEvent))
+	 return E_LACK_RESOURCE;
+	 wakeup();
+	 return E_OK;
+	 }
+	 Event* wait(Stream* str, uint32_t event, uint32_t timeout) {
+	 Event* pEvent;
+	 while (true) {
+	 if (_queue->receive(&pEvent, timeout) == pdFALSE)
+	 return NULL;
+	 if ((str == pEvent->src()) && (pEvent->is(event)))
+	 return pEvent;
+	 }
+	 }
+	 */
 
 private:
 
@@ -92,12 +92,14 @@ public:
 #include "Tcp.h"
 #include "MqttIn.h"
 #include "MqttOut.h"
+#include "Str.h"
 
 uint8_t mac[] = { 0x9B, 0xA9, 0xE9, 0xF2, 0xF3, 0x46 };
-uint8_t ip[] = { 192, 168, 0, 255 };
+uint8_t ip[] = { 192, 168, 0, 111 };
 uint8_t gtw[] = { 192, 168, 0, 1 };
 uint8_t mask[] = { 255, 255, 255, 0 };
 uint8_t test_mosquitto_org[] = { 85, 119, 83, 194 };
+uint8_t pcpav2[] = { 192, 168, 0, 206 };
 
 class ConnectTask: public Thread, public Stream {
 public:
@@ -110,25 +112,46 @@ public:
 		_tcp->upStream(this);
 		_mqttIn = new MqttIn(256);
 		_mqttOut = new MqttOut(256);
+		_topic = new Str(32);
+		_msg = new Str(100);
+		_messageId = 1234;
 	}
 	void run() {
+		int i;
 		_wiz->init();
 		_wiz->reset();
 		_wiz->loadCommon(mac, ip, gtw, mask);
+		_mqttOut->prefix("ikke/");
 
 		while (true) {
-			_tcp->init();
-			_tcp->setDstIp(test_mosquitto_org);
+			_messageId++;
+			_tcp->setDstIp(pcpav2);
 			_tcp->setDstPort(1883);
+			_tcp->init();
 			while (_tcp->connect() == E_CONN_LOSS)
 				vTaskDelay(3000);
-			_mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION, "willTopic",
-					"willMsg", "userName", "password", 1000);
+			_mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION, "ikke/alive",
+					"false", "userName", "password", 1000);
 			_tcp->write(_mqttOut);
 			_tcp->flush();
-			while (_tcp->hasData()) {
-				_mqttIn->add(_tcp->read());
-			}
+			for (i = 0; i < 100; i++) {
+				_topic->clear();
+				_msg->clear();
+				_topic->append("ikke/topic");
+				_msg->append("topicValue");
+				_msg->append(i);
+				_mqttOut->Publish(MQTT_QOS2_FLAG, _topic, _msg, _messageId);
+				_tcp->write(_mqttOut);
+				_tcp->flush();
+				_mqttOut->PubRel(_messageId);
+				_tcp->write(_mqttOut);
+				_tcp->flush();
+				vTaskDelay(100);
+			};
+			_mqttOut->Disconnect();
+			_tcp->write(_mqttOut);
+			_tcp->flush();
+			vTaskDelay(10);
 			_tcp->disconnect();
 			vTaskDelay(1000);
 		}
@@ -140,6 +163,9 @@ private:
 	Tcp* _tcp;
 	MqttIn* _mqttIn;
 	MqttOut* _mqttOut;
+	uint16_t _messageId;
+	Str* _topic;
+	Str* _msg;
 };
 
 MainThread* mainT;
@@ -172,13 +198,13 @@ public:
 CoR* cor;
 
 extern "C" void vApplicationIdleHook(void) {
-/*	Event* pEvent;
-	vCoRoutineSchedule();
-	Queue *q = CoRoutine::getDefaultQueue();
-	while (q->receive(&pEvent, 0)) {
-		((CoRoutine*) (pEvent->dest()))->run(pEvent);
-		Sys::free(pEvent);
-	}*/
+	/*	Event* pEvent;
+	 vCoRoutineSchedule();
+	 Queue *q = CoRoutine::getDefaultQueue();
+	 while (q->receive(&pEvent, 0)) {
+	 ((CoRoutine*) (pEvent->dest()))->run(pEvent);
+	 Sys::free(pEvent);
+	 }*/
 }
 
 int main(void) {

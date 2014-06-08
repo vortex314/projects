@@ -21,10 +21,10 @@ private:
     void addRemainingLength(uint32_t length);
     void addUint16(uint16_t value);
     void addString(const char *string);
-    void addStr(Str& str);
+    void addStr(Str* str);
     void addComposedString(char *prefix, char *str);
     void addMessage(uint8_t* src, uint32_t length);
-    void addBytes(Bytes& bytes);
+    void addBytes(Bytes* bytes);
     void addBytes(uint8_t* bytes,uint32_t length);
 public:
     void Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag, const char *willTopic,
@@ -33,7 +33,7 @@ public:
     void Disconnect();
     void PingReq();
     void PingResp();
-    void Publish(uint8_t hdr, Str& topic, Bytes& msg,
+    void Publish(uint8_t hdr, Str* topic, Bytes* msg,
             uint16_t message_id);
     void PubRel(uint16_t messageId);
     void PubAck(uint16_t messageId);
