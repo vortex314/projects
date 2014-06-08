@@ -126,19 +126,19 @@ bool Tcp::isConnecting() {
     return _state == ST_CONNECTING;
 }
 
-Erc Tcp::event(Event& event) {
-    switch (event.clsType()) {
+Erc Tcp::event(Event* event) {
+    switch (event->clsType()) {
         case Wiz5100::INTERRUPT:
         {
-            if (event.detail() & W5100_SKT_IR_DISCON)
+            if (event->detail() & W5100_SKT_IR_DISCON)
                 state(ST_DISCONNECTED);
-            if (event.detail() & W5100_SKT_IR_RECV)
+            if (event->detail() & W5100_SKT_IR_RECV)
                 recvLoop();
-            if (event.detail() & W5100_SKT_IR_SEND_OK)
+            if (event->detail() & W5100_SKT_IR_SEND_OK)
                 upQueue(Tcp::TXD);
-            if (event.detail() & W5100_SKT_IR_CON)
+            if (event->detail() & W5100_SKT_IR_CON)
                 state(ST_CONNECTED);
-            if (event.detail() & W5100_SKT_IR_TIMEOUT)
+            if (event->detail() & W5100_SKT_IR_TIMEOUT)
                 state(ST_DISCONNECTED);
             break;
         }

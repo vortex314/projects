@@ -40,9 +40,8 @@ class ThreadStream: public Thread, public Stream {
 public:
 	ThreadStream(const char *name, unsigned short stackDepth, char priority) :
 			Thread(name, stackDepth, priority) {
-		_queue = new Queue(10, 4);
 	}
-	inline Erc post(Event* pEvent) {
+/*	inline Erc post(Event* pEvent) {
 		if (_queue->send(&pEvent))
 			return E_LACK_RESOURCE;
 		wakeup();
@@ -63,12 +62,10 @@ public:
 				return pEvent;
 		}
 	}
-	Queue* queue() {
-		return _queue;
-	}
+*/
 
 private:
-	Queue* _queue;
+
 };
 
 #include "CoRoutine.h"
@@ -83,7 +80,7 @@ public:
 	void run() {
 		Event* pEvent;
 		while (true) { // EVENTPUMP
-			if (queue()->receive(&pEvent)) {
+			if (getDefaultQueue()->receive(&pEvent)) {
 				pEvent->dest()->event(pEvent);
 				Sys::free(pEvent); // free up event
 			}

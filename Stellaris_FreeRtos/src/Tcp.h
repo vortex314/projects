@@ -51,10 +51,10 @@ public:
     uint8_t read();
     char run(struct pt *pt);
     void poll();
-    Erc event(Event& event);
     void state(State state);
     bool isConnected();
     bool isConnecting();
+    Erc event(Event* pEvent);
 private:
     Erc inConnected(Event& event);
     uint8_t _dstIp[4];
