@@ -89,8 +89,8 @@ int Wiz5100::init() {
 	return E_OK;
 }
 
-Erc Wiz5100::event(Event& event) {
-	if (event.clsType() == Timer::EXPIRED)
+Erc Wiz5100::event(Event* event) {
+	if (event->id() == Timer::EXPIRED)
 		poll(0);
 	return E_OK;
 }

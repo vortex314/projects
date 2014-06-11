@@ -39,7 +39,7 @@ public:
     int init();
     void setDstIp(uint8_t* dstIp);
     void setDstPort(uint16_t port);
-    void incSrcPort();
+    Erc incSrcPort();
     Erc connect();
     void disconnect();
     Erc write(Bytes* outMsg);

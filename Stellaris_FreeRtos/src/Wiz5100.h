@@ -54,7 +54,7 @@ public:
 //    void setIR(uint8_t);
 
     void poll(uint32_t socket);
-    Erc event(Event& event);
+    Erc event(Event* event);
 private:
     Spi* _spi;
 //    Timer _timer;

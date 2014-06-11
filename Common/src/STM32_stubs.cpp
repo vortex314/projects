@@ -9,10 +9,12 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/unistd.h>
+#ifdef __STM32
 #ifdef STM32F0XX
 #include <stm32f0xx.h>
 #else
 #include <stm32f10x.h>
+#endif
 #endif
 //#include "system.h"
 #include "Sys.h"

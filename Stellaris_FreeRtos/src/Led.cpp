@@ -83,7 +83,6 @@ Erc Led::event(Event* event) {
 #define GREEN_GPIO_PERIPH       SYSCTL_PERIPH_GPIOF
 #define GREEN_TIMER_PERIPH      SYSCTL_PERIPH_TIMER1
 
-
 #define RED_GPIO_BASE           GPIO_PORTF_BASE
 #define RED_TIMER_BASE          TIMER0_BASE
 #define BLUE_GPIO_BASE          GPIO_PORTF_BASE
@@ -94,7 +93,6 @@ Erc Led::event(Event* event) {
 #define RED_GPIO_PIN            GPIO_PIN_1
 #define BLUE_GPIO_PIN           GPIO_PIN_2
 #define GREEN_GPIO_PIN          GPIO_PIN_3
-
 
 #define RED_GPIO_PIN_CFG        GPIO_PF1_T0CCP1
 #define BLUE_GPIO_PIN_CFG       GPIO_PF2_T1CCP0
@@ -135,7 +133,7 @@ void Led::toggle() {
 
 void Led::on() {
 	if (_led == LED_GREEN) {
-		GPIOPinWrite(GREEN_GPIO_BASE, GREEN_GPIO_PIN,GREEN_GPIO_PIN );
+		GPIOPinWrite(GREEN_GPIO_BASE, GREEN_GPIO_PIN, GREEN_GPIO_PIN);
 	};
 
 	if (_led == LED_BLUE) {
@@ -148,14 +146,14 @@ void Led::on() {
 
 void Led::off() {
 	if (_led == LED_GREEN) {
-			GPIOPinWrite(GREEN_GPIO_BASE, GREEN_GPIO_PIN,0 );
-		};
+		GPIOPinWrite(GREEN_GPIO_BASE, GREEN_GPIO_PIN, 0);
+	};
 
-		if (_led == LED_BLUE) {
-			GPIOPinWrite(BLUE_GPIO_BASE, BLUE_GPIO_PIN, 0);
-		};
-		if (_led == LED_RED) {
-			GPIOPinWrite(RED_GPIO_BASE, RED_GPIO_PIN, 0);
-		}
+	if (_led == LED_BLUE) {
+		GPIOPinWrite(BLUE_GPIO_BASE, BLUE_GPIO_PIN, 0);
+	};
+	if (_led == LED_RED) {
+		GPIOPinWrite(RED_GPIO_BASE, RED_GPIO_PIN, 0);
+	}
 }
 

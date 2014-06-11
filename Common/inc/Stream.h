@@ -13,21 +13,21 @@
 #include "QueueTemplate.h"
 #include "Event.h"
 #include "QueueWrapper.h"
-
+#define QUEUE_DEPTH 10
 class Stream {
 public:
 	virtual Erc post(Event *pEvent){
-		getDefaultQueue()->send(&pEvent);
+		getDefaultQueue()->send(pEvent);
 		return E_OK;
 	}
 	virtual Erc postFromIsr(Event *pEvent){
-		getDefaultQueue()->sendFromIsr(&pEvent);
+		getDefaultQueue()->sendFromIsr(pEvent);
 		return E_OK;
 	}
 	virtual Erc event(Event* pEvent);
 	Stream() {
 	}
-	;
+
 	Stream(Stream* str) {
 		upStream(str);
 	}
@@ -38,14 +38,13 @@ public:
 		_upStream = up;
 	}
 	Erc upQueue(uint32_t id) {
-		return upStream()->post(new Event(this, _upStream, id));
+
+		Event ev(_upStream,this, id,NULL);
+		return upStream()->post(&ev);
 	}
 
-	Erc queue(uint32_t id) {
-		return post(new Event(this, this, id));
-	}
 	static Queue*  getDefaultQueue(){
-			if ( _defaultQueue== NULL ) _defaultQueue=new Queue(10,4);
+			if ( _defaultQueue== NULL ) _defaultQueue=new Queue(QUEUE_DEPTH,sizeof(Event));
 			return _defaultQueue;
 		}
 

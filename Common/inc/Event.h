@@ -16,24 +16,30 @@
 
 class Stream;
 class Sys;
-
+/*
+ typedef struct {
+ Stream* dst;
+ void *src;
+ uint32_t type;
+ void *data;
+ } Event;
+ */
 class Event {
 public:
 	Event();
-	Event(Stream* src, Stream *dst, uint32_t id);
+	Event(Stream *dst, void* src, uint32_t id, void *p);
 	bool is(uint32_t value);
 	bool is(uint32_t clsType, uint16_t detail);
 	uint32_t is();
 	uint32_t id();
-	Stream *dest();
-	Stream *src();
-	uint32_t clsType();
+	Stream *dst();
+	void *src();
 	uint16_t detail();
 public:
-	Stream* _src;
 	Stream* _dst;
+	void* _src;
 	uint32_t _id;
-	void *_pData;
+	void *_data;
 };
 
 #endif	/* EVENT_H */

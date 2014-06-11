@@ -21,6 +21,13 @@ extern "C" void vApplicationTickHook(void) {
 	SysTickHandler();
 }
 
+
+extern "C" void vApplicationIdleHook(void) {
+	/*
+	 vCoRoutineSchedule();
+	 */
+}
+
 extern "C" void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 		signed char *pcTaskName) {
 //bad_task_handle = pxTask;     // this seems to give me the crashed task handle
@@ -36,53 +43,17 @@ extern "C" void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 
 //_____________________________________________________________________________________
 
-class ThreadStream: public Thread, public Stream {
-public:
-	ThreadStream(const char *name, unsigned short stackDepth, char priority) :
-			Thread(name, stackDepth, priority) {
-	}
-	/*	inline Erc post(Event* pEvent) {
-	 if (_queue->send(&pEvent))
-	 return E_LACK_RESOURCE;
-	 wakeup();
-	 return E_OK;
-	 }
-	 Erc postFromIsr(Event* pEvent) {
-	 if (_queue->sendFromIsr(&pEvent))
-	 return E_LACK_RESOURCE;
-	 wakeup();
-	 return E_OK;
-	 }
-	 Event* wait(Stream* str, uint32_t event, uint32_t timeout) {
-	 Event* pEvent;
-	 while (true) {
-	 if (_queue->receive(&pEvent, timeout) == pdFALSE)
-	 return NULL;
-	 if ((str == pEvent->src()) && (pEvent->is(event)))
-	 return pEvent;
-	 }
-	 }
-	 */
-
-private:
-
-};
-
-#include "CoRoutine.h"
-//_____________________________________________________________________________________
-
-class MainThread: public ThreadStream {
+class MainThread: public Thread {
 public:
 	MainThread() :
-			ThreadStream("Main", configMINIMAL_STACK_SIZE, 4) {
+			Thread("Main", configMINIMAL_STACK_SIZE, 4) {
 	}
 
 	void run() {
-		Event* pEvent;
-		while (true) { // EVENTPUMP
-			if (getDefaultQueue()->receive(&pEvent)) {
-				pEvent->dest()->event(pEvent);
-				Sys::free(pEvent); // free up event
+		Event event;
+		while (true) {
+			if (Stream::getDefaultQueue()->receive(&event)) {
+				event.dst()->event(&event);
 			}
 		}
 	}
@@ -100,6 +71,7 @@ uint8_t gtw[] = { 192, 168, 0, 1 };
 uint8_t mask[] = { 255, 255, 255, 0 };
 uint8_t test_mosquitto_org[] = { 85, 119, 83, 194 };
 uint8_t pcpav2[] = { 192, 168, 0, 206 };
+uint8_t pi[] = { 192, 168, 0, 128 };
 
 class ConnectTask: public Thread, public Stream {
 public:
@@ -115,30 +87,33 @@ public:
 		_topic = new Str(32);
 		_msg = new Str(100);
 		_messageId = 1234;
+		_clientId = new Str(20);
 	}
 	void run() {
 		int i;
 		_wiz->init();
 		_wiz->reset();
 		_wiz->loadCommon(mac, ip, gtw, mask);
-		_mqttOut->prefix("ikke/");
+//		_mqttOut->prefix("ikke/");
 
 		while (true) {
 			_messageId++;
-			_tcp->setDstIp(pcpav2);
+			_clientId->append("ikke");
+			_clientId->append("messageId");
+			_tcp->setDstIp(pi);
 			_tcp->setDstPort(1883);
 			_tcp->init();
 			while (_tcp->connect() == E_CONN_LOSS)
 				vTaskDelay(3000);
-			_mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION, "ikke/alive",
-					"false", "userName", "password", 1000);
+			_mqttOut->Connect(0, _clientId->data(), MQTT_CLEAN_SESSION,
+					"ikke/alive", "false", "userName", "password", 1000);
 			_tcp->write(_mqttOut);
 			_tcp->flush();
 			for (i = 0; i < 100; i++) {
 				_topic->clear();
 				_msg->clear();
 				_topic->append("ikke/topic");
-				_msg->append("topicValue");
+				_msg->append("topicValue_");
 				_msg->append(i);
 				_mqttOut->Publish(MQTT_QOS2_FLAG, _topic, _msg, _messageId);
 				_tcp->write(_mqttOut);
@@ -166,6 +141,7 @@ private:
 	uint16_t _messageId;
 	Str* _topic;
 	Str* _msg;
+	Str* _clientId;
 };
 
 MainThread* mainT;
@@ -175,6 +151,31 @@ MainThread* mainT;
 Led ledRed(Led::LED_RED);
 Led ledBlue(Led::LED_BLUE);
 Led ledGreen(Led::LED_GREEN);
+
+
+
+int main(void) {
+	Sys::init();
+
+	Led ledGreen(Led::LED_GREEN);
+	Event event(&ledGreen, (void*) NULL, 1234, 0);
+
+	ledGreen.blink(1);
+//	ledRed.blink(2);
+//	ledBlue.blink(3);
+//	ledRed.light(false);
+//	ledBlue.light(false);
+
+	mainT = new MainThread();
+	ConnectTask* connect = new ConnectTask("Conn",
+			configMINIMAL_STACK_SIZE + 100, 4);
+//	cor = new CoR();
+
+	vTaskStartScheduler();
+
+}
+
+#include "CoRoutine.h"
 
 class CoR: public CoRoutine {
 
@@ -194,35 +195,3 @@ public:
 }
 
 };
-
-CoR* cor;
-
-extern "C" void vApplicationIdleHook(void) {
-	/*	Event* pEvent;
-	 vCoRoutineSchedule();
-	 Queue *q = CoRoutine::getDefaultQueue();
-	 while (q->receive(&pEvent, 0)) {
-	 ((CoRoutine*) (pEvent->dest()))->run(pEvent);
-	 Sys::free(pEvent);
-	 }*/
-}
-
-int main(void) {
-	Sys::init();
-
-	Led ledGreen(Led::LED_GREEN);
-
-	ledGreen.blink(1);
-//	ledRed.blink(2);
-//	ledBlue.blink(3);
-//	ledRed.light(false);
-//	ledBlue.light(false);
-
-	mainT = new MainThread();
-	ConnectTask* connect = new ConnectTask("Conn",
-			configMINIMAL_STACK_SIZE + 100, 4);
-//	cor = new CoR();
-
-	vTaskStartScheduler();
-
-}

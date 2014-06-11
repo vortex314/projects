@@ -71,12 +71,13 @@ int Tcp::init() {
 	return 0;
 }
 
-void Tcp::incSrcPort() {
+Erc Tcp::incSrcPort() {
 
 	Erc erc = 0;
 	_srcPort++;
 	erc = _wiz->write(Sx_PORT(_socket), ((_srcPort & 0xFF00) >> 8)); // set source port for this socket (MSB)
 	erc = _wiz->write(Sx_PORT(_socket) + 1, (_srcPort & 0x00FF)); // set source port for this socket (LSB)
+	return erc;
 }
 
 void Tcp::setDstIp(uint8_t * dstIp) {
@@ -125,7 +126,7 @@ bool Tcp::isConnecting() {
 }
 
 Erc Tcp::event(Event* event) {
-	switch (event->clsType()) {
+	switch (event->id()) {
 	case Wiz5100::INTERRUPT: {
 		if (event->detail() & W5100_SKT_IR_DISCON)
 			state(ST_DISCONNECTED);
@@ -158,7 +159,7 @@ Erc Tcp::connect() {
 	uint8_t SR;
 	uint8_t IR;
 	while (true) {
-		vTaskDelay(500);
+		vTaskDelay(100);
 		_wiz->read(Sx_IR(_socket), &IR);
 		_wiz->write(Sx_IR(_socket), 1);
 		if (IR & W5100_SKT_IR_CON)
@@ -247,22 +248,25 @@ Erc Tcp::flush() {
 	uint16_t offaddr;
 	uint16_t size;
 	uint16_t realaddr;
+	int erc = E_OK;
 	if (_txd.hasData() == false)
 		return E_LACK_RESOURCE;
-	int erc = _wiz->read16(Sx_TX_FSR(_socket), &size); // make sure the TX free-size reg is available
-	if (size == 0)
-		return E_NOT_FOUND;
-	erc = _wiz->read16(Sx_TX_WR(_socket), &offaddr); // Read the Tx Write Pointer
-	while (_txd.hasData() && size > 0) {
-		realaddr = Sx_TX_BASE(_socket) + (offaddr & W5100_TX_BUF_MASK); // calc W5100 physical buffer addr for this socket
-		_wiz->write(realaddr, _txd.read()); // send a byte of application data to TX buffer
-		offaddr++; // next TX buffer addr
-		size--;
-		_bytesTxd++;
+	while (_txd.hasData()) {
+		erc = _wiz->read16(Sx_TX_FSR(_socket), &size); // make sure the TX free-size reg is available
+		if (size == 0)
+			return E_NOT_FOUND;
+		erc = _wiz->read16(Sx_TX_WR(_socket), &offaddr); // Read the Tx Write Pointer
+		while (_txd.hasData() && size > 0) {
+			realaddr = Sx_TX_BASE(_socket) + (offaddr & W5100_TX_BUF_MASK); // calc W5100 physical buffer addr for this socket
+			_wiz->write(realaddr, _txd.read()); // send a byte of application data to TX buffer
+			offaddr++; // next TX buffer addr
+			size--;
+			_bytesTxd++;
+		}
+		erc = _wiz->write16(Sx_TX_WR(_socket), offaddr);
+		_wiz->socketCmd(_socket, W5100_SKT_CR_SEND);
+		if (erc)
+			return erc;
 	}
-	if (_txd.hasData())
-		queue(CMD_SEND); // restart event to send rest
-	erc = _wiz->write16(Sx_TX_WR(_socket), offaddr);
-	_wiz->socketCmd(_socket, W5100_SKT_CR_SEND);
 	return erc;
 }
