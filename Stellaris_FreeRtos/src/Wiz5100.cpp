@@ -43,6 +43,10 @@ void Wiz5100::reset() {
 	MAP_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PB0_U1RX, GPIO_PIN_0);
 	Sys::delay_ms(100);
 #endif
+	int erc = write(W5100_MR ,W5100_MR_SOFTRST);
+	Sys::delay_ms(100);
+	erc = write(W5100_MR ,0);
+
 }
 
 Erc Wiz5100::loadCommon(uint8_t mac[6], uint8_t ipAddress[4],
@@ -50,24 +54,29 @@ Erc Wiz5100::loadCommon(uint8_t mac[6], uint8_t ipAddress[4],
 	int i;
 	uint8_t reg;
 	int erc = 0;
-	if (erc)
-		return erc;
 	for (i = 0; i < 4; i++) {
 		erc += write(W5100_GAR + i, gtwAddr[i]); // set up the gateway address
-		read(W5100_GAR + i,&reg);
+		read(W5100_GAR + i, &reg);
 	}
 	Sys::delay_ms(1);
 	for (i = 0; i < 6; i++)
-		erc += write(W5100_SHAR + i, mac[i]); // set up the MAC address
+		erc |= write(W5100_SHAR + i, mac[i]); // set up the MAC address
 	Sys::delay_ms(1);
 	for (i = 0; i < 4; i++)
-		erc += write(W5100_SUBR + i, netmask[i]); // set up the subnet mask
+		erc |= write(W5100_SUBR + i, netmask[i]); // set up the subnet mask
 	Sys::delay_ms(1);
 	for (i = 0; i < 4; i++)
-		erc += write(W5100_SIPR + i, ipAddress[i]); // set up the source IP address
+		erc |= write(W5100_SIPR + i, ipAddress[i]); // set up the source IP address
 	Sys::delay_ms(1);
-	erc += write(W5100_RMSR, (uint8_t) 0x55); // use default buffer sizes (2K bytes RX and TX for each socket
-	erc += write(W5100_TMSR, (uint8_t) 0x55);
+	erc |= write(W5100_RMSR, (uint8_t) 0x55); // use default buffer sizes (2K bytes RX and TX for each socket
+	erc |= write(W5100_TMSR, (uint8_t) 0x55);
+	erc |=
+			write(W5100_IMR,
+					W5100_IMR_CONFLICT | W5100_IMR_UNREACH | W5100_IMR_S0_INT
+							| W5100_IMR_S1_INT | W5100_IMR_S2_INT
+							| W5100_IMR_S3_INT);
+	uint8_t IR;
+	erc |= read(W5100_IR, &IR);
 	return erc;
 }
 

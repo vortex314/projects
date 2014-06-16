@@ -151,17 +151,24 @@ Erc Tcp::event(Event* event) {
 
 Erc Tcp::connect() {
 	incSrcPort();
-	_wiz->write(Sx_IR(_socket), 1);
+	_wiz->socketCmd(_socket, W5100_SKT_CR_CLOSE);
+	_wiz->write(Sx_IR(_socket), 0xF);	// clear interrupts
 	_wiz->socketCmd(_socket, W5100_SKT_CR_OPEN);
 	_wiz->socketCmd(_socket, W5100_SKT_CR_CONNECT);
 	_rxd.clear();
 	_txd.clear();
 	uint8_t SR;
-	uint8_t IR;
+	uint8_t IR,CIR;
 	while (true) {
+
+		_wiz->read(W5100_IR,&CIR),
+		_wiz->read(Sx_SR(_socket), &SR);
+		if ( SR == W5100_SKT_SR_ESTABLISHED) break;
+		if ( SR== W5100_SKT_SR_CLOSED) return E_CONN_LOSS;
 		vTaskDelay(100);
+		/*
 		_wiz->read(Sx_IR(_socket), &IR);
-		_wiz->write(Sx_IR(_socket), 1);
+		_wiz->write(Sx_IR(_socket), IR);
 		if (IR & W5100_SKT_IR_CON)
 			return E_OK;
 		else if (IR & W5100_SKT_IR_DISCON) {
@@ -172,7 +179,7 @@ Erc Tcp::connect() {
 			_wiz->read(Sx_SR(_socket), &SR);
 			return E_CONN_LOSS;
 		}
-		taskYIELD();
+		taskYIELD();*/
 	};
 	return E_OK;
 }

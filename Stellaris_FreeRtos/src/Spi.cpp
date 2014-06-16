@@ -122,7 +122,7 @@ Erc Spi::write(uint8_t b) {
 Erc Spi::flush() {
 	_count = _out.length();
 	_out.offset(0);
-	SSIIntEnable(SSI, SSI_TXFF); // interrupt will be generated if fifo is empty
+//	SSIIntEnable(SSI, SSI_TXFF); // interrupt will be generated if fifo is empty
 	return E_OK;
 }
 
@@ -153,7 +153,7 @@ Erc Spi::send(Bytes& b) {
 		_out.write(b.read());
 	_count = _out.length();
 	_out.offset(0);
-	SSIIntEnable(SSI, SSI_TXFF | SSI_RXFF); // interrupt will be generated if fifo is empty
+//	SSIIntEnable(SSI, SSI_TXFF | SSI_RXFF); // interrupt will be generated if fifo is empty
 	while (_out.hasData()) {
 		if (SSIDataPutNonBlocking(SSI, _out.peek()))
 			_out.read();

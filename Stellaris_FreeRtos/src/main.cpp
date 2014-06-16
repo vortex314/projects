@@ -66,7 +66,7 @@ public:
 #include "Str.h"
 
 uint8_t mac[] = { 0x9B, 0xA9, 0xE9, 0xF2, 0xF3, 0x46 };
-uint8_t ip[] = { 192, 168, 0, 111 };
+uint8_t ip[] = { 192, 168, 0, 121 };
 uint8_t gtw[] = { 192, 168, 0, 1 };
 uint8_t mask[] = { 255, 255, 255, 0 };
 uint8_t test_mosquitto_org[] = { 85, 119, 83, 194 };
