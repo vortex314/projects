@@ -10,10 +10,11 @@
 #include "Erc.h"
 #include "FreeRTOS.h"
 #include "task.h"
-
+#include "semphr.h"
 class Thread {
 private:
 	xTaskHandle _taskHandle;
+	xSemaphoreHandle _semaphore;
 
 public:
 	Thread(const char *name, unsigned short stackDepth, char priority);
@@ -21,6 +22,8 @@ public:
 	Erc sleep(uint32_t time);
 	Erc wakeup();
 	Erc yield();
+	void wait(int timeout);
+	void notify();
 	virtual void run() =0;
 };
 

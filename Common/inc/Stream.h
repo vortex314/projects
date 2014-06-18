@@ -16,11 +16,11 @@
 #define QUEUE_DEPTH 10
 class Stream {
 public:
-	virtual Erc post(Event *pEvent){
+	virtual Erc post(Event *pEvent) {
 		getDefaultQueue()->send(pEvent);
 		return E_OK;
 	}
-	virtual Erc postFromIsr(Event *pEvent){
+	virtual Erc postFromIsr(Event *pEvent) {
 		getDefaultQueue()->sendFromIsr(pEvent);
 		return E_OK;
 	}
@@ -39,14 +39,21 @@ public:
 	}
 	Erc upQueue(uint32_t id) {
 
-		Event ev(_upStream,this, id,NULL);
+		Event ev(_upStream, this, id, NULL);
 		return upStream()->post(&ev);
 	}
 
-	static Queue*  getDefaultQueue(){
-			if ( _defaultQueue== NULL ) _defaultQueue=new Queue(QUEUE_DEPTH,sizeof(Event));
-			return _defaultQueue;
-		}
+	static Queue* getDefaultQueue() {
+		if (_defaultQueue == NULL)
+			_defaultQueue = new Queue(QUEUE_DEPTH, sizeof(Event));
+		return _defaultQueue;
+	}
+	virtual void wait(int timeout) {
+		_upStream->wait(timeout);
+	}
+	virtual void notify() {
+		_upStream->notify();
+	}
 
 private:
 	Stream* _upStream;

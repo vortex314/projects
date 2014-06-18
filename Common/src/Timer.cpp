@@ -74,7 +74,7 @@ void Timer::reload(bool automatic) {
 void Timer::dec() {
 	if (_isActive)
 		if (--_counterValue == 0) {
-			Event event(upStream(), this, Timer::EXPIRED, NULL);
+			Event event(upStream(), this, Timer::EXPIRED, 0);
 			upStream()->postFromIsr(&event);
 			_isExpired = true;
 			if (_isAutoReload)
