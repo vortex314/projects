@@ -1,0 +1,79 @@
+# depslib dependency file v1.0
+1403286214 source:/home/lieven/micro/Common/src/Bytes.cpp
+	"Bytes.h"
+
+1403286214 /home/lieven/micro/Common/inc/Bytes.h
+	<stdint.h>
+	"Erc.h"
+	"Sys.h"
+
+1403286214 /home/lieven/micro/Common/inc/Erc.h
+	<stdint.h>
+
+1403286214 /home/lieven/micro/Common/inc/Sys.h
+	"stdint.h"
+	"Erc.h"
+
+1403292999 source:/home/lieven/micro/Debian_Mqtt/Mqtt/main.cpp
+	<iostream>
+	"Bytes.h"
+	"Str.h"
+
+1403286214 source:/home/lieven/micro/Common/src/CircBuf.cpp
+	"CircBuf.h"
+	"Sys.h"
+
+1403286214 /home/lieven/micro/Common/inc/CircBuf.h
+	<stdint.h>
+	<errno.h>
+
+1403286214 source:/home/lieven/micro/Common/src/Event.cpp
+	"Event.h"
+	"Sys.h"
+	"Erc.h"
+
+1403286214 /home/lieven/micro/Common/inc/Event.h
+	<stdint.h>
+	"QueueTemplate.h"
+
+1403286214 /home/lieven/micro/Common/inc/QueueTemplate.h
+	"Erc.h"
+	"Sys.h"
+
+1403286214 source:/home/lieven/micro/Common/src/Node.cpp
+	"Node.h"
+
+1403286214 /home/lieven/micro/Common/inc/Node.h
+	<stdint.h>
+	"Erc.h"
+
+1403286214 source:/home/lieven/micro/Common/src/Property.cpp
+	"Property.h"
+
+1403286214 /home/lieven/micro/Common/inc/Property.h
+	<stdint.h>
+	<errno.h>
+	<string.h>
+	"Sys.h"
+	"Str.h"
+	"Erc.h"
+	"Strpack.h"
+
+1403286214 /home/lieven/micro/Common/inc/Str.h
+	"Bytes.h"
+	"Erc.h"
+
+1403286214 /home/lieven/micro/Common/inc/Strpack.h
+	"Str.h"
+
+1403286214 source:/home/lieven/micro/Common/src/Str.cpp
+	"Str.h"
+
+1403286214 source:/home/lieven/micro/Common/src/Strpack.cpp
+	"Strpack.h"
+	<string.h>
+
+1403293257 source:/home/lieven/micro/Debian_Mqtt/Mqtt/Sys.cpp
+	"Sys.h"
+	<malloc.h>
+

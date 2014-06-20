@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   Streams.h
  * Author: lieven2
  *
@@ -14,6 +14,8 @@
 #include "Event.h"
 #include "QueueWrapper.h"
 #define QUEUE_DEPTH 10
+class Queue;
+
 class Stream {
 public:
 	virtual Erc post(Event *pEvent) {
