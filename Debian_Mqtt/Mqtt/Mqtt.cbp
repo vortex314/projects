@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add directory="../../Common/inc" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -31,7 +32,17 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add directory="/home/lieven/micro/Debian_Mqtt/Mqtt/" />
 		</Compiler>
+		<Unit filename="../../Common/src/Bytes.cpp" />
+		<Unit filename="../../Common/src/CircBuf.cpp" />
+		<Unit filename="../../Common/src/Event.cpp" />
+		<Unit filename="../../Common/src/Node.cpp" />
+		<Unit filename="../../Common/src/Property.cpp" />
+		<Unit filename="../../Common/src/Str.cpp" />
+		<Unit filename="../../Common/src/Strpack.cpp" />
+		<Unit filename="QueueWrapper.h" />
+		<Unit filename="Sys.cpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
