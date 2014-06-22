@@ -34,16 +34,23 @@
 			<Add option="-fexceptions" />
 			<Add directory="/home/lieven/micro/Debian_Mqtt/Mqtt/" />
 		</Compiler>
+		<Linker>
+			<Add library="rt" />
+		</Linker>
 		<Unit filename="../../Common/src/Bytes.cpp" />
 		<Unit filename="../../Common/src/CircBuf.cpp" />
 		<Unit filename="../../Common/src/Event.cpp" />
+		<Unit filename="../../Common/src/MqttIn.cpp" />
+		<Unit filename="../../Common/src/MqttOut.cpp" />
 		<Unit filename="../../Common/src/Node.cpp" />
 		<Unit filename="../../Common/src/Property.cpp" />
 		<Unit filename="../../Common/src/Str.cpp" />
 		<Unit filename="../../Common/src/Strpack.cpp" />
+		<Unit filename="Queue.cpp" />
 		<Unit filename="QueueWrapper.h" />
 		<Unit filename="Sys.cpp" />
 		<Unit filename="main.cpp" />
+		<Unit filename="../../Queue.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />

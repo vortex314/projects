@@ -14,7 +14,7 @@
 	"stdint.h"
 	"Erc.h"
 
-1403306510 source:/home/lieven/micro/Debian_Mqtt/Mqtt/main.cpp
+1403384538 source:/home/lieven/micro/Debian_Mqtt/Mqtt/main.cpp
 	<iostream>
 	"Bytes.h"
 	"Str.h"
@@ -26,6 +26,8 @@
 	<netinet/in.h>
 	<netdb.h>
 	<unistd.h>
+	"Queue.h"
+	"Event.h"
 
 1403286214 source:/home/lieven/micro/Common/src/CircBuf.cpp
 	"CircBuf.h"
@@ -104,4 +106,18 @@
 	<string.h>
 	"Bytes.h"
 	"Mqtt.h"
+
+1403393711 source:/home/lieven/micro/Debian_Mqtt/Mqtt/Queue.cpp
+	"Queue.h"
+	<fcntl.h>
+	<sys/stat.h>
+	<mqueue.h>
+	"Sys.h"
+	<stdio.h>
+	<errno.h>
+
+1403393187 /home/lieven/micro/Common/inc/Queue.h
+	<stdint.h>
+	"Erc.h"
+	<mqueue.h>
 

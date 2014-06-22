@@ -17,7 +17,6 @@ public :
     Tcp();
     Erc connect(char *ip,int port);
     Erc disconnect();
-    Erc read(uint8_t *pb,uint32_t *length);
     Erc send(Bytes* pb);
     Erc recv(Bytes* pb);
 private :
@@ -67,10 +66,11 @@ Erc Tcp::disconnect()
 }
 
 
-Erc Tcp::read(uint8_t *pb,uint32_t *length)
+Erc Tcp::recv(Bytes* pb)
 {
     int n;
-    n=::read(_sockfd,pb,*length) ;
+
+    n=::read(_sockfd,pb->data(),pb->length()) ;
     if (n < 0)
     {
         return E_CONN_LOSS;
@@ -90,9 +90,14 @@ Erc Tcp::send(Bytes* pb)
 }
 
 
+#include "Queue.h"
+#include "Event.h"
 
 int main(int argc, char *argv[])
 {
+    Queue q(sizeof(Event),10);
+    Event* event=new Event();
+    q.put(event);
     Tcp tcp;
     MqttOut mqttOut(256);
     MqttIn mqttIn(256);
@@ -103,6 +108,7 @@ int main(int argc, char *argv[])
     mqttOut.Connect(0, "clientId", MQTT_CLEAN_SESSION,
                     "ikke/alive", "false", "userName", "password", 1000);
     tcp.send(&mqttOut);
+    tcp.recv(&mqttIn);
 
     Str topic(100),msg(100);
     topic.append("ikke/topic");
