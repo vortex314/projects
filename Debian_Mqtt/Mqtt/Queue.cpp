@@ -37,6 +37,20 @@ Queue::~Queue()
 
 Erc Queue::put(void* data)
 {
-    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 ) perror("mq_send");
+    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 ) {
+        perror("mq_send");
+        return E_AGAIN;
+    };
+    return E_OK;
+}
+
+Erc Queue::get(void* data)
+{
+    size_t msgSize = _msgSize;
+    unsigned int prio;
+    if ( mq_receive(mq, (char *)data ,msgSize,&prio) < 0 ) {
+        perror("mq_receive");
+        return E_AGAIN;
+    };
     return E_OK;
 }

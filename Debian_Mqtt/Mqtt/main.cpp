@@ -19,6 +19,7 @@ public :
     Erc disconnect();
     Erc send(Bytes* pb);
     Erc recv(Bytes* pb);
+    uint8_t read();
 private :
     int _sockfd;
 
@@ -78,6 +79,19 @@ Erc Tcp::recv(Bytes* pb)
     return E_OK;
 }
 
+uint8_t Tcp::read()
+{
+    int n;
+    uint8_t b;
+
+    n=::read(_sockfd,&b,1) ;
+    if (n < 0)
+    {
+        return 0;
+    }
+    return b;
+}
+
 Erc Tcp::send(Bytes* pb)
 {
     int n;
@@ -92,35 +106,111 @@ Erc Tcp::send(Bytes* pb)
 
 #include "Queue.h"
 #include "Event.h"
+#include "Thread.h"
+#include "Stream.h"
+
+extern "C" void* pvTaskCode(void *pvParameters)
+{
+    (static_cast<Thread*>(pvParameters))->run();
+    return NULL;
+}
+
+Thread::Thread(const char *name, unsigned short stackDepth, char priority)
+{
+    _ref = Sys::malloc(sizeof(pthread_t));
+    pthread_t* pThread = (pthread_t*)_ref;
+    /* create threads */
+    pthread_create (pThread, NULL,  pvTaskCode, (void *) this);
+}
+
+void Thread::run()
+{
+    while(true)
+    {
+        ::sleep(10);
+    }
+}
+Erc Thread::sleep(uint32_t time)
+{
+    ::sleep(time/1000);
+}
+Queue q(sizeof(Event),10);
+
+class MainThread : public Thread
+{
+private :
+
+public:
+    MainThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
+    void run()
+    {
+        while(true)
+        {
+            Event event;
+            q.get(&event);
+            event.dst()->event(&event);
+        }
+    }
+};
+
+class MqttThread : public Stream
+{
+private:
+    MqttIn mqttIn(256);
+    Tcp tcp;
+public:
+    void run()
+    {
+        while(true)
+        {
+
+            MqttOut mqttOut(256);
+
+            Str str(100);
+            uint16_t messageId=1000;
+
+            while ( tcp.connect("test.mosquitto.org",1883) != E_OK )
+                sleep(5000);
+            mqttOut.Connect(0, "clientId", MQTT_CLEAN_SESSION,
+                            "ikke/alive", "false", "userName", "password", 1000);
+            tcp.send(&mqttOut);
+            mqttRead();
+
+            Str topic(100),msg(100);
+            topic.append("ikke/topic");
+            msg.append("value");
+            mqttOut.Publish(MQTT_QOS2_FLAG, &str, &msg, messageId);
+
+            tcp.send(&mqttOut);
+            mqttOut.PubRel(messageId);
+            tcp.send(&mqttOut);
+            mqttOut.Disconnect();
+            tcp.send(&mqttOut);
+            tcp.disconnect();
+        }
+    }
+    void mqttRead()
+    {
+        mqttIn.reset();
+        while ( ! mqttIn.complete() )
+        {
+            mqttIn.add(tcp.read());
+        }
+        mqttIn.parse();
+    }
+
+};
 
 int main(int argc, char *argv[])
 {
-    Queue q(sizeof(Event),10);
+    MainThread mt("messagePump",1000,1);
+    MqttThread mqtt("mqtt",1000,1);
     Event* event=new Event();
     q.put(event);
-    Tcp tcp;
-    MqttOut mqttOut(256);
-    MqttIn mqttIn(256);
-    Str str(100);
-    uint16_t messageId=1000;
 
-    tcp.connect("test.mosquitto.org",1883);
-    mqttOut.Connect(0, "clientId", MQTT_CLEAN_SESSION,
-                    "ikke/alive", "false", "userName", "password", 1000);
-    tcp.send(&mqttOut);
-    tcp.recv(&mqttIn);
-
-    Str topic(100),msg(100);
-    topic.append("ikke/topic");
-    msg.append("value");
-    mqttOut.Publish(MQTT_QOS2_FLAG, &str, &msg, messageId);
-
-    tcp.send(&mqttOut);
-    mqttOut.PubRel(messageId);
-    tcp.send(&mqttOut);
-    mqttOut.Disconnect();
-    tcp.send(&mqttOut);
-    tcp.disconnect();
 
 }
+
 

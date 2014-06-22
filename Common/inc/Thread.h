@@ -8,13 +8,14 @@
 #ifndef THREAD_H_
 #define THREAD_H_
 #include "Erc.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "semphr.h"
+//#include "FreeRTOS.h"
+// #include "task.h"
+// #include "semphr.h"
 class Thread {
 private:
-	xTaskHandle _taskHandle;
-	xSemaphoreHandle _semaphore;
+//	xTaskHandle _taskHandle;
+//	xSemaphoreHandle _semaphore;
+	void* _ref;
 
 public:
 	Thread(const char *name, unsigned short stackDepth, char priority);

@@ -1,13 +1,13 @@
-/* 
+/*
  * File:   Streams.cpp
  * Author: lieven2
- * 
+ *
  * Created on 15 september 2013, 17:58
  */
 
 #include "Stream.h"
 
-Queue* Stream::_defaultQueue=NULL;
+Queue* Stream::_defaultQueue=(Queue*)NULL;
 Erc Stream::event(Event* pEvent){
 	return E_OK;
 }

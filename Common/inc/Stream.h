@@ -12,18 +12,20 @@
 #include "Bytes.h"
 #include "QueueTemplate.h"
 #include "Event.h"
-#include "QueueWrapper.h"
+#include "Queue.h"
 #define QUEUE_DEPTH 10
-class Queue;
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
 
 class Stream {
 public:
 	virtual Erc post(Event *pEvent) {
-		getDefaultQueue()->send(pEvent);
+		getDefaultQueue()->put(pEvent);
 		return E_OK;
 	}
 	virtual Erc postFromIsr(Event *pEvent) {
-		getDefaultQueue()->sendFromIsr(pEvent);
+		getDefaultQueue()->put(pEvent);
 		return E_OK;
 	}
 	virtual Erc event(Event* pEvent);
