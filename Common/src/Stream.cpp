@@ -7,9 +7,15 @@
 
 #include "Stream.h"
 
+#define MAX_LISTENS 20
+
+
+uint32_t listeners=0;
+
 Queue* Stream::_defaultQueue=(Queue*)NULL;
-Erc Stream::event(Event* pEvent){
-	return E_OK;
+Erc Stream::event(Event* pEvent)
+{
+    return E_OK;
 }
 /*
 Queue* Stream::_defaultQueue=NULL;

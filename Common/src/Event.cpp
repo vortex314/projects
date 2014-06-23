@@ -8,11 +8,10 @@ Event::Event() {
 	_id = EVENT('U', 'U');
 }
 
-Event::Event(Stream* dst, void* src, uint32_t id, void *p) {
+Event::Event(Stream* dst, void* src, uint32_t id) {
 	_src = src;
 	_dst = dst;
 	_id = id;
-	_data = p;
 }
 
 bool Event::is(uint32_t type) {

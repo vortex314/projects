@@ -155,17 +155,21 @@ public:
     }
 };
 
-class MqttThread : public Stream
+class MqttThread : public Stream,Thread
 {
 private:
-    MqttIn mqttIn(256);
+
     Tcp tcp;
+
 public:
+    MqttThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
     void run()
     {
         while(true)
         {
-
+            MqttIn mqttIn(256);
             MqttOut mqttOut(256);
 
             Str str(100);
@@ -193,6 +197,7 @@ public:
     }
     void mqttRead()
     {
+        MqttIn mqttIn(256);
         mqttIn.reset();
         while ( ! mqttIn.complete() )
         {
@@ -203,10 +208,72 @@ public:
 
 };
 
+#include "CircBuf.h"
+
+class TcpThread : public Thread,Stream
+{
+
+
+public:
+    enum { CONNECTED, DISCONNECTED, RXD } TcpEvents;
+    TcpThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
+    void run()
+    {
+        while(true)
+        {
+            while ( tcp.connect("test.mosquitto.org",1883) != E_OK )
+                sleep(5000);
+            publish(CONNECTED);
+            int n;
+            uint8_t b;
+
+            while(true)
+            {
+                rxdBuffer.write(tcp.read());
+                publish(RXD);
+            }
+            tcp.disconnect();
+            sleep(5000);
+            tcp.disconnect();
+        }
+    }
+    void mqttRead()
+    {
+        MqttIn mqttIn(256);
+        mqttIn.reset();
+        while ( ! mqttIn.complete() )
+        {
+            mqttIn.add(tcp.read());
+        }
+        mqttIn.parse();
+    }
+private:
+
+    Tcp tcp;
+    CircBuf rxdBuffer(100);
+};
+
+class MqttPacketeer : public Stream {
+    Erc event(Event* pEvent);
+    {
+        MqttIn mqttIn(256);
+        mqttIn.reset();
+        while ( ! mqttIn.complete() )
+        {
+            mqttIn.add(tcp.read());
+        }
+        mqttIn.parse();
+    }
+}
+
 int main(int argc, char *argv[])
 {
     MainThread mt("messagePump",1000,1);
     MqttThread mqtt("mqtt",1000,1);
+    TcpThread tcp("tcp",1000,1);
+
     Event* event=new Event();
     q.put(event);
 

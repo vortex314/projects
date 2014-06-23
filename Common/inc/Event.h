@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   Event.h
  * Author: lieven
  *
@@ -27,7 +27,7 @@ class Sys;
 class Event {
 public:
 	Event();
-	Event(Stream *dst, void* src, uint32_t id, void *p);
+	Event(Stream *dst, void* src, uint32_t id);
 	bool is(uint32_t value);
 	bool is(uint32_t clsType, uint16_t detail);
 	uint32_t is();
@@ -39,7 +39,6 @@ public:
 	Stream* _dst;
 	void* _src;
 	uint32_t _id;
-	void *_data;
 };
 
 #endif	/* EVENT_H */

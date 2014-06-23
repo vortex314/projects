@@ -18,50 +18,90 @@
 #define NULL ((void*)0)
 #endif
 
-class Stream {
+typedef struct ListenStruct
+{
+    struct ListenStruct* next;
+    Stream *dst;
+}    Listener;
+
+class Stream
+{
 public:
-	virtual Erc post(Event *pEvent) {
-		getDefaultQueue()->put(pEvent);
-		return E_OK;
-	}
-	virtual Erc postFromIsr(Event *pEvent) {
-		getDefaultQueue()->put(pEvent);
-		return E_OK;
-	}
-	virtual Erc event(Event* pEvent);
-	Stream() {
-	}
+ /*   virtual Erc post(Event *pEvent)
+    {
+        getDefaultQueue()->put(pEvent);
+        return E_OK;
+    }
+    virtual Erc postFromIsr(Event *pEvent)
+    {
+        getDefaultQueue()->put(pEvent);
+        return E_OK;
+    }*/
+    virtual Erc event(Event* pEvent);
+    Stream()
+    {
+        _listener=(Listener*)NULL;
+    }
 
-	Stream(Stream* str) {
-		upStream(str);
-	}
-	inline Stream* upStream() {
-		return _upStream;
-	}
-	void upStream(Stream* up) {
-		_upStream = up;
-	}
-	Erc upQueue(uint32_t id) {
+ /*   Stream(Stream* str)
+    {
+        upStream(str);
+        _listener=(Listener*)NULL;
+    }
+    inline Stream* upStream()
+    {
+        return _upStream;
+    }
+    void upStream(Stream* up)
+    {
+        _upStream = up;
+    }
+    Erc upQueue(uint32_t id)
+    {
 
-		Event ev(_upStream, this, id, NULL);
-		return upStream()->post(&ev);
-	}
+        Event ev(_upStream, this, id, NULL);
+        return upStream()->post(&ev);
+    }
+*/
+    static Queue* getDefaultQueue()
+    {
+        if (_defaultQueue == NULL)
+            _defaultQueue = new Queue(QUEUE_DEPTH, sizeof(Event));
+        return _defaultQueue;
+    }
+ /*   virtual void wait(int timeout)
+    {
+        _upStream->wait(timeout);
+    }
+    virtual void notify()
+    {
+        _upStream->notify();
+    }*/
 
-	static Queue* getDefaultQueue() {
-		if (_defaultQueue == NULL)
-			_defaultQueue = new Queue(QUEUE_DEPTH, sizeof(Event));
-		return _defaultQueue;
-	}
-	virtual void wait(int timeout) {
-		_upStream->wait(timeout);
-	}
-	virtual void notify() {
-		_upStream->notify();
-	}
+    void addListener(Stream *ps)
+    {
+        Listener* cursor =  _listener;
+        while(cursor!=NULL) cursor=cursor->next;
+        cursor=new Listener();
+        cursor->next = (Listener*)NULL;
+        cursor->dst = ps;
+    }
+
+    void publish(uint32_t id)
+    {
+        Listener* cursor =  _listener;
+        while(cursor!=NULL) {
+            getDefaultQueue()->put(new Event(cursor->dst,this,id));
+            cursor=cursor->next;
+        }
+    }
+
+
 
 private:
-	Stream* _upStream;
-	static Queue* _defaultQueue;
+    Stream* _upStream;
+    Listener* _listener;
+    static Queue* _defaultQueue;
 };
 /*
  class Stream {
@@ -93,4 +133,5 @@ private:
  */
 
 #endif	/* STREAMS_H */
+
 

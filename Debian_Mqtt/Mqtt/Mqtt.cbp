@@ -37,6 +37,8 @@
 		<Linker>
 			<Add library="rt" />
 		</Linker>
+		<Unit filename="../../Common/inc/Queue.h" />
+		<Unit filename="../../Common/inc/Thread.h" />
 		<Unit filename="../../Common/src/Bytes.cpp" />
 		<Unit filename="../../Common/src/CircBuf.cpp" />
 		<Unit filename="../../Common/src/Event.cpp" />
@@ -45,6 +47,7 @@
 		<Unit filename="../../Common/src/Node.cpp" />
 		<Unit filename="../../Common/src/Property.cpp" />
 		<Unit filename="../../Common/src/Str.cpp" />
+		<Unit filename="../../Common/src/Stream.cpp" />
 		<Unit filename="../../Common/src/Strpack.cpp" />
 		<Unit filename="Queue.cpp" />
 		<Unit filename="QueueWrapper.h" />
