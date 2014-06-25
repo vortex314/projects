@@ -13,9 +13,9 @@
 uint32_t listeners=0;
 
 Queue* Stream::_defaultQueue=(Queue*)NULL;
-Erc Stream::event(Event* pEvent)
+void Stream::eventHandler(Event* pEvent)
 {
-    return E_OK;
+
 }
 /*
 Queue* Stream::_defaultQueue=NULL;
