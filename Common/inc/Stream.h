@@ -104,7 +104,17 @@ public:
         Listener* cursor =  _listener;
         while(cursor!=NULL)
         {
-            getDefaultQueue()->put(new Event(cursor->dst,this,id));
+            getDefaultQueue()->put(new Event(cursor->dst,this,id,NULL));
+            cursor=cursor->next;
+        }
+    }
+
+    void publish(int32_t id,void *data)
+    {
+        Listener* cursor =  _listener;
+        while(cursor!=NULL)
+        {
+            getDefaultQueue()->put(new Event(cursor->dst,this,id,data));
             cursor=cursor->next;
         }
     }

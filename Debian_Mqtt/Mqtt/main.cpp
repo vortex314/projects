@@ -12,24 +12,41 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-
-class Tcp
-{
-public :
-    Tcp();
-    Erc connect(char *ip,int port);
-    Erc disconnect();
-    Erc send(Bytes* pb);
-    Erc recv(Bytes* pb);
-    uint8_t read();
-private :
-    int _sockfd;
-
-};
-
 #include <time.h>
+#include "Queue.h"
+#include "Event.h"
+#include "Thread.h"
+#include "Stream.h"
 
-int nanosleep(const struct timespec *req, struct timespec *rem);
+extern "C" void* pvTaskCode(void *pvParameters)
+{
+    (static_cast<Thread*>(pvParameters))->run();
+    return NULL;
+}
+
+Thread::Thread(const char *name, unsigned short stackDepth, char priority)
+{
+    _ref = Sys::malloc(sizeof(pthread_t));
+    pthread_t* pThread = (pthread_t*)_ref;
+    /* create threads */
+    pthread_create (pThread, NULL,  pvTaskCode, (void *) this);
+}
+
+void Thread::run()
+{
+    while(true)
+    {
+        ::sleep(10);
+    }
+}
+Erc Thread::sleep(uint32_t time)
+{
+    ::sleep(time/1000);
+}
+
+
+//______________________________________________________________________________________
+#include <time.h>
 
 
 class Timer : public Thread
@@ -42,19 +59,113 @@ public:
     {
     };
 public :
-    Timer()
+    void run()
     {
-    }
-    void start()
-    {
-    }
-}
+        while(true)
+        {
 
-    Tcp::Tcp()
+            struct timespec deadline;
+            clock_gettime(CLOCK_MONOTONIC, &deadline);
+
+// Add the time you want to sleep
+            deadline.tv_nsec += 1000;
+
+// Normalize the time to account for the second boundary
+            if(deadline.tv_nsec >= 1000000000)
+            {
+                deadline.tv_nsec -= 1000000000;
+                deadline.tv_sec++;
+            }
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
+
+        }
+    }
+};
+//_________________________________________________________
+Queue q(sizeof(Event),10);
+
+class MainThread : public Thread
+{
+private :
+
+public:
+    MainThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
     {
+    };
+    void run()
+    {
+        while(true)
+        {
+            Event event;
+            q.get(&event);
+            event.dst()->eventHandler(&event);
+        }
+    }
+};
+/*
+class MqttThread : public Stream,Thread
+{
+public:
+    MqttThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
+    void run()
+    {
+        while(true)
+        {
+            MqttIn mqttIn(256);
+            MqttOut mqttOut(256);
+
+            Str str(100);
+            uint16_t messageId=1000;
+
+            while ( tcp.connect("test.mosquitto.org",1883) != E_OK )
+                sleep(5000);
+            mqttOut.Connect(0, "clientId", MQTT_CLEAN_SESSION,
+                            "ikke/alive", "false", "userName", "password", 1000);
+            tcp.send(&mqttOut);
+            mqttRead();
+
+            Str topic(100),msg(100);
+            topic.append("ikke/topic");
+            msg.append("value");
+            mqttOut.Publish(MQTT_QOS2_FLAG, &str, &msg, messageId);
+
+            tcp.send(&mqttOut);
+            mqttOut.PubRel(messageId);
+            tcp.send(&mqttOut);
+            mqttOut.Disconnect();
+            tcp.send(&mqttOut);
+            tcp.disconnect();
+        }
+    }
+    void mqttRead()
+    {
+        MqttIn mqttIn(256);
+        mqttIn.reset();
+        while ( ! mqttIn.complete() )
+        {
+            mqttIn.add(tcp.read());
+        }
+        mqttIn.parse();
     }
 
-    Erc Tcp::connect(char *ip,int portno)
+};
+*/
+#include "CircBuf.h"
+#include "Mqtt.h"
+
+class Tcp : public Thread, public Stream
+{
+private:
+    int _sockfd;
+public:
+    enum { TCP_CONNECTED, TCP_DISCONNECTED, TCP_PACKET } TcpEvents;
+    Tcp( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
+
+    Erc connect(char *ip,int portno)
     {
         struct sockaddr_in serv_addr;
         struct hostent *server;
@@ -85,14 +196,14 @@ public :
         return E_OK;
     }
 
-    Erc Tcp::disconnect()
+    Erc disconnect()
     {
         close(_sockfd);
         return E_OK;
     }
 
 
-    Erc Tcp::recv(Bytes* pb)
+    Erc recv(Bytes* pb)
     {
         int n;
 
@@ -104,7 +215,7 @@ public :
         return E_OK;
     }
 
-    uint8_t Tcp::read()
+    int32_t read()
     {
         int n;
         uint8_t b;
@@ -112,12 +223,12 @@ public :
         n=::read(_sockfd,&b,1) ;
         if (n < 0)
         {
-            return 0;
+            return -1;
         }
         return b;
     }
 
-    Erc Tcp::send(Bytes* pb)
+    Erc send(Bytes* pb)
     {
         int n;
         n=write(_sockfd,pb->data(),pb->length()) ;
@@ -128,219 +239,100 @@ public :
         return E_OK;
     }
 
-
-#include "Queue.h"
-#include "Event.h"
-#include "Thread.h"
-#include "Stream.h"
-
-    extern "C" void* pvTaskCode(void *pvParameters)
+    void run()
     {
-        (static_cast<Thread*>(pvParameters))->run();
-        return NULL;
-    }
-
-    Thread::Thread(const char *name, unsigned short stackDepth, char priority)
-    {
-        _ref = Sys::malloc(sizeof(pthread_t));
-        pthread_t* pThread = (pthread_t*)_ref;
-        /* create threads */
-        pthread_create (pThread, NULL,  pvTaskCode, (void *) this);
-    }
-
-    void Thread::run()
-    {
+        ::sleep(3);
         while(true)
         {
-            ::sleep(10);
-        }
-    }
-    Erc Thread::sleep(uint32_t time)
-    {
-        ::sleep(time/1000);
-    }
-    Queue q(sizeof(Event),10);
-
-    class MainThread : public Thread
-    {
-    private :
-
-    public:
-        MainThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
-        {
-        };
-        void run()
-        {
-            while(true)
-            {
-                Event event;
-                q.get(&event);
-                event.dst()->eventHandler(&event);
-            }
-        }
-    };
-
-    class MqttThread : public Stream,Thread
-    {
-    private:
-
-        Tcp tcp;
-
-    public:
-        MqttThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
-        {
-        };
-        void run()
-        {
-            while(true)
-            {
-                MqttIn mqttIn(256);
-                MqttOut mqttOut(256);
-
-                Str str(100);
-                uint16_t messageId=1000;
-
-                while ( tcp.connect("test.mosquitto.org",1883) != E_OK )
-                    sleep(5000);
-                mqttOut.Connect(0, "clientId", MQTT_CLEAN_SESSION,
-                                "ikke/alive", "false", "userName", "password", 1000);
-                tcp.send(&mqttOut);
-                mqttRead();
-
-                Str topic(100),msg(100);
-                topic.append("ikke/topic");
-                msg.append("value");
-                mqttOut.Publish(MQTT_QOS2_FLAG, &str, &msg, messageId);
-
-                tcp.send(&mqttOut);
-                mqttOut.PubRel(messageId);
-                tcp.send(&mqttOut);
-                mqttOut.Disconnect();
-                tcp.send(&mqttOut);
-                tcp.disconnect();
-            }
-        }
-        void mqttRead()
-        {
-            MqttIn mqttIn(256);
-            mqttIn.reset();
-            while ( ! mqttIn.complete() )
-            {
-                mqttIn.add(tcp.read());
-            }
-            mqttIn.parse();
-        }
-
-    };
-
-#include "CircBuf.h"
-
-    class TcpThread : public Thread,Stream
-    {
-
-
-    public:
-        enum { CONNECTED, DISCONNECTED, RXD } TcpEvents;
-        TcpThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
-        {
-        };
-        void run()
-        {
-            while(true)
-            {
-                while ( tcp.connect("test.mosquitto.org",1883) != E_OK )
-                    sleep(5000);
-                publish(CONNECTED);
-                int n;
-                uint8_t b;
-
-                while(true)
-                {
-                    rxdBuffer.write(tcp.read());
-                    publish(RXD);
-                }
-                tcp.disconnect();
+            while ( connect("test.mosquitto.org",1883) != E_OK )
                 sleep(5000);
-                tcp.disconnect();
-            }
-        }
-        void mqttRead()
-        {
-            MqttIn mqttIn(256);
-            mqttIn.reset();
-            while ( ! mqttIn.complete() )
+            publish(TCP_CONNECTED);
+            int n;
+            uint8_t b;
+
+            while(true)
             {
-                mqttIn.add(tcp.read());
+                int32_t b=read();
+                if ( b < 0 ) break;
+                mqttRead(b);
             }
-            mqttIn.parse();
-        }
-    private:
-
-        Tcp tcp;
-        CircBuf rxdBuffer;
-    };
-
-    class MqttPublisher
-    {
-    private:
-        MqttPacketeer* _packeteer;
-        Timer* _timer;
-
-    public:
-        void init(MqttPacketeer packeteer)
-        {
-            _timer = new Timer();
-            _timer->addListener(this);
-        }
-        void eventHandler(Event* pEvent)
-        {
-            if ( event.is(MQTT_PUBACK,_packeteer))
-            {
-            }
-            else if ( event.is(MqttReceiver::MQTT_PUBREC))
-            {
-                publishTo(packeteer,new MqttOut.PubRel(msgId);
-                      }
-                      else if ( event.is(TIMEOUT))
-            {
-                {
-                }
-                else if ( event.is(MQTT_CONNECTED) )
-                {
-
-                }
-                else if ( event.is(PROPERTY_CHANGE))
-                {
-                }
-
-            }
-        }
-    };
-
-    class MqttPacketeer : public Stream
-    {
-        void eventHandler(Event* pEvent);
-        {
-            MqttIn mqttIn(256);
-            mqttIn.reset();
-            while ( ! mqttIn.complete() )
-            {
-                mqttIn.add(tcp.read());
-            }
-            mqttIn.parse();
+            publish(TCP_DISCONNECTED);
+            disconnect();
+            sleep(5000);
         }
     }
-
-    int main(int argc, char *argv[])
+    bool mqttRead(int32_t b)
     {
-        MainThread mt("messagePump",1000,1);
-        MqttThread mqtt("mqtt",1000,1);
-        TcpThread tcp("tcp",1000,1);
+        static MqttIn* mqttIn=new MqttIn(256);
 
-        Event* event=new Event();
-        q.put(event);
-
+        if ( ! mqttIn->complete() )
+        {
+            mqttIn->add(b);
+        }
+        else
+        {
+            mqttIn->parse();
+            publish(TCP_PACKET,mqttIn);
+            mqttIn=new MqttIn(256);
+            mqttIn->reset();
+        }
 
     }
+private:
+    MqttIn* mqttMsg;
+    CircBuf rxdBuffer;
+};
+
+class MqttConnector : public Stream
+{
+private:
+
+    Tcp* _tcp;
+    MqttOut* _mqttOut;
+
+public:
+    enum { MQTT_CONNECTED, MQTT_DISCONNECTED } Events;
+    MqttConnector( )
+    {
+    };
+    void init(Tcp* tcp)
+    {
+        _tcp=tcp;
+        _tcp->addListener(this);
+        _mqttOut = new MqttOut(256);
+    }
+    void eventHandler(Event* event)
+    {
+        if ( event->is(_tcp,Tcp::TCP_CONNECTED))
+        {
+            _mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION,
+                              "ikke/alive", "false", "userName", "password", 1000);
+            _tcp->send(_mqttOut);
+        }
+        else if ( event->is(_tcp,Tcp::TCP_DISCONNECTED))
+        {
+
+
+        }
+    }
+};
+
+
+
+int main(int argc, char *argv[])
+{
+    MainThread mt("messagePump",1000,1);
+//    MqttThread mqtt("mqtt",1000,1);
+    Tcp tcp("tcp",1000,1);
+    MqttConnector mqttConnector;
+    mqttConnector.init(&tcp);
+
+    sleep(1000000);
+
+}
+
+
+
+
 
 
