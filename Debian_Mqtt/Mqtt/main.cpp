@@ -39,7 +39,7 @@ void Thread::run()
         ::sleep(10);
     }
 }
-Erc Thread::sleep(uint32_t time)
+void Thread::sleep(uint32_t time)
 {
     ::sleep(time/1000);
 }
@@ -98,7 +98,14 @@ public:
         {
             Event event;
             q.get(&event);
-            event.dst()->eventHandler(&event);
+            Listener* listener = Stream::getListeners();
+            while(listener!=NULL)
+            {
+                if ( event.src() == listener->src )
+                    if (( listener->id== -1) || ( listener->id == event.id()))
+                        listener->dst->eventHandler(&event);
+            }
+            if ( event.data() != NULL ) Sys::free(event.data());
         }
     }
 };
@@ -247,8 +254,6 @@ public:
             while ( connect("test.mosquitto.org",1883) != E_OK )
                 sleep(5000);
             publish(TCP_CONNECTED);
-            int n;
-            uint8_t b;
 
             while(true)
             {
@@ -261,7 +266,7 @@ public:
             sleep(5000);
         }
     }
-    bool mqttRead(int32_t b)
+    void mqttRead(int32_t b)
     {
         static MqttIn* mqttIn=new MqttIn(256);
 

@@ -13,6 +13,7 @@
 uint32_t listeners=0;
 
 Queue* Stream::_defaultQueue=(Queue*)NULL;
+Listener* Stream::_listeners = (Listener*)NULL;
 void Stream::eventHandler(Event* pEvent)
 {
 

@@ -20,7 +20,7 @@ private:
 public:
 	Thread(const char *name, unsigned short stackDepth, char priority);
 	~Thread(){};
-	Erc sleep(uint32_t time);
+	void sleep(uint32_t time);
 	Erc wakeup();
 	Erc yield();
 	void wait(int timeout);

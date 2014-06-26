@@ -27,16 +27,15 @@ class Sys;
 class Event {
 public:
 	Event();
-	Event(Stream *dst, Stream* src, uint32_t id,void *data);
-	bool is(uint32_t value);
-	bool is(Stream* src,uint32_t id);
-	uint32_t id();
-	Stream *dst();
+	Event(Stream* src, int32_t id,void *data);
+	bool is(int32_t value);
+	bool is(Stream* src,int32_t id);
+	int32_t id();
+	void* data();
 	Stream *src();
 public:
-	Stream* _dst;
 	Stream* _src;
-	uint32_t _id;
+	int32_t _id;
 	void* _data;
 };
 
