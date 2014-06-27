@@ -200,6 +200,7 @@ public:
         /* Now connect to the server */
         if (::connect(_sockfd,(const sockaddr*)&serv_addr,sizeof(serv_addr)) < 0)
         {
+            std::cerr << " socket connect() : " << strerror(errno) ;
             return E_CONN_LOSS;
         }
         return E_OK;
@@ -295,7 +296,8 @@ private:
     MqttOut* _mqttOut;
 
 public:
-    enum { MQTT_CONNECTED, MQTT_DISCONNECTED } Events;
+    enum { MQTT_CONNECTED=100, MQTT_DISCONNECTED } Events;
+
     MqttConnector( )
     {
     };
@@ -321,7 +323,7 @@ public:
         else if ( event->is(_tcp,Tcp::TCP_PACKET))
         {
             MqttIn *packet=(MqttIn*)event->data();
-            if ( packet->type() == MQTT_MSG_CONNECT)
+            if ( packet->type() == MQTT_MSG_CONNACK)
             {
                 if ( packet->_returnCode == MQTT_RTC_CONN_ACC)
                     publish(MQTT_CONNECTED);
@@ -329,6 +331,58 @@ public:
                     std::cerr << "Mqtt Connect failed , return code : " << packet->_returnCode;
                     _tcp->disconnect();
                 }
+            }
+        }
+        else
+        {
+            std::cerr << "unexpected event : "<< event->id();
+        }
+    }
+};
+
+
+//_____________________________________________________________________________________________________
+class MqttPublisher : public Stream
+{
+private:
+
+    Tcp* _tcp;
+    MqttConnector* _mqttConnector;
+    bool _isConnected;
+
+public:
+    MqttPublisher()
+    {
+        _isConnected=false;
+    };
+    void init(Tcp* tcp,MqttConnector* mqttConnector)
+    {
+        _mqttConnector = mqttConnector;
+        _tcp=tcp;
+    }
+    void eventHandler(Event* event)
+    {
+        if ( event->is(_mqttConnector,MqttConnector::MQTT_CONNECTED))
+        {
+            _isConnected = true;
+        }
+        else if ( event->is(_mqttConnector,MqttConnector::MQTT_DISCONNECTED))
+        {
+            _isConnected = false;
+
+        }
+        else if ( event->is(_tcp,Tcp::TCP_PACKET))
+        {
+            MqttIn *packet=(MqttIn*)event->data();
+            if ( packet->type() == MQTT_MSG_PUBACK)
+            {
+
+            } else if ( packet->type() == MQTT_MSG_PUBREC)
+            {
+
+            } else if ( packet->type() == MQTT_MSG_PUBCOMP)
+            {
+
             }
 
         }
@@ -347,6 +401,9 @@ int main(int argc, char *argv[])
     Tcp tcp("tcp",1000,1);
     MqttConnector mqttConnector;
     mqttConnector.init(&tcp);
+    MqttPublisher mqttPublisher;
+    mqttPublisher.init(&tcp,&mqttConnector);
+
     MainThread mt("messagePump",1000,1);
 
 
