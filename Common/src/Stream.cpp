@@ -18,54 +18,57 @@ void Stream::eventHandler(Event* pEvent)
 {
 
 }
-/*
-Queue* Stream::_defaultQueue=NULL;
 
-Queue* Stream::getDefaultQueue() {
-	if (_defaultQueue == NULL)
-		_defaultQueue = new Queue(20, 4);
-	return _defaultQueue;
-}
+Stream::Stream()
+{}
 
-Stream::Stream() {
-	_queue = getDefaultQueue();
-	_upStream = this;
+Queue* Stream::getDefaultQueue()
+{
+    if (_defaultQueue == NULL)
+        _defaultQueue = new Queue(sizeof(Event),QUEUE_DEPTH );
+    return _defaultQueue;
 }
 
-Stream::Stream(Stream* upStream = NULL) {
-	_queue = getDefaultQueue();
-	_upStream = upStream;
+void Stream::addListener(Stream *dst)
+{
+    addListener(dst,-1);
 }
 
-Stream::~Stream() {
-	ASSERT(false);
+void Stream::addListener(Stream *dst,int32_t newId)
+{
+    Listener* cursor ;
+    if ( _listeners == NULL )
+    {
+        _listeners = new Listener();
+        cursor=_listeners;
+    }
+    else
+    {
+        cursor=_listeners;
+        while(cursor->next!=NULL) cursor=cursor->next;
+        cursor->next=new Listener();
+        cursor=cursor->next;
+    };
+
+
+    cursor->next = (Listener*)NULL;
+    cursor->dst = dst;
+    cursor->src=this;
+    cursor->id=newId;
 }
 
-Erc Stream::enqueue(Event* pev) {
-	return _queue->send(&pev);
+Listener* Stream::getListeners()
+{
+    return _listeners;
 }
 
-Erc Stream::enqueue(Stream* dst, Stream *src, uint32_t event) {
-	Event* pev = new Event(dst, src, event);
-	return _queue->send(&pev);
+void Stream::publish(int32_t id)
+{
+    publish(id,NULL);
 }
 
-Erc Stream::upQueue(uint32_t event) {
-	return _upStream->enqueue(_upStream, this, event);
+void Stream::publish(int32_t id,void *data)
+{
+    getDefaultQueue()->put(new Event(this,id,data));
 }
 
-Stream* Stream::getUpStream() {
-	return _upStream;
-}
-void Stream::setUpStream(Stream* stream) {
-	_upStream = stream;
-}
-
-void Stream::setQueue(Queue* q) {
-	_queue = q;
-}
-
-Queue* Stream::getQueue() {
-	return _queue;
-}
-*/

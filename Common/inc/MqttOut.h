@@ -38,6 +38,7 @@ public:
     void PubRel(uint16_t messageId);
     void PubAck(uint16_t messageId);
     void PubRec(uint16_t messageId);
+    void PubComp(uint16_t messageId);
     void Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
             uint8_t requestedQos);
     void prefix(const char *prefix);

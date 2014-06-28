@@ -13,7 +13,8 @@
 #define TOPIC_LEN  100
 #define MSG_LEN    256
 
-class MqttIn : public Bytes {
+class MqttIn : public Bytes
+{
 public:
     uint8_t _header;
     uint32_t _remainingLength;
@@ -24,16 +25,14 @@ public:
     Str _topic;
     Strpack _message;
 
-    enum RecvState {
+    enum RecvState
+    {
         ST_HEADER, ST_LENGTH, ST_PAYLOAD, ST_COMPLETE
     } _recvState;
 public:
     MqttIn(int size);
     MqttIn(MqttIn& src);
 
-    enum MqttInEvents {
-        EV_MSG_RXD = EVENT('q', 'I')
-    };
     uint16_t messageId(); // if < 0 then not found
     uint8_t type();
     bool complete();

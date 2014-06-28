@@ -127,6 +127,10 @@ Erc Bytes::write(uint8_t* data, int offset, int length) {
     return 0;
 }
 
+Erc Bytes::write(Bytes* data) {
+    return write(data->_start,0,data->_limit);
+}
+
 Erc Bytes::read(uint8_t* data) {
     if (_offset < _limit)
         *data = _start[_offset++];

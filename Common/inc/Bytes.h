@@ -48,6 +48,7 @@ public:
     Erc read(uint8_t* data);
     Erc write(uint8_t value);
     Erc write(uint8_t* data, int offset, int length);
+    Erc write(Bytes* data);
     void clear();
 
     void AddCrc();

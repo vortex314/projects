@@ -179,6 +179,12 @@ void MqttOut::PubRec(uint16_t messageId) {
     addUint16(messageId);
 }
 
+void MqttOut::PubComp(uint16_t messageId) {
+    addHeader(MQTT_MSG_PUBCOMP | MQTT_QOS1_FLAG);
+    addRemainingLength(2);
+    addUint16(messageId);
+}
+
 void MqttOut::Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
         uint8_t requestedQos) {
     addHeader(hdr | MQTT_MSG_SUBSCRIBE);

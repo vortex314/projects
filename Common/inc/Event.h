@@ -16,14 +16,7 @@
 
 class Stream;
 class Sys;
-/*
- typedef struct {
- Stream* dst;
- void *src;
- uint32_t type;
- void *data;
- } Event;
- */
+
 class Event {
 public:
 	Event();

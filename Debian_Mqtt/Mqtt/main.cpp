@@ -46,6 +46,7 @@ void Thread::sleep(uint32_t time)
 }
 
 
+
 //______________________________________________________________________________________
 #include <time.h>
 
@@ -107,7 +108,8 @@ public:
                         listener->dst->eventHandler(&event);
                 listener = listener->next;
             }
-            if ( event.data() != NULL ) Sys::free(event.data());
+            if ( event.data() != NULL )
+                Sys::free(event.data());
         }
     }
 };
@@ -251,7 +253,7 @@ public:
 
     void run()
     {
- //       ::sleep(3);
+//       ::sleep(3);
         while(true)
         {
             while ( connect("localhost",1883) != E_OK )
@@ -327,7 +329,8 @@ public:
             {
                 if ( packet->_returnCode == MQTT_RTC_CONN_ACC)
                     publish(MQTT_CONNECTED);
-                else {
+                else
+                {
                     std::cerr << "Mqtt Connect failed , return code : " << packet->_returnCode;
                     _tcp->disconnect();
                 }
@@ -335,7 +338,7 @@ public:
         }
         else
         {
-            std::cerr << "unexpected event : "<< event->id();
+            std::cerr << "unexpected event : "<< event->id()<< std::endl;
         }
     }
 };
@@ -358,13 +361,22 @@ public:
     void init(Tcp* tcp,MqttConnector* mqttConnector)
     {
         _mqttConnector = mqttConnector;
+        _mqttConnector->addListener(this);
         _tcp=tcp;
+        _tcp->addListener(this);
     }
     void eventHandler(Event* event)
     {
         if ( event->is(_mqttConnector,MqttConnector::MQTT_CONNECTED))
         {
             _isConnected = true;
+            MqttOut out(256);
+            Str topic(20);
+            topic.append("ikke/alive");
+            Str message(100);
+            message.append("true");
+            out.Publish(0,&topic,&message,123);
+            _tcp->send(&out);
         }
         else if ( event->is(_mqttConnector,MqttConnector::MQTT_DISCONNECTED))
         {
@@ -377,10 +389,12 @@ public:
             if ( packet->type() == MQTT_MSG_PUBACK)
             {
 
-            } else if ( packet->type() == MQTT_MSG_PUBREC)
+            }
+            else if ( packet->type() == MQTT_MSG_PUBREC)
             {
 
-            } else if ( packet->type() == MQTT_MSG_PUBCOMP)
+            }
+            else if ( packet->type() == MQTT_MSG_PUBCOMP)
             {
 
             }
@@ -388,11 +402,102 @@ public:
         }
         else
         {
-            std::cerr << "unexpected event : "<< event->id();
+            std::cerr << "unexpected event : "<< event->id()<< std::endl;
         }
     }
 };
+//_____________________________________________________________________________________________________
+class MqttSubscriber : public Stream
+{
+private:
 
+    Tcp* _tcp;
+    MqttConnector* _mqttConnector;
+    bool _isConnected;
+    uint16_t _messageId;
+    MqttOut* _mqttOut;
+    Str* _tempTopic;
+    Str* _tempMessage;
+    enum { DISCONNECTED, SUBSCRIBING , SUBSCRIBED } _state;
+
+public:
+    MqttSubscriber()
+    {
+        _isConnected=false;
+        _messageId=1000;
+        _mqttOut = new MqttOut(256);
+        _tempTopic = new Str(30);
+        _tempMessage = new Str(100);
+    };
+    void init(Tcp* tcp,MqttConnector* mqttConnector)
+    {
+        _mqttConnector = mqttConnector;
+        _mqttConnector->addListener(this);
+        _tcp=tcp;
+        _tcp->addListener(this);
+    }
+    void eventHandler(Event* event)
+    {
+        if ( event->is(_mqttConnector,MqttConnector::MQTT_CONNECTED))
+        {
+            _state = SUBSCRIBING;
+            _isConnected = true;
+            MqttOut out(256);
+            out.Subscribe(0, "ikke/#", ++ _messageId, MQTT_QOS1_FLAG);
+            _tcp->send(&out);
+        }
+        else if ( event->is(_mqttConnector,MqttConnector::MQTT_DISCONNECTED))
+        {
+            _isConnected = false;
+            _state = DISCONNECTED;
+
+        }
+        else if ( event->is(_tcp,Tcp::TCP_PACKET))
+        {
+            MqttIn *packet=(MqttIn*)event->data();
+            if ( packet->type() == MQTT_MSG_SUBACK)
+            {
+                _state=SUBSCRIBED;
+            }
+            else if ( packet->type() == MQTT_MSG_PUBLISH)
+            {
+                Str topic(100);
+                Str message(100);
+                topic.write(&packet->_topic);
+                message.write(&packet->_message);
+                std::cout << topic.data() << ":" << message.data() << " QOS " << (packet->_header & MQTT_QOS_MASK )<< std::endl;
+                if (( packet->_header & MQTT_QOS_MASK )== MQTT_QOS1_FLAG )
+                {
+                    _mqttOut->PubAck(packet->messageId());
+                    _tcp->send(_mqttOut);
+                    // execute setter
+                } else if (( packet->_header & MQTT_QOS_MASK )== MQTT_QOS2_FLAG )
+                {
+                    _mqttOut->PubRec(packet->messageId());
+                    _tcp->send(_mqttOut);
+                    _tempTopic->clear();
+                    _tempMessage->clear();
+                    _tempTopic->write(&packet->_topic);
+                    _tempMessage->write(&packet->_message);
+                }  else {
+                    // execute setter
+                }
+
+            }
+            else if ( packet->type() == MQTT_MSG_PUBREL)
+            {
+                // execute setter with _temp
+                std::cout << " PUBREL " << _tempTopic->data() << ":" << _tempMessage->data() << std::endl;
+                _mqttOut->PubComp(packet->messageId());
+                    _tcp->send(_mqttOut);
+            }
+        }
+        else
+        {
+            std::cerr << "unexpected event : "<< event->id()<< std::endl;
+        }
+    }
+};
 
 
 int main(int argc, char *argv[])
@@ -403,6 +508,9 @@ int main(int argc, char *argv[])
     mqttConnector.init(&tcp);
     MqttPublisher mqttPublisher;
     mqttPublisher.init(&tcp,&mqttConnector);
+    MqttSubscriber mqttSubscriber;
+    mqttSubscriber.init(&tcp,&mqttConnector);
+
 
     MainThread mt("messagePump",1000,1);
 
@@ -410,7 +518,51 @@ int main(int argc, char *argv[])
     sleep(1000000);
 
 }
+/*
+class EventSource
+{
+    uint32_t _eventMap;
+    virtual uint32_t getEvents()
+    {
+        uint32_t temp=_eventMap;
+        _eventMap=0;
+        return temp;
+    }
+    EventSource()
+    {
+        _eventMap =0;
+    };
+    void setEvents(uint32_t event)
+    {
+        _eventMap |= event;
+    }
+};
 
+class EventListener
+{
+    virtual void notify()=0;
+};
+
+class tcp : public EventSource
+{
+    enum { TCP_CONNECTED=1, TCP_DISCONNECTED =2, TCP_MESSAGE  =4 } Events;
+
+};
+
+class mqttConnector : public EventListener {
+    private:
+    tcp _t;
+    public:
+        void awake(){
+            uint32_t ev;
+            while (ev = _t.getEvents() ){
+                if ( ev & TCP_CONNECTED )
+            }
+        }
+
+};
+
+*/
 
 
 
