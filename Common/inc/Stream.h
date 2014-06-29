@@ -72,7 +72,7 @@ public:
     static Queue* getDefaultQueue()
     {
         if (_defaultQueue == NULL)
-            _defaultQueue = new Queue(QUEUE_DEPTH, sizeof(Event));
+            _defaultQueue = new Queue(sizeof(Event),QUEUE_DEPTH );
         return _defaultQueue;
     }
     /*   virtual void wait(int timeout)
@@ -84,12 +84,12 @@ public:
            _upStream->notify();
        }*/
 
-    void addListener(Stream *ps)
+    void addListener(Stream *dst)
     {
-        addListener(ps,-1);
+        addListener(dst,-1);
     }
 
-    void addListener(Stream *ps,int32_t newId)
+    void addListener(Stream *dst,int32_t newId)
     {
         Listener* cursor ;
         if ( _listeners == NULL )
@@ -99,13 +99,13 @@ public:
         }
         else
         {
-            while(cursor!=NULL) cursor=cursor->next;
-            cursor=new Listener();
+            while(cursor->next!=NULL) cursor=cursor->next;
+            cursor->next=new Listener();
         };
 
 
         cursor->next = (Listener*)NULL;
-        cursor->dst = ps;
+        cursor->dst = dst;
         cursor->src=this;
         cursor->id=newId;
     }

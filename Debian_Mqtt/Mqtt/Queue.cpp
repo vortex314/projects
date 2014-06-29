@@ -5,15 +5,17 @@
 #include "Sys.h"
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
 #define PQ ((mqd_t*)_ref)
+#define QUEUE_NAME "/MQ5"
 
 Queue::Queue(uint32_t elementSize,uint32_t depth)
 {
-    _ref = Sys::malloc(sizeof(mqd_t));
-    mqd_t* pq=PQ;
+    /*    _ref = Sys::malloc(sizeof(mqd_t));
+        mqd_t* pq=PQ;*/
 
-     struct mq_attr attr;
+    struct mq_attr attr;
 
     /* initialize the queue attributes */
     attr.mq_flags = 0;
@@ -21,10 +23,18 @@ Queue::Queue(uint32_t elementSize,uint32_t depth)
     attr.mq_msgsize = elementSize;
     attr.mq_curmsgs = 0;
 
-    /* create the message queue */
-     mq = mq_open("/MQ", O_CREAT | O_RDWR, 0777, &attr);
+    mq = mq_open(QUEUE_NAME, O_RDWR);
+    if ( (mq < 0) && (errno==ENOENT) )
+    {
+        /* create the message queue if it doesn't exist */
+        mq = mq_open(QUEUE_NAME, O_CREAT | O_RDWR, 0777, &attr);
+    }
+    if ( mq < 0 )
+    {
+        perror("mq_open");
+        ASSERT(false);
+    }
 
-    if ( mq < 0 ) perror("mq_open");
     _msgSize = elementSize;
 }
 
@@ -37,7 +47,8 @@ Queue::~Queue()
 
 Erc Queue::put(void* data)
 {
-    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 ) {
+    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 )
+    {
         perror("mq_send");
         return E_AGAIN;
     };
@@ -48,7 +59,8 @@ Erc Queue::get(void* data)
 {
     size_t msgSize = _msgSize;
     unsigned int prio;
-    if ( mq_receive(mq, (char *)data ,msgSize,&prio) < 0 ) {
+    if ( mq_receive(mq, (char *)data ,msgSize,&prio) < 0 )
+    {
         perror("mq_receive");
         return E_AGAIN;
     };

@@ -17,6 +17,7 @@
 #include "Event.h"
 #include "Thread.h"
 #include "Stream.h"
+#include <iostream>
 
 extern "C" void* pvTaskCode(void *pvParameters)
 {
@@ -82,7 +83,7 @@ public :
     }
 };
 //_________________________________________________________
-Queue q(sizeof(Event),10);
+// Queue q(sizeof(Event),10);
 
 class MainThread : public Thread
 {
@@ -97,13 +98,14 @@ public:
         while(true)
         {
             Event event;
-            q.get(&event);
+            Stream::getDefaultQueue()->get(&event);
             Listener* listener = Stream::getListeners();
             while(listener!=NULL)
             {
                 if ( event.src() == listener->src )
                     if (( listener->id== -1) || ( listener->id == event.id()))
                         listener->dst->eventHandler(&event);
+                listener = listener->next;
             }
             if ( event.data() != NULL ) Sys::free(event.data());
         }
@@ -228,7 +230,7 @@ public:
         uint8_t b;
 
         n=::read(_sockfd,&b,1) ;
-        if (n < 0)
+        if (n <= 0)
         {
             return -1;
         }
@@ -248,10 +250,10 @@ public:
 
     void run()
     {
-        ::sleep(3);
+ //       ::sleep(3);
         while(true)
         {
-            while ( connect("test.mosquitto.org",1883) != E_OK )
+            while ( connect("localhost",1883) != E_OK )
                 sleep(5000);
             publish(TCP_CONNECTED);
 
@@ -270,11 +272,8 @@ public:
     {
         static MqttIn* mqttIn=new MqttIn(256);
 
-        if ( ! mqttIn->complete() )
-        {
-            mqttIn->add(b);
-        }
-        else
+        mqttIn->add(b);
+        if (  mqttIn->complete() )
         {
             mqttIn->parse();
             publish(TCP_PACKET,mqttIn);
@@ -311,13 +310,31 @@ public:
         if ( event->is(_tcp,Tcp::TCP_CONNECTED))
         {
             _mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION,
-                              "ikke/alive", "false", "userName", "password", 1000);
+                              "ikke/alive", "false", "", "", 1000);
             _tcp->send(_mqttOut);
         }
         else if ( event->is(_tcp,Tcp::TCP_DISCONNECTED))
         {
+            publish(MQTT_DISCONNECTED);
 
+        }
+        else if ( event->is(_tcp,Tcp::TCP_PACKET))
+        {
+            MqttIn *packet=(MqttIn*)event->data();
+            if ( packet->type() == MQTT_MSG_CONNECT)
+            {
+                if ( packet->_returnCode == MQTT_RTC_CONN_ACC)
+                    publish(MQTT_CONNECTED);
+                else {
+                    std::cerr << "Mqtt Connect failed , return code : " << packet->_returnCode;
+                    _tcp->disconnect();
+                }
+            }
 
+        }
+        else
+        {
+            std::cerr << "unexpected event : "<< event->id();
         }
     }
 };
@@ -326,11 +343,12 @@ public:
 
 int main(int argc, char *argv[])
 {
-    MainThread mt("messagePump",1000,1);
 //    MqttThread mqtt("mqtt",1000,1);
     Tcp tcp("tcp",1000,1);
     MqttConnector mqttConnector;
     mqttConnector.init(&tcp);
+    MainThread mt("messagePump",1000,1);
+
 
     sleep(1000000);
 
