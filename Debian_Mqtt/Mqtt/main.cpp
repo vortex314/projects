@@ -18,6 +18,7 @@
 #include "Thread.h"
 #include "Stream.h"
 #include <iostream>
+#include <list>
 
 extern "C" void* pvTaskCode(void *pvParameters)
 {
@@ -49,15 +50,132 @@ void Thread::sleep(uint32_t time)
 
 //______________________________________________________________________________________
 #include <time.h>
-
-
-class Timer : public Thread
+#define MAX_TIMERS 10
+class Timer: public Stream
 {
-private:
-    static Timer* _first;
 public:
 
-    Timer( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    enum TimerEvents
+    {
+        EXPIRED = 1
+    };
+    Timer();
+    ~Timer();
+    Timer(Stream* stream);
+    Timer(const Timer& ref);
+    Timer(uint32_t value, bool reload);
+    void interval(uint32_t interval);
+    void start();
+    void start(uint32_t interval);
+    void stop();
+    void reload(bool automatic);
+    void dec();
+    Erc event(Event* event);
+    static void decAll();
+    bool expired();
+
+private:
+    static Timer* timers[MAX_TIMERS];
+    static int timerCount;
+    uint32_t _counterValue;
+    uint32_t _reloadValue;
+    bool _isAutoReload;
+    bool _isActive;
+    bool _isExpired;
+};
+
+
+int Timer::timerCount=0;
+Timer* Timer::timers[MAX_TIMERS];
+
+void Timer::decAll()
+{
+    uint32_t i;
+    for (i = 0; i < timerCount; i++)
+        timers[i]->dec();
+}
+
+
+Timer::Timer()  {
+	//register timer
+	timers[timerCount++] = this;
+	_isActive = false;
+	_isAutoReload = false;
+	_reloadValue = 1000;
+	_counterValue = 1000;
+	_isExpired = false;
+}
+
+Timer::Timer(uint32_t value, bool reload)
+{
+    _isAutoReload = reload;
+    _isActive = false;
+    _reloadValue = value;
+    _counterValue = value;
+    timers[timerCount++] = this;
+    _isExpired = false;
+}
+
+void Timer::interval(uint32_t interval)
+{
+    _reloadValue = interval;
+    _counterValue = interval;
+}
+
+void Timer::start()
+{
+    _isActive = true;
+    _counterValue = _reloadValue;
+    _isExpired = false;
+}
+
+bool Timer::expired()
+{
+    return _isExpired;
+}
+
+void Timer::start(uint32_t value)
+{
+    interval(value);
+    start();
+}
+
+void Timer::stop()
+{
+    _isActive = false;
+}
+
+void Timer::reload(bool automatic)
+{
+    _isAutoReload = automatic;
+}
+
+void Timer::dec()
+{
+    if (_isActive)
+        if (--_counterValue == 0)
+        {
+            publish(Timer::EXPIRED);
+            _isExpired = true;
+            if (_isAutoReload)
+                _counterValue = _reloadValue;
+            else
+                _isActive = false;
+        }
+}
+
+Erc Timer::event(Event* ev)
+{
+    ASSERT(false);
+    return E_NO_ACCESS;
+}
+
+class TimerThread : public Thread
+{
+
+public:
+
+    TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
     {
     };
 public :
@@ -79,10 +197,11 @@ public :
                 deadline.tv_sec++;
             }
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
-
+            Timer::decAll();
         }
     }
 };
+
 //_________________________________________________________
 // Queue q(sizeof(Event),10);
 
@@ -256,7 +375,7 @@ public:
 //       ::sleep(3);
         while(true)
         {
-            while ( connect("localhost",1883) != E_OK )
+            while ( connect((char*)"localhost",1883) != E_OK )
                 sleep(5000);
             publish(TCP_CONNECTED);
 
@@ -342,7 +461,10 @@ public:
         }
     }
 };
-
+#include "Property.h"
+#include "Strpack.h"
+uint32_t p=1234;
+Property property(&p, T_INT32, M_READ, "ikke/P","$META");
 
 //_____________________________________________________________________________________________________
 class MqttPublisher : public Stream
@@ -352,11 +474,21 @@ private:
     Tcp* _tcp;
     MqttConnector* _mqttConnector;
     bool _isConnected;
+    Timer* _timer;
+    Property* _currentProperty;
+    enum { ST_SLEEP, ST_WAIT_ACK, } _state;
+    uint16_t _retryCount;
+    uint16_t _messageId;
 
 public:
     MqttPublisher()
     {
         _isConnected=false;
+        _timer=new Timer();
+        _currentProperty = & property;
+        _messageId=1000;
+        _retryCount=0;
+
     };
     void init(Tcp* tcp,MqttConnector* mqttConnector)
     {
@@ -364,23 +496,30 @@ public:
         _mqttConnector->addListener(this);
         _tcp=tcp;
         _tcp->addListener(this);
+        _timer->addListener(this);
+
     }
     void eventHandler(Event* event)
     {
-        if ( event->is(_mqttConnector,MqttConnector::MQTT_CONNECTED))
+        if ( event->is(_timer,Timer::EXPIRED))
+        {
+            if ( _state == ST_WAIT_ACK )
+            {
+                if ( _retryCount++< 3 )
+                    publishCurrentProperty();
+            }
+        }
+        else if ( event->is(_mqttConnector,MqttConnector::MQTT_CONNECTED))
         {
             _isConnected = true;
-            MqttOut out(256);
-            Str topic(20);
-            topic.append("ikke/alive");
-            Str message(100);
-            message.append("true");
-            out.Publish(0,&topic,&message,123);
-            _tcp->send(&out);
+
+            _state = ST_WAIT_ACK;
+            _retryCount=0;
         }
         else if ( event->is(_mqttConnector,MqttConnector::MQTT_DISCONNECTED))
         {
             _isConnected = false;
+            _state = ST_SLEEP;
 
         }
         else if ( event->is(_tcp,Tcp::TCP_PACKET))
@@ -388,6 +527,8 @@ public:
             MqttIn *packet=(MqttIn*)event->data();
             if ( packet->type() == MQTT_MSG_PUBACK)
             {
+                _timer->stop();
+                _state = ST_SLEEP;
 
             }
             else if ( packet->type() == MQTT_MSG_PUBREC)
@@ -404,6 +545,18 @@ public:
         {
             std::cerr << "unexpected event : "<< event->id()<< std::endl;
         }
+    }
+
+    void publishCurrentProperty()
+    {
+        MqttOut out(256);
+        Strpack  message(20);
+        Str topic(20);
+        topic.append(_currentProperty->name());
+        _currentProperty->toPack(message);
+        out.Publish(MQTT_QOS1_FLAG,&topic,&message,123);
+        _tcp->send(&out);
+        _timer->start(1000);
     }
 };
 //_____________________________________________________________________________________________________
@@ -471,7 +624,8 @@ public:
                     _mqttOut->PubAck(packet->messageId());
                     _tcp->send(_mqttOut);
                     // execute setter
-                } else if (( packet->_header & MQTT_QOS_MASK )== MQTT_QOS2_FLAG )
+                }
+                else if (( packet->_header & MQTT_QOS_MASK )== MQTT_QOS2_FLAG )
                 {
                     _mqttOut->PubRec(packet->messageId());
                     _tcp->send(_mqttOut);
@@ -479,7 +633,9 @@ public:
                     _tempMessage->clear();
                     _tempTopic->write(&packet->_topic);
                     _tempMessage->write(&packet->_message);
-                }  else {
+                }
+                else
+                {
                     // execute setter
                 }
 
@@ -489,7 +645,7 @@ public:
                 // execute setter with _temp
                 std::cout << " PUBREL " << _tempTopic->data() << ":" << _tempMessage->data() << std::endl;
                 _mqttOut->PubComp(packet->messageId());
-                    _tcp->send(_mqttOut);
+                _tcp->send(_mqttOut);
             }
         }
         else
@@ -510,8 +666,7 @@ int main(int argc, char *argv[])
     mqttPublisher.init(&tcp,&mqttConnector);
     MqttSubscriber mqttSubscriber;
     mqttSubscriber.init(&tcp,&mqttConnector);
-
-
+    TimerThread tt("TimerThread",1000,1);
     MainThread mt("messagePump",1000,1);
 
 
@@ -563,6 +718,7 @@ class mqttConnector : public EventListener {
 };
 
 */
+
 
 
 

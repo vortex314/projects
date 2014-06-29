@@ -32,6 +32,7 @@ private:
     Stream* _upStream;
     static Listener* _listeners;
     static Queue* _defaultQueue;
+//    uint32_t _events;
 public:
     virtual void eventHandler(Event* pEvent);
     Stream();
@@ -41,6 +42,8 @@ public:
     static Listener* getListeners();
     void publish(int32_t id);
     void publish(int32_t id,void *data);
+ //   uint32_t getEvents();
+ //   void setEvents(uint32_t map);
 };
 /*
  class Stream {

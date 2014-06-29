@@ -71,4 +71,23 @@ void Stream::publish(int32_t id,void *data)
 {
     getDefaultQueue()->put(new Event(this,id,data));
 }
+ /*
+uint32_t Stream::getEvents()
+{
+    uint32_t temp=_events;
+    _events=0;
+    return temp;
+}
 
+void Stream::setEvents(uint32_t ev)
+{
+    _events |= ev;
+    Listener* listener = Stream::getListeners();
+    while(listener!=NULL)
+    {
+        if ( event.src() == listener->src )
+            if (( listener->id== -1) || ( listener->id == event.id()))
+                listener->dst->eventHandler(&event);
+        listener = listener->next;
+    }
+}*/
