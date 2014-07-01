@@ -7,7 +7,9 @@
 
 #ifndef THREAD_H_
 #define THREAD_H_
+#include "stdint.h"
 #include "Erc.h"
+#include "Sys.h"
 //#include "FreeRTOS.h"
 // #include "task.h"
 // #include "semphr.h"
