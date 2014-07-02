@@ -9,29 +9,37 @@
 #define SYS_H_
 #include "stdint.h"
 #include "Erc.h"
-#define SYS 'Y'
+
+#include <iostream>
 #define EVENT(cls,type) ((cls<<24)+(type<<16))
 
 class Str;
-class Sys  {
+class Sys;
+class Logger;
+
+
+class Sys
+{
 public:
-    enum SysEvents {
-        ERROR=EVENT(SYS,'E')
-    };
-    
-    Sys(); // constructor for eventSource
+
+    Sys();
     static void init();
+
     static void delay_ms(uint32_t msec);
     static uint64_t _upTime;
     static uint64_t upTime();
     static uint64_t _bootTime;
+
     static void * malloc(uint32_t size);
     static void free(void *pv);
+
     static void interruptEnable();
     static void interruptDisable();
-    static void log(Str& str);
-    static void log(const char* line);
-    static Str _log;
+
+    static Logger&  getLogger();
+private:
+    static Logger* _logger;
 };
+
 
 #endif /* SYS_H_ */

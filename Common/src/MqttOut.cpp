@@ -121,7 +121,7 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     // Client ID - UTF encoded
     addString(clientId);
     if (willTopicLen) {
-        addString((char*) willTopic);
+        addComposedString((char*)_prefix,(char*)willTopic);
         addString(willMsg);
     }
     if (usernamelen) { // Username - UTF encoded
@@ -140,7 +140,7 @@ void MqttOut::Publish(uint8_t hdr, Str* topic, Bytes* msg,
     if (addMessageId)
         remLen += 2;
     addRemainingLength(remLen);
-    addStr(topic);
+    addComposedString(_prefix,(char*)topic->data());
     /*    addUint16(strlen(_prefix) + strlen(topic));
         addBytes((uint8_t*) _prefix, strlen(_prefix));
         addBytes((uint8_t*) topic, strlen(topic));*/
@@ -188,9 +188,9 @@ void MqttOut::PubComp(uint16_t messageId) {
 void MqttOut::Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
         uint8_t requestedQos) {
     addHeader(hdr | MQTT_MSG_SUBSCRIBE);
-    addRemainingLength(strlen(topic) + 2 + 2 + 1);
+    addRemainingLength(strlen(topic) + strlen(_prefix) + 2 + 2 + 1);
     addUint16(messageId);
-    addString(topic);
+    addComposedString(_prefix,(char*)topic);
     add(requestedQos);
 }
 

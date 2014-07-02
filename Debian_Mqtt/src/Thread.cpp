@@ -11,8 +11,13 @@ extern "C" void* pvTaskCode(void *pvParameters)
 Thread::Thread(const char *name, unsigned short stackDepth, char priority)
 {
     _ref = Sys::malloc(sizeof(pthread_t));
-    pthread_t* pThread = (pthread_t*)_ref;
+
+
+}
+
+void Thread::start(){
     /* create threads */
+    pthread_t* pThread = (pthread_t*)_ref;
     pthread_create (pThread, NULL,  pvTaskCode, (void *) this);
 }
 

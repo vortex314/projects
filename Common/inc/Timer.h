@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   Timer.h
  * Author: lieven
  *
@@ -9,37 +9,32 @@
 #define	TIMER_H
 #include <stdint.h>
 #include "Erc.h"
-#include "Bits.h"
-#include "Stream.h"
+#include "EventSource.h"
 
-class Timer: public Stream {
+
+class Timer;
+class TimerListener
+{
 public:
-	enum BitEvents {
-		ALARM = 1
-	};
-	enum TimerEvents {
-		EXPIRED = EVENT_CHAR('T','i','m','X')
-	};
-	Timer(Stream* stream);
-	~Timer();
-	Timer(const Timer& ref);
-	Timer(uint32_t value, bool reload);
-	void interval(uint32_t interval);
-	void start();
-	void start(uint32_t interval);
-	void stop();
-	void reload(bool automatic);
-	void dec();
-	Erc event(Event* event);
-	static void decAll();
-	bool expired();
+    virtual void onTimerExpired(Timer* src)=0;
+};
+
+class Timer: public EventSource
+{
+public:
+    Timer();
+
+    void startRepeat(uint64_t interval);
+    void startOnce(uint64_t interval);
+    void stop();
+
+    bool isExpired();
+    void setExpired(bool value);
+    bool isRunning();
+
 private:
-	Bits _events;
-	uint32_t _counterValue;
-	uint32_t _reloadValue;
-	bool _isAutoReload;
-	bool _isActive;
-	bool _isExpired;
+    struct TimerStruct;
+    TimerStruct* _this;
 };
 
 #endif	/* TIMER_H */

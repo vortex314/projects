@@ -1,86 +1,107 @@
-#include "Timer.h"
-#include "Timer.h"
 
-int Timer::timerCount=0;
-Timer* Timer::timers[MAX_TIMERS];
+#include "Timer.h"
+#include "Sys.h"
 
-void Timer::decAll()
+#define MAX_TIMERS  20
+
+struct Timer::TimerStruct
+{
+    uint64_t expireTime;
+    uint64_t intervalTime;
+    bool isRunning;
+    bool isAutoReload;
+} _this ;
+
+static uint16_t timerCount=0;
+static Timer* timers[MAX_TIMERS];
+
+/*void Timer::decAll()
 {
     uint32_t i;
     for (i = 0; i < timerCount; i++)
         timers[i]->dec();
-}
-/*
-void Timer::addListener(TimerListener* tl){
-    _listener = tl;
-}
-*/
+}*/
 
-Timer::Timer()
+
+Timer::Timer() : EventSource() //: TimerStruct(_this)
 {
-    //register timer
-    timers[timerCount++] = this;
-    _isActive = false;
-    _isAutoReload = false;
-    _reloadValue = 1000;
-    _counterValue = 1000;
-    _isExpired = false;
+    _this = new TimerStruct();
+    _this->isRunning = false;
+    _this->isAutoReload = false;
+    _this->intervalTime=0;
+    _this->expireTime = Sys::upTime();
 }
 
-Timer::Timer(uint32_t value, bool reload)
+void Timer::startOnce(uint64_t interval)
 {
-    _isAutoReload = reload;
-    _isActive = false;
-    _reloadValue = value;
-    _counterValue = value;
-    timers[timerCount++] = this;
-    _isExpired = false;
+    _this->isAutoReload=false;
+    _this->expireTime = Sys::upTime()+interval;
+    _this->intervalTime=interval;
+    _this->isRunning=true;
 }
 
-void Timer::interval(uint32_t interval)
+void Timer::startRepeat(uint64_t interval)
 {
-    _reloadValue = interval;
-    _counterValue = interval;
+    _this->isAutoReload=true;
+    _this->expireTime = Sys::upTime()+interval;
+    _this->intervalTime=interval;
+    _this->isRunning=true;
 }
 
-void Timer::start()
+bool Timer::isExpired()
 {
-    _isActive = true;
-    _counterValue = _reloadValue;
-    _isExpired = false;
+    return (_this->expireTime <= Sys::upTime());
 }
 
-bool Timer::expired()
-{
-    return _isExpired;
-}
-
-void Timer::start(uint32_t value)
-{
-    interval(value);
-    start();
-}
 
 void Timer::stop()
 {
-    _isActive = false;
+    _this->isRunning = false;
 }
 
-void Timer::reload(bool automatic)
-{
-    _isAutoReload = automatic;
+void Timer::setExpired(bool v){
+    ((TimerListener*)firstListener())->onTimerExpired(this);
+    if ( _this->isAutoReload ) {
+        _this->expireTime = Sys::upTime()+_this->intervalTime;
+    } else {
+        _this->isRunning =  false;
+    }
 }
 
-void Timer::dec()
+#include "Thread.h"
+#include <time.h>
+class TimerThread : public Thread
 {
-    if (_isActive)
-        if (--_counterValue == 0)
+
+public:
+
+    TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
+public :
+    void run()
+    {
+        while(true)
         {
-            _listener->onTimerExpired(this);
-            _isExpired = true;
-            if (_isAutoReload)
-                _counterValue = _reloadValue;
-            else
-                _isActive = false;
+
+            struct timespec deadline;
+            clock_gettime(CLOCK_MONOTONIC, &deadline);
+
+// Add the time you want to sleep
+            deadline.tv_nsec += 1000;
+
+// Normalize the time to account for the second boundary
+            if(deadline.tv_nsec >= 1000000000)
+            {
+                deadline.tv_nsec -= 1000000000;
+                deadline.tv_sec++;
+            }
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
+ //           Timer::decAll();
         }
-}
+    }
+};
+
+//_________________________________________________________
+// Queue q(sizeof(Event),10);
+

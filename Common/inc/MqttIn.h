@@ -7,7 +7,7 @@
 
 #ifndef MQTTIN_H_
 #define MQTTIN_H_
-#include "Mqtt.h"
+#include "MqttConstants.h"
 #include "Str.h"
 #include "Strpack.h"
 #define TOPIC_LEN  100

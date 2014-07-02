@@ -3,7 +3,7 @@
 
 #include "Bytes.h"
 #include "Thread.h"
-#include "Publisher.h"
+#include "EventSource.h"
 
 class Tcp;
 
@@ -15,11 +15,10 @@ public:
     virtual void onTcpMessage(Tcp* src,Bytes* data)=0;
 };
 
-class Tcp : public Thread,public Publisher<TcpListener>
+class Tcp : public Thread,public EventSource
 {
 private:
     int _sockfd;
-    TcpListener *_listener;
 public:
     Tcp( const char *name, unsigned short stackDepth, char priority);
     Erc connect(char *ip,int portno);

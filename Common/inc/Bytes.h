@@ -35,6 +35,7 @@ public:
     int offset(uint32_t offset);
     int offset();
     void move(int32_t distance);
+    Erc insert(uint32_t offset,Bytes* data);
     uint8_t *data();
 
     int poke(uint32_t offset, uint8_t b);

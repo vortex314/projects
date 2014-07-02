@@ -17,18 +17,20 @@
 1403395007 /home/lieven/micro/Common/inc/Erc.h
 	<stdint.h>
 
-1403395007 /home/lieven/micro/Common/inc/Sys.h
+1404303062 /home/lieven/micro/Common/inc/Sys.h
 	"stdint.h"
 	"Erc.h"
+	<iostream>
 
-1403395007 source:/home/lieven/micro/Debian_Mqtt/src/Sys.cpp
+1404303122 source:/home/lieven/micro/Debian_Mqtt/src/Sys.cpp
 	"Sys.h"
 	<malloc.h>
+	"Logger.h"
 
-1403956054 source:/home/lieven/micro/Common/src/Bytes.cpp
+1404307024 source:/home/lieven/micro/Common/src/Bytes.cpp
 	"Bytes.h"
 
-1403956087 /home/lieven/micro/Common/inc/Bytes.h
+1404306987 /home/lieven/micro/Common/inc/Bytes.h
 	<stdint.h>
 	"Erc.h"
 	"Sys.h"
@@ -58,15 +60,19 @@
 	"MqttIn.h"
 	"Property.h"
 
-1403953529 /home/lieven/micro/Common/inc/MqttIn.h
-	"Mqtt.h"
+1404298600 /home/lieven/micro/Common/inc/MqttIn.h
+	"MqttConstants.h"
 	"Str.h"
 	"Strpack.h"
 
-1403395007 /home/lieven/micro/Common/inc/Mqtt.h
-	"Str.h"
+1404306478 /home/lieven/micro/Common/inc/Mqtt.h
+	"MqttIn.h"
+	"MqttOut.h"
+	"Timer.h"
+	"Tcp.h"
+	"EventSource.h"
 
-1403395007 /home/lieven/micro/Common/inc/Str.h
+1404301022 /home/lieven/micro/Common/inc/Str.h
 	"Bytes.h"
 	"Erc.h"
 
@@ -82,13 +88,13 @@
 	"Erc.h"
 	"Strpack.h"
 
-1403956766 source:/home/lieven/micro/Common/src/MqttOut.cpp
+1404310122 source:/home/lieven/micro/Common/src/MqttOut.cpp
 	"MqttOut.h"
 
-1403956763 /home/lieven/micro/Common/inc/MqttOut.h
+1404298623 /home/lieven/micro/Common/inc/MqttOut.h
 	<string.h>
 	"Bytes.h"
-	"Mqtt.h"
+	"MqttConstants.h"
 
 1403395007 source:/home/lieven/micro/Common/src/Msgpack.cpp
 	"Msgpack.h"
@@ -111,7 +117,7 @@
 1403395007 source:/home/lieven/micro/Common/src/Property.cpp
 	"Property.h"
 
-1403395007 source:/home/lieven/micro/Common/src/Str.cpp
+1404301819 source:/home/lieven/micro/Common/src/Str.cpp
 	"Str.h"
 
 1404037053 source:/home/lieven/micro/Common/src/Stream.cpp
@@ -129,7 +135,7 @@
 	"Strpack.h"
 	<string.h>
 
-1404219673 source:/home/lieven/micro/Debian_Mqtt/src/Tcp.cpp
+1404304038 source:/home/lieven/micro/Debian_Mqtt/src/Tcp.cpp
 	"Tcp.h"
 	<sys/types.h>
 	<sys/socket.h>
@@ -142,12 +148,12 @@
 	<iostream>
 	"MqttIn.h"
 
-1404219471 /home/lieven/micro/Debian_Mqtt/inc/Tcp.h
+1404303989 /home/lieven/micro/Debian_Mqtt/inc/Tcp.h
 	"Bytes.h"
 	"Thread.h"
-	"Publisher.h"
+	"EventSource.h"
 
-1404220280 /home/lieven/micro/Common/inc/Thread.h
+1404304355 /home/lieven/micro/Common/inc/Thread.h
 	"stdint.h"
 	"Erc.h"
 	"Sys.h"
@@ -155,21 +161,24 @@
 1404220552 /home/lieven/micro/Debian_Mqtt/src/Publisher.h
 	<stddef.h>
 
-1404220311 source:/home/lieven/micro/Debian_Mqtt/src/Thread.cpp
+1404304319 source:/home/lieven/micro/Debian_Mqtt/src/Thread.cpp
 	<pthread.h>
 	<unistd.h>
 	"Thread.h"
 
-1404220435 source:/home/lieven/micro/Debian_Mqtt/src/Timer.cpp
+1404303463 source:/home/lieven/micro/Debian_Mqtt/src/Timer.cpp
 	"Timer.h"
-	"Timer.h"
+	"Sys.h"
+	"Thread.h"
+	<time.h>
 
-1404220416 /home/lieven/micro/Debian_Mqtt/inc/Timer.h
+1404297360 /home/lieven/micro/Debian_Mqtt/inc/Timer.h
 	"Publisher.h"
 	"Erc.h"
 	<stdint.h>
+	"EventSource.h"
 
-1404220605 source:/home/lieven/micro/Debian_Mqtt/src/main.cpp
+1404310746 source:/home/lieven/micro/Debian_Mqtt/src/main.cpp
 	<iostream>
 	"Bytes.h"
 	"Str.h"
@@ -183,13 +192,81 @@
 	"Stream.h"
 	<iostream>
 	<list>
-	<time.h>
 	"Timer.h"
-	"Publisher.h"
 	"CircBuf.h"
 	"Mqtt.h"
 	"Tcp.h"
 	"Property.h"
 	"Strpack.h"
+	"Logger.h"
 	<unistd.h>
+	<unistd.h>
+	"Timer.h"
+
+1403395007 source:/home/lieven/micro/Common/src/PIC32_stubs.cpp
+	<stdlib.h>
+	<string.h>
+	<sys/errno.h>
+	"Sys.h"
+	<sys/types.h>
+	<stddef.h>
+	<sys/types.h>
+	<string.h>
+
+1403395007 source:/home/lieven/micro/Common/src/STM32_stubs.cpp
+	<stdlib.h>
+	<string.h>
+	<reent.h>
+	<sys/stat.h>
+	<sys/errno.h>
+	<sys/stat.h>
+	<sys/times.h>
+	<sys/unistd.h>
+	<stm32f0xx.h>
+	<stm32f10x.h>
+	"Sys.h"
+
+1404217374 source:/home/lieven/micro/Debian_Mqtt/main.cpp
+	<iostream>
+
+1403395007 source:/home/lieven/micro/Common/src/printf.c
+	"printf.h"
+
+1403395007 /home/lieven/micro/Common/inc/printf.h
+	<stdarg.h>
+
+1404220552 /home/lieven/micro/Debian_Mqtt/inc/Publisher.h
+	<stddef.h>
+
+1403395007 source:/home/lieven/micro/Common/inc/Bits.cpp
+	"Bits.h"
+
+1403395007 /home/lieven/micro/Common/inc/Bits.h
+	<stdint.h>
+
+1404309668 source:/home/lieven/micro/Common/src/EventSource.cpp
+	"EventSource.h"
+
+1404309213 /home/lieven/micro/Common/inc/EventSource.h
+	<stdint.h>
+
+1404303169 /home/lieven/micro/Common/inc/Timer.h
+	<stdint.h>
+	"Erc.h"
+	"EventSource.h"
+
+1404298689 /home/lieven/micro/Common/inc/MqttConstants.h
+	"Str.h"
+
+1404301682 /home/lieven/micro/Common/inc/Logger.h
+	"Str.h"
+
+1404309909 source:/home/lieven/micro/Common/src/Mqtt.cpp
+	"Mqtt.h"
+	"Sys.h"
+	"Logger.h"
+
+1404302000 source:/home/lieven/micro/Debian_Mqtt/src/Logger.cpp
+	"Logger.h"
+	<iostream>
 

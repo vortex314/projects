@@ -27,6 +27,7 @@ public:
 	Erc yield();
 	void wait(int timeout);
 	void notify();
+	void start();
 	virtual void run() =0;
 };
 

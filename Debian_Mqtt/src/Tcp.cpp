@@ -97,7 +97,7 @@ void Tcp::run()
     {
         while ( connect((char*)"localhost",1883) != E_OK )
             sleep(5000);
-        _listener->onTcpConnect(this);
+        ((TcpListener*)firstListener())->onTcpConnect(this);
 
         while(true)
         {
@@ -105,7 +105,7 @@ void Tcp::run()
             if ( b < 0 ) break;
             mqttRead(b);
         }
-        _listener->onTcpDisconnect(this);
+        ((TcpListener*)firstListener())->onTcpDisconnect(this);
         disconnect();
         sleep(5000);
     }
@@ -118,7 +118,7 @@ void Tcp::mqttRead(int32_t b)
     if (  mqttIn->complete() )
     {
         mqttIn->parse();
-        _listener->onTcpMessage(this,mqttIn);
+        ((TcpListener*)firstListener())->onTcpMessage(this,mqttIn);
         mqttIn=new MqttIn(256);
         mqttIn->reset();
     }

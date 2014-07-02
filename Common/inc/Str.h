@@ -17,11 +17,11 @@ public:
     Str(uint8_t* data, int capacity);
     const char* data();
     Str& append(const char* s);
-    void append(uint64_t val);
-    void append(uint32_t val);
-    void append(int32_t val);
-    void append(bool b);
-    void appendHex(uint8_t byte);
+    Str& append(uint64_t val);
+    Str& append(uint32_t val);
+    Str& append(int32_t val);
+    Str& append(bool b);
+    Str& appendHex(uint8_t byte);
     Erc parse(uint64_t* pval);
     Erc parse(uint32_t* pval);
     Erc parse(int32_t* pval);

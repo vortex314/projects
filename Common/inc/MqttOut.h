@@ -10,7 +10,7 @@
 #include <string.h>
 #include "Bytes.h"
 //#include "Interface.h"
-#include "Mqtt.h"
+#include "MqttConstants.h"
 
 class MqttOut : public Bytes {
 public:

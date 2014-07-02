@@ -32,7 +32,7 @@ bool ishex(uint8_t c) {
     return (c >= '0' || c <= '9') || (c >= 'A' || c <= 'F') || (c >= 'a' || c <= 'f');
 }
 
-void Str::append(uint64_t val) {
+Str& Str::append(uint64_t val) {
 #define MAX_CHAR 20
     char str[MAX_CHAR];
     str[MAX_CHAR - 1] = '\0';
@@ -42,25 +42,29 @@ void Str::append(uint64_t val) {
         val /= 10;
     } while (val != 0);
     append(cp);
+    return *this;
 }
 
-void Str::append(uint32_t val) {
+Str& Str::append(uint32_t val) {
     uint64_t v = val;
     append(v);
+    return *this;
 }
 
-void Str::append(int32_t val) {
+Str& Str::append(int32_t val) {
     uint64_t v = val;
     if (val < 0) {
         write('-');
         v = -val;
     } else v = val;
     append(v);
+    return *this;
 }
 
-void Str::append(bool b) {
+Str& Str::append(bool b) {
     if (b) append("true");
     else append("false");
+    return *this;
 }
 
 
@@ -70,9 +74,10 @@ char nibbleToHex(uint8_t value) {
     return hexChar[value & 0xF];
 }
 
-void Str::appendHex(uint8_t byt) {
+Str& Str::appendHex(uint8_t byt) {
     write(hexChar[byt >> 4]);
     write(hexChar[byt & 0xF]);
+    return *this;
 }
 
 const char* Str::data() {
@@ -118,7 +123,7 @@ Erc Str::parseHex(uint8_t *pb) {
             if (ishex(peek())) {
                 b = b << 4;
                 b = hexToNibble(read());
-            } 
+            }
             else
                 return E_INVAL;
         else

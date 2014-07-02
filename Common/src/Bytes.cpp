@@ -91,6 +91,18 @@ int Bytes::offset(uint32_t pos) {
     return 0;
 }
 
+Erc Bytes::insert(uint32_t offset,Bytes* data) {
+    if ( data->_limit + _limit > _capacity ) return E_LACK_RESOURCE;
+    if ( offset > _limit ) return E_INVAL;
+    // move last part further
+    uint32_t delta=data->length();
+    int i;
+    for(i=_limit;i>=offset;i--) _start[i+delta]=_start[i];
+    // insert data
+    for(i=0;i<delta;i++) _start[offset+i]=data->_start[i];
+    return E_OK;
+}
+
 int Bytes::offset() {
     return _offset;
 }
