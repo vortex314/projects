@@ -15,7 +15,7 @@ public:
     virtual void onTcpMessage(Tcp* src,Bytes* data)=0;
 };
 
-class Tcp : public Thread,public EventSource
+class Tcp : public Thread,public EventSource<TcpListener>
 {
 private:
     int _sockfd;

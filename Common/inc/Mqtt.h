@@ -17,7 +17,7 @@ public:
     virtual void onMqttDisconnect(Mqtt* mqtt)=0;
 };
 
-class Mqtt : public TcpListener,public TimerListener,public EventSource
+class Mqtt : public TcpListener,public TimerListener,public EventSource<MqttListener>
 {
 private:
     Tcp* _tcp;

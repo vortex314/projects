@@ -136,7 +136,7 @@ void MqttOut::Publish(uint8_t hdr, Str* topic, Bytes* msg,
         uint16_t messageId) {
     addHeader(MQTT_MSG_PUBLISH + hdr);
     bool addMessageId = (hdr & MQTT_QOS_MASK) ? true : false;
-    int remLen = topic->length() + 2 + msg->length();
+    int remLen = topic->length() + strlen(_prefix) + 2 + msg->length();
     if (addMessageId)
         remLen += 2;
     addRemainingLength(remLen);

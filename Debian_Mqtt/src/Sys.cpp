@@ -65,7 +65,7 @@ void Sys::free(void *pv)
 #endif
 }
 #include "Logger.h"
-Logger* Sys::_logger =  new Logger();
+Logger* Sys::_logger =  new Logger(100);
 Logger&  Sys::getLogger()
 {
  //   if ( Sys::_logger == 0) Sys::_logger=new Logger();

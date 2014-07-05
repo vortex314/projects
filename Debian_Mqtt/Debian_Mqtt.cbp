@@ -52,6 +52,7 @@
 		<Unit filename="../Common/inc/MqttIn.h" />
 		<Unit filename="../Common/inc/MqttOut.h" />
 		<Unit filename="../Common/inc/Msgpack.h" />
+		<Unit filename="../Common/inc/Mutex.h" />
 		<Unit filename="../Common/inc/Node.h" />
 		<Unit filename="../Common/inc/Pool.h" />
 		<Unit filename="../Common/inc/Property.h" />
@@ -90,6 +91,7 @@
 		<Unit filename="inc/QueueWrapper.h" />
 		<Unit filename="inc/Tcp.h" />
 		<Unit filename="src/Logger.cpp" />
+		<Unit filename="src/Mutex.cpp" />
 		<Unit filename="src/Queue.cpp" />
 		<Unit filename="src/Sys.cpp" />
 		<Unit filename="src/Tcp.cpp" />

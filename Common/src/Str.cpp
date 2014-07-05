@@ -67,6 +67,13 @@ Str& Str::append(bool b) {
     return *this;
 }
 
+Str& Str::append(Str* b) {
+    b->offset(0);
+    while(b->hasData())
+        write(b->read());
+    return *this;
+}
+
 
 const char *hexChar = "0123456789ABCDEF";
 

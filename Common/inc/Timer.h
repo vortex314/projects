@@ -19,7 +19,7 @@ public:
     virtual void onTimerExpired(Timer* src)=0;
 };
 
-class Timer: public EventSource
+class Timer: public EventSource<TimerListener>
 {
 public:
     Timer();
@@ -32,9 +32,23 @@ public:
     void setExpired(bool value);
     bool isRunning();
 
+    static void checkAll();
+
 private:
     struct TimerStruct;
     TimerStruct* _this;
+};
+#include "Thread.h"
+class TimerThread : public Thread
+{
+
+public:
+
+    TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+    };
+public :
+    void run() ;
 };
 
 #endif	/* TIMER_H */

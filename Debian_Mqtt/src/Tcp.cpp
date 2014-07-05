@@ -89,7 +89,7 @@ Erc Tcp::send(Bytes* pb)
     }
     return E_OK;
 }
-
+#include "Mutex.h"
 void Tcp::run()
 {
 //       ::sleep(3);
@@ -97,7 +97,9 @@ void Tcp::run()
     {
         while ( connect((char*)"localhost",1883) != E_OK )
             sleep(5000);
-        ((TcpListener*)firstListener())->onTcpConnect(this);
+        Mutex::lock();
+        firstListener()->onTcpConnect(this);
+        Mutex::unlock();
 
         while(true)
         {
@@ -105,11 +107,14 @@ void Tcp::run()
             if ( b < 0 ) break;
             mqttRead(b);
         }
-        ((TcpListener*)firstListener())->onTcpDisconnect(this);
+        Mutex::lock();
+        firstListener()->onTcpDisconnect(this);
+        Mutex::unlock();
         disconnect();
         sleep(5000);
     }
 }
+
 void Tcp::mqttRead(int32_t b)
 {
     static MqttIn* mqttIn=new MqttIn(256);
@@ -118,7 +123,9 @@ void Tcp::mqttRead(int32_t b)
     if (  mqttIn->complete() )
     {
         mqttIn->parse();
-        ((TcpListener*)firstListener())->onTcpMessage(this,mqttIn);
+        Mutex::lock();
+        firstListener()->onTcpMessage(this,mqttIn);
+        Mutex::unlock();
         mqttIn=new MqttIn(256);
         mqttIn->reset();
     }

@@ -137,6 +137,10 @@ Erc Property::toPack(Strpack& packer) {
 		packer.pack(*(uint32_t*) _pc->_pv);
 		break;
 	}
+	case T_INT32: {
+		packer.pack(*(int32_t*) _pc->_pv);
+		break;
+	}
 	case T_STR: {
 		const char* ps = (const char*) _pc->_pv;
 		packer.pack(ps);
@@ -161,7 +165,6 @@ Erc Property::toPack(Strpack& packer) {
 	case T_UINT16:
 	case T_INT8:
 	case T_INT16:
-	case T_INT32:
 	case T_INT64:
 	case T_DOUBLE:
 	case T_ARRAY:

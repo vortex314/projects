@@ -60,10 +60,13 @@ public:
 //
 
 uint32_t p=1234;
-Property property(&p, T_INT32, M_READ, "ikke/P","$META");
+bool alive=true;
+Property property1(&p, T_INT32, M_READ, "ikke/P","$META");
+Property property2(&alive, T_BOOL, M_READ, "ikke/alive","$META");
 #include <unistd.h> // gethostname
-char* getDeviceName(){
- static    char hostname[20]="";
+char* getDeviceName()
+{
+    static    char hostname[20]="";
 
     gethostname(hostname,20);
     strcat(hostname,"/");
@@ -82,6 +85,8 @@ private:
     enum { ST_SLEEP, ST_WAIT_ACK, } _state;
     uint16_t _retryCount;
     uint16_t _messageId;
+    MqttOut* _mqttOut;
+
 
 
 public:
@@ -89,18 +94,19 @@ public:
     {
         _isConnected=false;
         _timer=new Timer();
-        _currentProperty = & property;
+        _currentProperty = & property1;
         _messageId=1000;
         _retryCount=0;
+        _mqttOut = new MqttOut(256);
 
     };
     void init(Mqtt* mqtt)
     {
         _mqtt = mqtt;
-        _mqtt->addListener((EventListener*)this);
+        _mqtt->addListener(this);
 //        _tcp=tcp;
 //       _tcp->addListener(this);
-        _timer->addListener((EventListener*)this);
+        _timer->addListener(this);
 
     }
     void onTimerExpired(Timer* timer)
@@ -110,6 +116,11 @@ public:
             if ( _retryCount++< 3 )
                 publishCurrentProperty();
         }
+        else if (_state==ST_SLEEP )
+        {
+            publishCurrentProperty();
+        _state = ST_WAIT_ACK;
+        }
     }
     void onMqttMessage(Mqtt* src,MqttIn* msg)
     {
@@ -117,6 +128,8 @@ public:
         {
             _timer->stop();
             _state = ST_SLEEP;
+            _messageId++;
+            _timer->startOnce(1000);
 
         }
         else if ( msg->type() == MQTT_MSG_PUBREC)
@@ -131,7 +144,7 @@ public:
     void onMqttConnect(Mqtt* src)
     {
         _isConnected = true;
-
+        publishCurrentProperty();
         _state = ST_WAIT_ACK;
         _retryCount=0;
     };
@@ -144,15 +157,15 @@ public:
 
     void publishCurrentProperty()
     {
-        MqttOut out(256);
-        out.prefix(getDeviceName());
+        _mqttOut->prefix(getDeviceName());
         Strpack  message(20);
         Str topic(20);
         topic.append(_currentProperty->name());
         _currentProperty->toPack(message);
-        out.Publish(MQTT_QOS1_FLAG,&topic,&message,123);
-        _mqtt->send(&out);
+        _mqttOut->Publish(MQTT_QOS1_FLAG,&topic,&message,_messageId);
+        _mqtt->send(_mqttOut);
         _timer->startOnce(1000);
+        p++;
     }
 };
 //_____________________________________________________________________________________________________
@@ -181,7 +194,7 @@ public:
     void init(Mqtt* mqtt)
     {
         _mqtt = mqtt;
-        _mqtt->addListener((EventListener*)this);
+        _mqtt->addListener(this);
 //        _tcp=tcp;
 //       _tcp->addListener(this);
     }
@@ -203,9 +216,11 @@ public:
             Str message(100);
             topic.write(&msg->_topic);
             message.write(&msg->_message);
-            Sys::getLogger().append(topic.data()).append(":").append(message.data()).
-                append(" QOS ").append((msg->_header & MQTT_QOS_MASK ));
-                Sys::getLogger().flush();
+            Sys::getLogger().clear();
+            Sys::getLogger().append(topic.data()).append(":");
+            Sys::getLogger().append(message.data()).
+            append(" QOS ").append((msg->_header & MQTT_QOS_MASK ));
+            Sys::getLogger().flush();
             if (( msg->_header & MQTT_QOS_MASK )== MQTT_QOS1_FLAG )
             {
                 _mqttOut->PubAck(msg->messageId());
@@ -268,8 +283,10 @@ int main(int argc, char *argv[])
 
 
     MainThread mt("messagePump",1000,1);
+    TimerThread tt("timerThread",1000,1);
     tcp.start();
     mt.start();
+    tt.start();
 
     ::sleep(1000000);
 

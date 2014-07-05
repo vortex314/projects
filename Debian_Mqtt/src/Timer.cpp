@@ -1,4 +1,3 @@
-
 #include "Timer.h"
 #include "Sys.h"
 
@@ -15,21 +14,23 @@ struct Timer::TimerStruct
 static uint16_t timerCount=0;
 static Timer* timers[MAX_TIMERS];
 
-/*void Timer::decAll()
+void Timer::checkAll()
 {
     uint32_t i;
     for (i = 0; i < timerCount; i++)
-        timers[i]->dec();
-}*/
+        if ( timers[i]->isExpired() && timers[i]->isRunning() )
+            timers[i]->setExpired(true);
+}
 
 
-Timer::Timer() : EventSource() //: TimerStruct(_this)
+Timer::Timer()  //: TimerStruct(_this)
 {
     _this = new TimerStruct();
     _this->isRunning = false;
     _this->isAutoReload = false;
     _this->intervalTime=0;
     _this->expireTime = Sys::upTime();
+    timers[timerCount++]=this;
 }
 
 void Timer::startOnce(uint64_t interval)
@@ -53,55 +54,63 @@ bool Timer::isExpired()
     return (_this->expireTime <= Sys::upTime());
 }
 
+bool Timer::isRunning()
+{
+    return _this->isRunning;
+}
+
+
 
 void Timer::stop()
 {
     _this->isRunning = false;
 }
+#include "Mutex.h"
+void Timer::setExpired(bool v)
+{
 
-void Timer::setExpired(bool v){
-    ((TimerListener*)firstListener())->onTimerExpired(this);
-    if ( _this->isAutoReload ) {
+    if ( _this->isAutoReload )
+    {
         _this->expireTime = Sys::upTime()+_this->intervalTime;
-    } else {
+    }
+    else
+    {
         _this->isRunning =  false;
     }
+    Mutex::lock();
+    TimerListener* l;
+    for(l=firstListener(); l!=0; l=nextListener(l))
+        l->onTimerExpired(this);
+    Mutex::unlock();
 }
 
 #include "Thread.h"
 #include <time.h>
-class TimerThread : public Thread
+
+void TimerThread::run()
 {
-
-public:
-
-    TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    struct timespec deadline;
+    clock_gettime(CLOCK_MONOTONIC, &deadline);
+    while(true)
     {
-    };
-public :
-    void run()
-    {
-        while(true)
-        {
-
-            struct timespec deadline;
-            clock_gettime(CLOCK_MONOTONIC, &deadline);
-
 // Add the time you want to sleep
-            deadline.tv_nsec += 1000;
+        deadline.tv_nsec += 1000000;
 
 // Normalize the time to account for the second boundary
-            if(deadline.tv_nsec >= 1000000000)
-            {
-                deadline.tv_nsec -= 1000000000;
-                deadline.tv_sec++;
-            }
-            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
- //           Timer::decAll();
+        if(deadline.tv_nsec >= 1000000000)
+        {
+            deadline.tv_nsec -= 1000000000;
+            deadline.tv_sec++;
         }
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
+        Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
+        Timer::checkAll();
     }
-};
+
+}
+
 
 //_________________________________________________________
 // Queue q(sizeof(Event),10);
+
 
