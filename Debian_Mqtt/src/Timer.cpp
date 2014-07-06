@@ -77,11 +77,14 @@ void Timer::setExpired(bool v)
     {
         _this->isRunning =  false;
     }
-    Mutex::lock();
+
     TimerListener* l;
     for(l=firstListener(); l!=0; l=nextListener(l))
+    {
+        Mutex::lock();
         l->onTimerExpired(this);
-    Mutex::unlock();
+        Mutex::unlock();
+    }
 }
 
 #include "Thread.h"
@@ -112,5 +115,6 @@ void TimerThread::run()
 
 //_________________________________________________________
 // Queue q(sizeof(Event),10);
+
 
 
