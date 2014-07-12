@@ -88,7 +88,7 @@ Str& Str::appendHex(uint8_t byt) {
 }
 
 const char* Str::data() {
-    *(_start + _limit) = '\0';
+//    *(_start + _limit) = '\0';
     return (char*) _start;
 }
 

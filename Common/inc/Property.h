@@ -18,91 +18,120 @@ extern const char *PREFIX;
 typedef Erc (*Setter)(Strpack& str);
 typedef Erc (*Getter)(Strpack& str);
 
-enum Type {
-	T_UINT8,
-	T_UINT16,
-	T_UINT32,
-	T_UINT64,
-	T_INT8,
-	T_INT16,
-	T_INT32,
-	T_INT64,
-	T_BOOL,
-	T_FLOAT,
-	T_DOUBLE,
-	T_BYTES,
-	T_ARRAY,
-	T_MAP,
-	T_STR
+enum Type
+{
+    T_UINT8,
+    T_UINT16,
+    T_UINT32,
+    T_UINT64,
+    T_INT8,
+    T_INT16,
+    T_INT32,
+    T_INT64,
+    T_BOOL,
+    T_FLOAT,
+    T_DOUBLE,
+    T_BYTES,
+    T_ARRAY,
+    T_MAP,
+    T_STR
 };
 
-enum Mode {
-	M_READ, M_WRITE, M_RW
+enum Mode
+{
+    M_READ, M_WRITE
 };
 
-enum Interface {
-	I_ADDRESS, I_INTERFACE, I_SETTER
+enum Qos
+{
+    QOS_0,QOS_1,QOS_2
+} ;
+
+
+
+enum Interface
+{
+    I_ADDRESS, I_INTERFACE, I_SETTER
 };
 
-class PackerInterface {
+typedef struct
+{
+    enum Type type:5;
+    enum Mode mode:2;
+    enum Qos qos:2;
+    enum Interface interface:2;
+    bool retained:1;
+} Flags;
+
+class PackerInterface
+{
 public:
-	virtual Erc toPack(Strpack& packer)=0;
-	virtual Erc fromPack(Strpack& packer)=0;
-	~PackerInterface() {
-	}
-	;
+    virtual Erc toPack(Strpack& packer)=0;
+    virtual Erc fromPack(Strpack& packer)=0;
+    ~PackerInterface()
+    {
+    }
+    ;
 };
 
-typedef struct {
-	union {
-		void *_pv;
-		Setter _setter;
-		Getter _getter;
-		PackerInterface* _instance;
-	};
-	const char *_name;
-	const char *_meta;
+typedef struct
+{
+    union
+    {
+        void *_pv;
+        Setter _setter;
+        Getter _getter;
+        PackerInterface* _instance;
+    };
+    const char *_name;
+    const char *_meta;
 //	uint16_t _id;
-	Type _type;
-	Mode _mode;
-	Interface _interface;
+    Flags _flags;
 } PropertyConst;
 
-class Property {
+class Property
+{
 public:
-	Property(void *pv, Type type, Mode mode, const char *name,
-			const char* meta);
-	Property(Setter setter, Getter getter, Type type, Mode mode,
-			const char *name, const char* meta);
-	Property(PackerInterface* instance, Type type, Mode mode, const char *name,
-			const char* meta);
-	Property(const PropertyConst* pc);
-	virtual ~Property();
-	static void add(Property* pp);
-	static Property *find(void *pv);
-	static Property *find(char* name);
-	static Property *find(Str& name);
-	static Property* find(const char *prefix, Str& name);
-	static Property *get(int id);
-	static Property* findNextUpdated();
-	static void updated(void *pv);
-	static uint32_t count();
-	bool isUpdated();
-	void updated();
-	static void updatedAll();
-	void published();
-	Erc getMeta(Str& str);
-	Erc toPack(Strpack& packer);
-	Erc fromPack(Strpack& packer);
-	int id();
-	void* addr();
-	const char* meta();
-	const char* name();
+    Property(void *pv, Flags flags, const char *name,
+             const char* meta);
+    Property(Setter setter, Getter getter, Flags flags,
+             const char *name, const char* meta);
+    Property(PackerInterface* instance, Flags flags, const char *name,
+             const char* meta);
+    Property(const PropertyConst* pc);
+    virtual ~Property();
+    static void add(Property* pp);
+    static Property* first();
+    static Property* next(Property* curr);
+    static Property *find(void *pv);
+    static Property *find(char* name);
+    static Property *find(Str& name);
+    static Property* find(const char *prefix, Str& name);
+    static Property *get(int id);
+    static Property* findNextUpdated();
+    static void updated(void *pv);
+    static uint32_t count();
+    bool isUpdated();
+    void updated();
+    static void updatedAll();
+    void published();
+    Erc getMeta(Str& str);
+    Flags flags();
+    Erc toPack(Strpack& packer);
+    Erc fromPack(Strpack& packer);
+    int id();
+    void* addr();
+    const char* meta();
+    const char* name();
+    uint32_t mode();
 private:
-	void init(Type t, Mode m, const char* name, const char* meta);
-	bool _updated;
-	PropertyConst* _pc;
-	static uint16_t _count;
+    void init(Type t, Mode m, const char* name, const char* meta);
+    void init(Flags flags, const char* name, const char* meta);
+    bool _updated;
+    PropertyConst* _pc;
+    Property* _next;
+    static uint16_t _count;
+    static Property* _first;
 };
 
 #endif /* PROPERTY_H_ */

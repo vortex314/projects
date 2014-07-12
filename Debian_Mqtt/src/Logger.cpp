@@ -6,9 +6,9 @@ Logger::Logger()
 }
 
 Logger::Logger(uint16_t size) :Str(size)
-    {
-        _logLine=new Str(size+10);
-    };
+{
+    _logLine=new Str(size+10);
+};
 
 Logger::~Logger()
 {
@@ -16,11 +16,11 @@ Logger::~Logger()
 }
 #include <iostream>
 void Logger::flush()
-    {
-        _logLine->clear();
-        _logLine->append(Sys::upTime());
-        _logLine->append(" : ");
-        _logLine->append(this);
-        std::cout << _logLine->data() << std::endl;
-        clear();
-    }
+{
+    std::cout << Sys::upTime() << " | " ;
+    offset(0);
+    while( hasData() )
+        std::cout << read();
+    std::cout  << std::endl;
+    clear();
+}

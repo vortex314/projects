@@ -23,6 +23,8 @@ public:
     Str& append(bool b);
     Str& appendHex(uint8_t byte);
     Str& append(Str* str);
+    bool endsWith(const char* end);
+    bool startsWith(const char* start);
     Erc parse(uint64_t* pval);
     Erc parse(uint32_t* pval);
     Erc parse(int32_t* pval);
