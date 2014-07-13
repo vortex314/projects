@@ -76,11 +76,9 @@
 		<Unit filename="../Common/src/CircBuf.cpp" />
 		<Unit filename="../Common/src/Event.cpp" />
 		<Unit filename="../Common/src/EventSource.cpp" />
-		<Unit filename="../Common/src/Mqtt.cpp" />
 		<Unit filename="../Common/src/MqttIn.cpp" />
 		<Unit filename="../Common/src/MqttOut.cpp" />
 		<Unit filename="../Common/src/Msgpack.cpp" />
-		<Unit filename="../Common/src/Node.cpp" />
 		<Unit filename="../Common/src/Property.cpp" />
 		<Unit filename="../Common/src/Sequence.cpp" />
 		<Unit filename="../Common/src/Str.cpp" />

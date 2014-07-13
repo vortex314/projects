@@ -100,7 +100,7 @@ void TimerThread::run()
     while(true)
     {
 // Add the time you want to sleep
-        deadline.tv_nsec += 1000000000;
+        deadline.tv_nsec += 100000000;
 
 // Normalize the time to account for the second boundary
         if(deadline.tv_nsec >= 1000000000)

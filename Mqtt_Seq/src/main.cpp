@@ -32,6 +32,9 @@ uint16_t nextMessageId()
     return gMessageId++;
 }
 
+/*****************************************************************************
+*   MQTT EVENT filter
+******************************************************************************/
 
 bool eventIsMqtt(Event* event,Tcp* tcp,uint8_t type, uint16_t messageId)
 {
@@ -53,7 +56,7 @@ bool eventIsMqtt(Event* event,Tcp* tcp,uint8_t type, uint16_t messageId)
 
 
 /*****************************************************************************
-*   HANDLE MQTT onnection and subscribe sequence
+   HANDLE MQTT connection and subscribe sequence
 ******************************************************************************/
 
 class MqttConnectSeq : public Sequence
@@ -155,7 +158,7 @@ public:
 };
 
 /*****************************************************************************
-*   HANDLE MQTT send publish message with qos=2
+*   HANDLE MQTT send publish message with qos=2 and 1
 ******************************************************************************/
 class MqttPubQos1 : public Sequence
 {
@@ -266,9 +269,6 @@ public:
         {
             new MqttPubQos2(_tcp,_p);
         }
-
-
-
     }
     int handler(Event* event)
     {
@@ -338,7 +338,6 @@ public :
                 }
                 case MQTT_QOS1_FLAG:
                 {
-
                     _mqttOut->PubAck(mqttIn->messageId()); // send PUBACK
                     _tcp->send(_mqttOut);
                     Property::set(mqttIn->topic(),mqttIn->message());
@@ -429,32 +428,6 @@ Property property1(&p, (Flags)
 }, "ikke/P","$META");
 
 Property pp(&pc);
-
-
-
-//_____________________________________________________________________________________________________
-/*
-*
-
-ST_WAIT_PUBACK
-    PUBACK , mId ok -> getNext, ST_NEXT_PROPERTY
-    TIMEOUT -> retry < 3 -> send again : ST_WAIT_PUBACK
-    * : ST_SLEEP
-ST_WAIT_PUBREC
-    PUBREC , mID ok -> ST_WAIT_PUBCOMP
-    TIMEOUT -> retry < 3
-    * : ignore
-ST_WAIT_PUBCOMP
-    PUBCOMP
-    TIMEOUT
-    * : ignore -> ST_NEXT_PROPERTY
-ST_NEXT_PROPERTY :
-    TIMEOUT : publishProperty
-    *
-
-
-
-*/
 
 //_____________________________________________________________________________________________________
 //
