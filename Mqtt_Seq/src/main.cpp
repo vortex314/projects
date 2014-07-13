@@ -24,6 +24,14 @@
 
 #include "pt.h"
 
+uint16_t gMessageId=1;
+MqttOut* mqttOut=new MqttOut(256);
+
+uint16_t nextMessageId()
+{
+    return gMessageId++;
+}
+
 
 bool eventIsMqtt(Event* event,Tcp* tcp,uint8_t type, uint16_t messageId)
 {
@@ -43,7 +51,7 @@ bool eventIsMqtt(Event* event,Tcp* tcp,uint8_t type, uint16_t messageId)
     return false;;;
 }
 
-MqttOut* mqttOut=new MqttOut(256);
+
 /*****************************************************************************
 *   HANDLE MQTT onnection and subscribe sequence
 ******************************************************************************/
@@ -56,12 +64,13 @@ private:
     uint16_t _messageId;
 
 public :
-    enum MqttEvents {MQTT_CONNECTED,MQTT_DISCONNECTED};
+    enum MqttEvents {MQTT_CONNECTED=EV('M','Q','_','C'), MQTT_DISCONNECTED=EV('M','Q','_','D')};
     MqttConnectSeq(Tcp* tcp)
     {
         _tcp=tcp;
         PT_INIT(&t);
         _messageId=2000;
+        mqttOut->prefix(Sys::getDeviceName());
     };
 
     int handler(Event* event)
@@ -69,10 +78,10 @@ public :
         PT_BEGIN(&t);
         while(1)
         {
-            _messageId++;
+            _messageId=nextMessageId();
             PT_WAIT_UNTIL(&t,event->is(_tcp,Tcp::TCP_CONNECTED));
             mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION,
-                             "ikke/alive", "false", "", "", 1000);
+                             "system/online", "false", "", "", 1000);
             _tcp->send(mqttOut);
             timeout(1000);
             PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_CONNACK,0) || timeout() );
@@ -86,7 +95,7 @@ public :
             timeout(1000);
             mqttOut->Subscribe(0,"#",_messageId,MQTT_QOS1_FLAG);
             _tcp->send(mqttOut);
-            PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_SUBACK,0) || timeout());
+            PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_SUBACK,_messageId) || timeout());
             if ( timeout() )
             {
                 _tcp->disconnect();
@@ -118,6 +127,7 @@ public:
     {
         _tcp=tcp;
         _messageId=messageId;
+        PT_INIT(&t);
     }
     int handler(Event* event)
     {
@@ -130,12 +140,15 @@ public:
         clone = new MqttIn(*((MqttIn*)(event->data())));
         timeout(1000);
         PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREL,_messageId));
-        if ( timeout() ) return PT_ENDED; // abandon and go for destruction
+        if ( timeout() )
+        {
+            Sys::free(clone);
+            return PT_ENDED; // abandon and go for destruction
+        }
         mqttOut->PubComp(_messageId);
         _tcp->send(mqttOut);
-        //TODO setter
-        //TODO delete cloned message
-        Sys::free(clone);
+        Property::set(clone->topic(),clone->message());
+        Sys::free(clone); // free cloned messages
         PT_END(&t);
     }
 
@@ -144,6 +157,38 @@ public:
 /*****************************************************************************
 *   HANDLE MQTT send publish message with qos=2
 ******************************************************************************/
+class MqttPubQos1 : public Sequence
+{
+private:
+    struct pt t;
+    Tcp* _tcp;
+    uint16_t _messageId;
+    Property * _p;
+    Strpack* _message;
+public:
+    MqttPubQos1(Tcp* tcp,Property* p)
+    {
+        _tcp=tcp;
+        _messageId=nextMessageId();
+        _message = new Strpack(100);
+        _p=p;
+        PT_INIT(&t);
+        //TODO in destructor free memory
+    }
+    int handler(Event* event)
+    {
+        uint8_t header=0;
+        PT_BEGIN(&t);
+        if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+        _p->toPack(*_message);
+        mqttOut->Publish(header+MQTT_QOS1_FLAG,_p->name(),_message,_messageId);
+        _tcp->send(mqttOut);
+        Sys::free(_message);
+        timeout(1000);
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBACK,_messageId));
+        PT_END(&t);
+    }
+};
 
 class MqttPubQos2 : public Sequence
 {
@@ -154,34 +199,107 @@ private:
     Property * _p;
     Strpack* _message;
 public:
-    MqttPubQos2(Tcp* tcp,uint16_t messageId,Property* p)
+    MqttPubQos2(Tcp* tcp,Property* p)
     {
         _tcp=tcp;
-        _messageId=messageId;
+        _messageId=nextMessageId();
         _message = new Strpack(100);
         _p=p;
-        //TODO in destructor free memory
+    }
+    int handler(Event* event)
+    {
+        uint8_t header=0;
+        PT_BEGIN(&t);
+        if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+
+        _p->toPack(*_message);
+        mqttOut->Publish(header+MQTT_QOS2_FLAG,_p->name(),_message,_messageId);
+        _tcp->send(mqttOut);
+        Sys::free(_message);
+        timeout(1000);
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREC,_messageId));
+
+        mqttOut->PubRel(_messageId);
+        _tcp->send(mqttOut);
+        timeout(1000);
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBCOMP,_messageId));
+        PT_END(&t);
+    }
+
+};
+
+/*****************************************************************************
+*   HANDLE Property scan for changes
+******************************************************************************/
+
+class PropertyListener : public Sequence
+{
+private:
+    struct pt t;
+    Tcp* _tcp;
+    uint16_t _messageId;
+    Property * _p;
+    Strpack* _message;
+public:
+    PropertyListener(Tcp* tcp)
+    {
+        _tcp=tcp;
+        _message = new Strpack(100);
+        PT_INIT(&t);
+    }
+    void publishCurrentProperty()
+    {
+        uint8_t header=0;
+        if ( _p->flags().qos == QOS_0  )
+        {
+            if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+            mqttOut->prefix(Sys::getDeviceName());
+            _p->toPack(*_message);
+            mqttOut->Publish(header,_p->name(),_message,_messageId);
+            _tcp->send(mqttOut);
+        }
+        else if ( _p->flags().qos == QOS_1  )
+        {
+            new MqttPubQos1(_tcp,_p);
+        }
+        else if ( _p->flags().qos == QOS_2  )
+        {
+            new MqttPubQos2(_tcp,_p);
+        }
+
+
+
     }
     int handler(Event* event)
     {
         PT_BEGIN(&t);
-        _p->toPack(*_message);
-        mqttOut->Publish(MQTT_QOS2_FLAG,_p->name(),_message,_messageId);
-        _tcp->send(mqttOut);
-        Sys::free(_message);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREC,_messageId));
-        mqttOut->PubRel(_messageId);
-        _tcp->send(mqttOut);
-        //TODO clone message
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBCOMP,_messageId));
-        //TODO setter
-        //TODO delete cloned message
+        PT_WAIT_UNTIL(&t,event->is(_tcp,Tcp::TCP_CONNECTED));
+        while(1)
+        {
+            timeout(1000);
+            PT_WAIT_UNTIL(&t,timeout());
+            _p = Property::first();
+            while(_p)
+            {
+                if ( _p->isUpdated() )
+                {
+                    publishCurrentProperty();
+                    _p->published();
+                }
+                _p = Property::next(_p);
+                timeout(100);
+                PT_WAIT_UNTIL(&t,timeout());
+            }
+            timeout(1000);
+            PT_WAIT_UNTIL(&t,timeout());
+            Property::updatedAll();
+        }
         PT_END(&t);
     }
 
 };
 /*****************************************************************************
-*   HANDLE MQTT received publish message with qos=2
+*   DISPATCH MQttMessages depending on case
 ******************************************************************************/
 
 class MqttDispatcher : public Sequence
@@ -215,15 +333,15 @@ public :
                 {
                 case MQTT_QOS0_FLAG :
                 {
-                    //TODO setter
+                    Property::set(mqttIn->topic(),mqttIn->message());
                     break;
                 }
                 case MQTT_QOS1_FLAG:
                 {
-                    // puback
-                    _mqttOut->PubAck(mqttIn->messageId());
+
+                    _mqttOut->PubAck(mqttIn->messageId()); // send PUBACK
                     _tcp->send(_mqttOut);
-                    //TODO setter
+                    Property::set(mqttIn->topic(),mqttIn->message());
                     break;
                 }
                 case MQTT_QOS2_FLAG:
@@ -238,6 +356,9 @@ public :
         PT_END(&t);
     }
 };
+/*****************************************************************************
+*   HANDLE Property publishing
+******************************************************************************/
 
 
 //____________________________________________________________________________________________
@@ -253,11 +374,18 @@ public:
     };
     void run()
     {
-        Queue::getDefaultQueue()->clear();
+
         while(true)
         {
             Event event;
             Queue::getDefaultQueue()->get(&event);
+            union
+            {
+                uint32_t i;
+                char c[4];
+            } u;
+            u.i = event.id();
+            std::cout<< Sys::upTime() << " | "<<u.c<<std::endl;
 
             int i;
             for(i=0; i<MAX_SEQ; i++)
@@ -265,8 +393,9 @@ public:
                 {
                     if ( Sequence::activeSequence[i]->handler(&event) == PT_ENDED )
                     {
-                        Sequence::activeSequence[i]->unreg();
-                        delete Sequence::activeSequence[i];
+                        Sequence* seq= Sequence::activeSequence[i];
+                        seq->unreg();
+                        delete seq;
                     };
                 }
             if ( event.data() != NULL )
@@ -283,33 +412,25 @@ public:
 //
 
 uint32_t p=1234;
-bool alive=true;
-Property property1(&p, (Flags)
+bool online=true;
+
+Property property2(&online, (Flags)
 {
-    T_UINT32,M_READ,QOS_1,I_ADDRESS
-}, "ikke/P","$META");
-Property property2(&alive, (Flags)
-{
-    T_BOOL,M_READ,QOS_2,I_ADDRESS
-}, "ikke/alive","$META");
+    T_BOOL,M_WRITE,QOS_2,I_ADDRESS
+}, "system/online","$META");
 
 const PropertyConst pc= { {(void*)&p},"NAME","META",{
         T_BOOL,M_READ,QOS_1,I_ADDRESS
     }
 };
+Property property1(&p, (Flags)
+{
+    T_UINT32,M_READ,QOS_1,I_ADDRESS
+}, "ikke/P","$META");
 
 Property pp(&pc);
 
 
-#include <unistd.h> // gethostname
-char* getDeviceName()
-{
-    static    char hostname[20]="";
-
-    gethostname(hostname,20);
-    strcat(hostname,"/");
-    return hostname;
-}
 
 //_____________________________________________________________________________________________________
 /*
@@ -334,162 +455,7 @@ ST_NEXT_PROPERTY :
 
 
 */
-#define TIME_BETWEEN_PROPERTY   100
-#define TIME_BETWEEN_FULL_CYCLE 5000
-class MqttPublisher : public TimerListener,public MqttListener
-{
-private:
 
-    Mqtt* _mqtt;
-    bool _isConnected;
-    Timer* _timer;
-    Property* _currentProperty;
-    enum State { ST_DISCONNECTED, ST_SLEEP, ST_PUB_PROPERTY, ST_WAIT_PUBACK, ST_WAIT_PUBREC,ST_WAIT_PUBCOMP} _state;
-    uint16_t _retryCount;
-    uint16_t _currentMessageId;
-    MqttOut* _mqttOut;
-    uint8_t _currentQos;
-    uint32_t _errorCount;
-
-
-public:
-    MqttPublisher()
-    {
-        _isConnected=false;
-        _timer=new Timer();
-        _currentProperty = & property2;
-        _currentMessageId=1000;
-        _retryCount=0;
-        _mqttOut = new MqttOut(256);
-        _errorCount=0;
-
-    };
-    void init(Mqtt* mqtt)
-    {
-        _mqtt = mqtt;
-        _mqtt->addListener(this);
-//        _tcp=tcp;
-//       _tcp->addListener(this);
-        _timer->addListener(this);
-
-    }
-    bool getNextProperty()
-    {
-        _currentMessageId++;
-        _currentProperty = Property::next(_currentProperty);
-        if (_currentProperty == NULL ) return false;
-        return true;
-    }
-    bool getFirstProperty()
-    {
-        _currentMessageId++;
-        _currentProperty = Property::first();
-        if (_currentProperty == NULL ) return false;
-        return true;
-    }
-    void onTimerExpired(Timer* timer)
-    {
-        if ( _state == ST_WAIT_PUBACK )
-        {
-            if ( _retryCount++< 3 )
-                publishCurrentProperty();
-            else _state=ST_PUB_PROPERTY;
-        }
-        else if ( _state == ST_WAIT_PUBREC || _state==ST_WAIT_PUBCOMP )
-        {
-            _state=ST_PUB_PROPERTY;
-        }
-        else if (_state==ST_PUB_PROPERTY )
-        {
-            if ( getNextProperty() )
-                publishCurrentProperty();
-            else
-                _state=ST_SLEEP;
-        }
-        else if ( _state == ST_SLEEP )
-        {
-            if ( getFirstProperty() )
-                publishCurrentProperty();
-            else
-                _state=ST_SLEEP;
-        }
-        else if (_state==ST_DISCONNECTED)
-        {
-
-        }
-        else
-        {
-            _errorCount++;
-        }
-        if (_state == ST_SLEEP || _state==ST_DISCONNECTED ) _timer->startOnce(TIME_BETWEEN_FULL_CYCLE);
-        else _timer->startOnce(TIME_BETWEEN_PROPERTY);
-    }
-    void onMqttMessage(Mqtt* src,MqttIn* msg)
-    {
-        if ( _state == ST_WAIT_PUBACK &&  msg->type() == MQTT_MSG_PUBACK && msg->messageId() == _currentMessageId )
-        {
-            _timer->stop();
-            _state = ST_PUB_PROPERTY;
-        }
-        else if ( _state == ST_WAIT_PUBREC &&  msg->type() == MQTT_MSG_PUBREC && msg->messageId() == _currentMessageId )
-        {
-            _mqttOut->PubRel(_currentMessageId);
-            _mqtt->send(_mqttOut);
-            _state = ST_WAIT_PUBCOMP;
-        }
-        else if ( _state == ST_WAIT_PUBCOMP &&  msg->type() == MQTT_MSG_PUBCOMP && msg->messageId() == _currentMessageId )
-        {
-            _state = ST_PUB_PROPERTY;
-        }
-        else if (msg->type() == MQTT_MSG_PUBACK  || msg->type() == MQTT_MSG_PUBREC  || msg->type() == MQTT_MSG_PUBCOMP  )
-        {
-            _errorCount++;
-        } // else not interested
-        _timer->startOnce(TIME_BETWEEN_PROPERTY);
-    }
-    void onMqttConnect(Mqtt* src)
-    {
-        _isConnected = true;
-        _state = ST_SLEEP;
-        _timer->startOnce(TIME_BETWEEN_PROPERTY);
-        _retryCount=0;
-    };
-    void onMqttDisconnect(Mqtt* src)
-    {
-        _isConnected = false;
-        _state = ST_DISCONNECTED;
-    };
-
-
-    void publishCurrentProperty()
-    {
-        uint8_t header=0;
-        if ( _currentProperty->flags().qos == QOS_0  )
-        {
-            header = 0;
-            _state = ST_PUB_PROPERTY;
-        }
-        else if ( _currentProperty->flags().qos == QOS_1  )
-        {
-            header = MQTT_QOS1_FLAG;
-            _state = ST_WAIT_PUBACK;
-        }
-        else if ( _currentProperty->flags().qos == QOS_2  )
-        {
-            header = MQTT_QOS2_FLAG;
-            _state = ST_WAIT_PUBREC;
-        }
-        if ( _currentProperty->flags().retained )
-            header += MQTT_RETAIN_FLAG;
-
-        _mqttOut->prefix(getDeviceName());
-        Strpack  message(20);
-        _currentProperty->toPack(message);
-
-        _mqttOut->Publish(header,_currentProperty->name(),&message,_currentMessageId);
-        _mqtt->send(_mqttOut);
-    }
-};
 //_____________________________________________________________________________________________________
 //
 #include <unistd.h> // sleep
@@ -500,9 +466,11 @@ public:
 int main(int argc, char *argv[])
 {
 //    MqttThread mqtt("mqtt",1000,1);
+    Queue::getDefaultQueue()->clear();//linux queues are persistent
     Tcp tcp("tcp",1000,1);
     MqttConnectSeq mqtt(&tcp);
     MqttDispatcher mqttDispatcher(&tcp);
+    PropertyListener pl(&tcp);
 //   Mqtt mqtt(&tcp);
 //   MqttPublisher mqttPublisher;
 

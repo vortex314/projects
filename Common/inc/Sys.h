@@ -37,6 +37,7 @@ public:
     static void interruptDisable();
 
     static Logger&  getLogger();
+    static char* getDeviceName();
 private:
     static Logger* _logger;
 };

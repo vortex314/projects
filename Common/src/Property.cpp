@@ -173,8 +173,6 @@ Erc Property::getMeta(Str& str)
 
 Erc Property::toPack(Strpack& packer)
 {
-    if (_pc->_flags.mode == M_WRITE)
-        return E_NO_ACCESS;
     if (_pc->_flags.interface == I_SETTER)
         return _pc->_setter(packer);
     if (_pc->_flags.interface == I_INTERFACE)
@@ -258,6 +256,10 @@ Erc Property::fromPack(Strpack& unpacker)
     {
         return unpacker.unpack((int32_t*) _pc->_pv);
     }
+    case T_BOOL :
+    {
+        return unpacker.unpack((bool*) _pc->_pv);
+    }
     case T_UINT8:
     case T_UINT16:
     case T_INT8:
@@ -267,7 +269,6 @@ Erc Property::fromPack(Strpack& unpacker)
     case T_BYTES:
     case T_ARRAY:
     case T_MAP:
-    case T_BOOL:
     case T_FLOAT:
     case T_STR:   /* TODO implement other deserializations */
     {
@@ -284,6 +285,19 @@ Property* Property::find(void* pv)
         if (p->_pc->_pv == pv)
             return p;
     return 0;
+}
+
+void Property::set( Str* name, Strpack* message){
+
+    char* prefix=Sys::getDeviceName();
+    char localName[30];
+    int i=0;
+    name->offset(strlen(prefix));
+    while(name->hasData() && i<30 )
+        localName[i++]=name->read();
+    localName[i]='\0';
+    Property* p = find(localName);
+    if ( p ) p->fromPack(*message);
 }
 
 Property* Property::findNextUpdated()

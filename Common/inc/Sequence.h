@@ -27,15 +27,18 @@ public:
     {
         int i;
         for (i=0; i<MAX_SEQ; i++)
-                if(activeSequence[i]==0) {
-                    activeSequence[i]=this;
-                    break;
-                };
+            if(activeSequence[i]==0)
+            {
+                activeSequence[i]=this;
+                break;
+            };
     };
     void unreg()
     {
         int i;
-        for (i=0; i<MAX_SEQ; i++) if(activeSequence[i]==this) activeSequence[i]=0;
+        for (i=0; i<MAX_SEQ; i++)
+            if(activeSequence[i]==this)
+                activeSequence[i]=0;
     };
     void publish(Event* ev)
     {

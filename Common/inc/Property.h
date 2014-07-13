@@ -111,14 +111,17 @@ public:
     static Property* findNextUpdated();
     static void updated(void *pv);
     static uint32_t count();
+
     bool isUpdated();
     void updated();
     static void updatedAll();
     void published();
+
     Erc getMeta(Str& str);
     Flags flags();
     Erc toPack(Strpack& packer);
     Erc fromPack(Strpack& packer);
+    static void set( Str* name, Strpack* message);
     int id();
     void* addr();
      char* meta();

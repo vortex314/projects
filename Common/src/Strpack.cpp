@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   Strpack.cpp
  * Author: lieven2
- * 
+ *
  * Created on 23 september 2013, 21:43
  */
 
@@ -136,7 +136,7 @@ Erc Strpack::unpack(bool* pv) {
     char line[10];
     int i=0;
     while (hasData() && i < 6) {
-        line[i] = read();
+        line[i++] = read();
     }
     line[i] = '\0';
     if (strcmp(line, "true") == 0) {

@@ -72,3 +72,15 @@ Logger&  Sys::getLogger()
     return *Sys::_logger;
 };
 
+#include <unistd.h> // gethostname
+#include <string.h>
+
+ char* Sys::getDeviceName()
+{
+    static    char hostname[20]="";
+
+    gethostname(hostname,20);
+    strcat(hostname,"/");
+    return hostname;
+}
+

@@ -9,7 +9,7 @@ Mqtt::Mqtt( Tcp* tcp)
     _timer =  new Timer();
     _timer->addListener(this);
     _mqttOut = new MqttOut(256);
-    _mqttOut->prefix(getDeviceName());
+    _mqttOut->prefix(Sys::getDeviceName());
 
 }
 void Mqtt::onTcpConnect(Tcp* src)

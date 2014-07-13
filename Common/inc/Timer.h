@@ -48,6 +48,9 @@ public:
 enum TimerEvents {TIMER_TICK=EV('T','I','C','K')};
     TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
     {
+            struct timespec deadline;
+    clock_gettime(CLOCK_MONOTONIC, &deadline);
+    Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
     };
     int handler(Event* ev)
     {

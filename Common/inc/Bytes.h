@@ -29,14 +29,14 @@ public:
     void copy(Bytes* from);
 
     int capacity();
-    int length();
+    int length() const;
     int length(int l);
     int available();
     int offset(uint32_t offset);
     int offset();
     void move(int32_t distance);
     Erc insert(uint32_t offset,Bytes* data);
-    uint8_t *data();
+    uint8_t *data() const ;
 
     int poke(uint32_t offset, uint8_t b);
     int peek();

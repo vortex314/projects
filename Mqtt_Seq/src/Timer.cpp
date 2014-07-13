@@ -90,14 +90,17 @@ void Timer::setExpired(bool v)
 #include "Thread.h"
 #include <time.h>
 
+
+
 void TimerThread::run()
 {
     struct timespec deadline;
     clock_gettime(CLOCK_MONOTONIC, &deadline);
+    Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
     while(true)
     {
 // Add the time you want to sleep
-        deadline.tv_nsec += 1000000;
+        deadline.tv_nsec += 1000000000;
 
 // Normalize the time to account for the second boundary
         if(deadline.tv_nsec >= 1000000000)

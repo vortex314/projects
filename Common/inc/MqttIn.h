@@ -45,6 +45,8 @@ public:
     void readUint16(uint16_t * pi);
     void readUtf(Str* str);
     void readBytes(Bytes* b, int length);
+     Str* topic();
+     Strpack* message();
 };
 
 #endif /* MQTTIN_H_ */

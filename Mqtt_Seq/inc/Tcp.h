@@ -21,7 +21,7 @@ class Tcp : public Thread,public EventSource<TcpListener>,public Sequence
 private:
     int _sockfd;
 public:
-    enum TcpEvents { TCP_CONNECTED, TCP_DISCONNECTED, TCP_RXD };
+    enum TcpEvents { TCP_CONNECTED=EV('T','C','P','C'), TCP_DISCONNECTED=EV('T','C','P','D'), TCP_RXD =EV('T','C','P','R')};
     Tcp( const char *name, unsigned short stackDepth, char priority);
     Erc connect(char *ip,int portno);
 

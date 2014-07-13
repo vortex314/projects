@@ -66,7 +66,7 @@ void Bytes::move(int32_t dist) {
  isMemoryOwner = false;
  }*/
 
-uint8_t* Bytes::data() {
+uint8_t* Bytes::data() const {
     return _start;
 }
 
@@ -79,7 +79,7 @@ void myMemcpy(uint8_t *dst, uint8_t* src, int length) {
         dst[i] = src[i];
 }
 
-int Bytes::length() {
+int Bytes::length () const {
     return _limit;
 }
 

@@ -35,6 +35,13 @@ uint16_t MqttIn::messageId()
 {
     return _messageId;
 }
+ Str* MqttIn::topic(){
+    return &_topic;
+}
+
+ Strpack* MqttIn::message(){
+    return &_message;
+}
 
 void MqttIn::reset()
 {
