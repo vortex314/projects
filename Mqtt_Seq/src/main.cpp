@@ -114,48 +114,7 @@ public :
         PT_END(&t);
     }
 };
-/*****************************************************************************
-*   HANDLE MQTT received publish message with qos=2
-******************************************************************************/
 
-class MqttSubQos2 : public Sequence
-{
-private:
-    struct pt t;
-    Tcp* _tcp;
-    uint16_t _messageId;
-    MqttIn* clone;
-public:
-    MqttSubQos2(Tcp* tcp,uint16_t messageId)
-    {
-        _tcp=tcp;
-        _messageId=messageId;
-        PT_INIT(&t);
-    }
-    int handler(Event* event)
-    {
-        PT_BEGIN(&t);
-        PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_PUBLISH,_messageId));
-        // no timeout since the sequence is created because of event is there
-        mqttOut->PubRec(_messageId);
-        _tcp->send(mqttOut);
-        //TODO clone message
-        clone = new MqttIn(*((MqttIn*)(event->data())));
-        timeout(1000);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREL,_messageId));
-        if ( timeout() )
-        {
-            Sys::free(clone);
-            return PT_ENDED; // abandon and go for destruction
-        }
-        mqttOut->PubComp(_messageId);
-        _tcp->send(mqttOut);
-        Property::set(clone->topic(),clone->message());
-        Sys::free(clone); // free cloned messages
-        PT_END(&t);
-    }
-
-};
 
 /*****************************************************************************
 *   HANDLE MQTT send publish message with qos=2 and 1
@@ -234,7 +193,6 @@ public:
 /*****************************************************************************
 *   HANDLE Property scan for changes
 ******************************************************************************/
-
 class PropertyListener : public Sequence
 {
 private:
@@ -299,9 +257,55 @@ public:
 
 };
 /*****************************************************************************
-*   DISPATCH MQttMessages depending on case
+*   HANDLE MQTT received publish message with qos=2
 ******************************************************************************/
 
+class MqttSubQos2 : public Sequence
+{
+private:
+    struct pt t;
+    Tcp* _tcp;
+    uint16_t _messageId;
+    MqttIn* clone;
+public:
+    MqttSubQos2(Tcp* tcp,uint16_t messageId)
+    {
+        _tcp=tcp;
+        _messageId=messageId;
+        PT_INIT(&t);
+    }
+    int handler(Event* event)
+    {
+        PT_BEGIN(&t);
+        PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_PUBLISH,_messageId));
+        // no timeout since the sequence is created because of event is there
+        mqttOut->PubRec(_messageId);
+        _tcp->send(mqttOut);
+        //TODO clone message
+        clone = new MqttIn(*((MqttIn*)(event->data())));
+        timeout(1000);
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREL,_messageId));
+        if ( timeout() )
+        {
+            Sys::free(clone);
+            return PT_ENDED; // abandon and go for destruction
+        }
+        mqttOut->PubComp(_messageId);
+        _tcp->send(mqttOut);
+
+        Property::set(clone->topic(),clone->message());
+        Sys::getLogger().clear();
+        Sys::getLogger().append(" SET ").append(clone->topic()).append(" = ").append(clone->message());
+        Sys::getLogger().flush();
+
+        Sys::free(clone); // free cloned messages
+        PT_END(&t);
+    }
+
+};
+/*****************************************************************************
+*   DISPATCH MQttMessages depending on case
+******************************************************************************/
 class MqttDispatcher : public Sequence
 {
 private:
@@ -334,6 +338,9 @@ public :
                 case MQTT_QOS0_FLAG :
                 {
                     Property::set(mqttIn->topic(),mqttIn->message());
+                    Sys::getLogger().clear();
+                    Sys::getLogger().append(" SET ").append(mqttIn->topic()).append(" = ").append(mqttIn->message());
+                    Sys::getLogger().flush();
                     break;
                 }
                 case MQTT_QOS1_FLAG:
@@ -341,6 +348,10 @@ public :
                     _mqttOut->PubAck(mqttIn->messageId()); // send PUBACK
                     _tcp->send(_mqttOut);
                     Property::set(mqttIn->topic(),mqttIn->message());
+                    Property::set(mqttIn->topic(),mqttIn->message());
+                    Sys::getLogger().clear();
+                    Sys::getLogger().append(" SET ").append(mqttIn->topic()).append(" = ").append(mqttIn->message());
+                    Sys::getLogger().flush();
                     break;
                 }
                 case MQTT_QOS2_FLAG:
