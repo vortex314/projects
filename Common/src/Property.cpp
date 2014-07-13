@@ -114,14 +114,14 @@ void* Property::addr()
     return _pc->_pv;
 }
 
-const char* Property::meta()
+ char* Property::meta()
 {
-    return _pc->_meta;
+    return (char *)_pc->_meta;
 }
 
-const char* Property::name()
+ char* Property::name()
 {
-    return _pc->_name;
+    return (char *)_pc->_name;
 }
 
 bool Property::isUpdated()

@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include "Erc.h"
 #include "EventSource.h"
+#include "Sequence.h"
 
 
 class Timer;
@@ -22,6 +23,7 @@ public:
 class Timer: public EventSource<TimerListener>
 {
 public:
+
     Timer();
 
     void startRepeat(uint64_t interval);
@@ -39,14 +41,19 @@ private:
     TimerStruct* _this;
 };
 #include "Thread.h"
-class TimerThread : public Thread
+class TimerThread : public Thread,public Sequence
 {
 
 public:
-
+enum TimerEvents {TIMER_TICK=EV('T','I','C','K')};
     TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
     {
     };
+    int handler(Event* ev)
+    {
+        return 0;
+    };
+
 public :
     void run() ;
 };

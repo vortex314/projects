@@ -132,15 +132,15 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     }
 }
 
-void MqttOut::Publish(uint8_t hdr, Str* topic, Bytes* msg,
+void MqttOut::Publish(uint8_t hdr,  char* topic, Bytes* msg,
         uint16_t messageId) {
     addHeader(MQTT_MSG_PUBLISH + hdr);
     bool addMessageId = (hdr & MQTT_QOS_MASK) ? true : false;
-    int remLen = topic->length() + strlen(_prefix) + 2 + msg->length();
+    int remLen = strlen(topic) + strlen(_prefix) + 2 + msg->length();
     if (addMessageId)
         remLen += 2;
     addRemainingLength(remLen);
-    addComposedString(_prefix,(char*)topic->data());
+    addComposedString(_prefix,topic);
     /*    addUint16(strlen(_prefix) + strlen(topic));
         addBytes((uint8_t*) _prefix, strlen(_prefix));
         addBytes((uint8_t*) topic, strlen(topic));*/

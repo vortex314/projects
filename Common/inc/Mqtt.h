@@ -25,6 +25,7 @@ private:
     Timer* _timer;
     Str* _prefix;
 public:
+    enum MqttEvents {MQTT_CONNECTED,MQTT_DISCONNECTED};
     Mqtt( Tcp* tcp);
     Erc send(Bytes* bytes);
     void onTcpConnect(Tcp* src);

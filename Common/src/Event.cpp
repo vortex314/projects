@@ -4,11 +4,11 @@
 
 Event::Event()
 {
-    _src = (Stream*) 0;
+    _src = (void*) 0;
     _id = EVENT('U', 'U');
 }
 
-Event::Event(Stream* src, int32_t id,void *data)
+Event::Event(void* src, int32_t id,void *data)
 {
     _src = src;
     _id = id;
@@ -21,7 +21,7 @@ bool Event::is(int32_t type)
         return true;
     return false;
 }
-bool Event::is(Stream* src,int32_t type)
+bool Event::is(void* src,int32_t type)
 {
     if ((_id) == (type))
         if (src == _src)
@@ -34,7 +34,7 @@ int32_t Event::id()
     return _id;
 }
 
-Stream *Event::src()
+void *Event::src()
 {
     return _src;
 }

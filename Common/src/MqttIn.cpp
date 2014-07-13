@@ -26,6 +26,11 @@ uint8_t MqttIn::type()
     return _header & MQTT_TYPE_MASK;
 }
 
+uint8_t MqttIn::qos()
+{
+    return _header & MQTT_QOS_MASK;
+}
+
 uint16_t MqttIn::messageId()
 {
     return _messageId;

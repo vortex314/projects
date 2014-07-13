@@ -12,7 +12,6 @@
 
 uint32_t listeners=0;
 
-Queue* Stream::_defaultQueue=(Queue*)NULL;
 Listener* Stream::_listeners = (Listener*)NULL;
 void Stream::eventHandler(Event* pEvent)
 {
@@ -22,12 +21,6 @@ void Stream::eventHandler(Event* pEvent)
 Stream::Stream()
 {}
 
-Queue* Stream::getDefaultQueue()
-{
-    if (_defaultQueue == NULL)
-        _defaultQueue = new Queue(sizeof(Event),QUEUE_DEPTH );
-    return _defaultQueue;
-}
 
 void Stream::addListener(Stream *dst)
 {
@@ -69,7 +62,7 @@ void Stream::publish(int32_t id)
 
 void Stream::publish(int32_t id,void *data)
 {
-    getDefaultQueue()->put(new Event(this,id,data));
+    Queue::getDefaultQueue()->put(new Event(this,id,data));
 }
  /*
 uint32_t Stream::getEvents()

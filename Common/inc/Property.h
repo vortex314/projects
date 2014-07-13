@@ -121,8 +121,8 @@ public:
     Erc fromPack(Strpack& packer);
     int id();
     void* addr();
-    const char* meta();
-    const char* name();
+     char* meta();
+     char* name();
     uint32_t mode();
 private:
     void init(Type t, Mode m, const char* name, const char* meta);

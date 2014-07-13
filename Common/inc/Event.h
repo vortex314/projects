@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #define EVENT(cls,type) ((cls<<24)+(type<<16))
-#define EVENT_CHAR(d,c,b,a) ((a<<24)+(b<<16)+(c<<8)+(d))
+#define EV(d,c,b,a) ((a<<24)+(b<<16)+(c<<8)+(d))
 #define SE(__status,__event)  ( (__event & 0xFFFF0000) + __status)
 #include "QueueTemplate.h"
 
@@ -20,14 +20,14 @@ class Sys;
 class Event {
 public:
 	Event();
-	Event(Stream* src, int32_t id,void *data);
+	Event(void* src, int32_t id,void *data);
 	bool is(int32_t value);
-	bool is(Stream* src,int32_t id);
+	bool is(void* src,int32_t id);
 	int32_t id();
 	void* data();
-	Stream *src();
+	void *src();
 public:
-	Stream* _src;
+	void* _src;
 	int32_t _id;
 	void* _data;
 };

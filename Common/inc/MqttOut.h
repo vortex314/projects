@@ -33,7 +33,7 @@ public:
     void Disconnect();
     void PingReq();
     void PingResp();
-    void Publish(uint8_t hdr, Str* topic, Bytes* msg,
+    void Publish(uint8_t hdr,  char* topic, Bytes* msg,
             uint16_t message_id);
     void PubRel(uint16_t messageId);
     void PubAck(uint16_t messageId);
