@@ -11,6 +11,10 @@
 #include <signal.h>
 #include "MqttIn.h"
 
+//  uint64_t TCP_CONNECTED=(uint64_t)"TcpConnected";
+  //',TCP_DISCONNECTED,TCP_RXD;
+
+
 Tcp::Tcp( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
 {
     unreg();

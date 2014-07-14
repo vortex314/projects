@@ -370,6 +370,21 @@ public :
 *   HANDLE Property publishing
 ******************************************************************************/
 
+#include <malloc.h>
+uint32_t memoryAllocated;
+Property memoryAlloced(&memoryAllocated,(Flags)
+{
+    T_UINT32,M_READ,QOS_1,I_ADDRESS
+},"system/memory_used","META");
+
+uint32_t getAllocSize(void)
+{
+    struct mallinfo mi;
+
+    mi = mallinfo();
+    memoryAllocated =  mi.uordblks;
+}
+
 
 //____________________________________________________________________________________________
 
@@ -396,7 +411,7 @@ public:
             } u;
             u.i = event.id();
             std::cout<< Sys::upTime() << " | "<<u.c<<std::endl;
-
+            getAllocSize();
             int i;
             for(i=0; i<MAX_SEQ; i++)
                 if(Sequence::activeSequence[i])
@@ -439,6 +454,7 @@ Property property1(&p, (Flags)
 }, "ikke/P","$META");
 
 Property pp(&pc);
+
 
 //_____________________________________________________________________________________________________
 //
