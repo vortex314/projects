@@ -12,15 +12,20 @@
 #include "MqttIn.h"
 
 //  uint64_t TCP_CONNECTED=(uint64_t)"TcpConnected";
-  //',TCP_DISCONNECTED,TCP_RXD;
-
+//',TCP_DISCONNECTED,TCP_RXD;
+EventId Tcp::MQTT_MESSAGE=Event::nextEventId(( char* const )"MQTT_MESSAGE");
+EventId Tcp::TCP_CONNECTED=Event::nextEventId(( char* const )"TCP_CONNECTED");
+EventId Tcp::TCP_DISCONNECTED=Event::nextEventId(( char* const )"TCP_DISCONNECTED");
 
 Tcp::Tcp( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
 {
     unreg();
-        signal(SIGPIPE, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 };
 
+Tcp::~Tcp()
+{
+}
 
 Erc Tcp::connect(char *ip,int portno)
 {
@@ -60,16 +65,12 @@ Erc Tcp::disconnect()
     return E_OK;
 }
 
-
 Erc Tcp::recv(Bytes* pb)
 {
     int n;
 
     n=::read(_sockfd,pb->data(),pb->length()) ;
-    if (n < 0)
-    {
-        return E_CONN_LOSS;
-    }
+    if (n < 0) return E_CONN_LOSS;
     return E_OK;
 }
 
@@ -77,12 +78,8 @@ int32_t Tcp::read()
 {
     int n;
     uint8_t b;
-
     n=::read(_sockfd,&b,1) ;
-    if (n <= 0)
-    {
-        return -1;
-    }
+    if (n <= 0) return -1;
     return b;
 }
 
@@ -91,10 +88,7 @@ Erc Tcp::send(Bytes* pb)
     int n;
     signal(SIGPIPE, SIG_IGN);
     n=write(_sockfd,pb->data(),pb->length()) ;
-    if (n < 0)
-    {
-        return E_CONN_LOSS;
-    }
+    if (n < 0) return E_CONN_LOSS;
     return E_OK;
 }
 #include "Mutex.h"
@@ -105,7 +99,7 @@ void Tcp::run()
     {
         while ( connect((char*)"localhost",1883) != E_OK )
             sleep(5000);
-        publish(new Event(this,TCP_CONNECTED,0));
+        publish(this,TCP_CONNECTED,0);
 
         while(true)
         {
@@ -113,8 +107,7 @@ void Tcp::run()
             if ( b < 0 ) break;
             mqttRead(b);
         }
-        publish(new Event(this,TCP_DISCONNECTED,0));
-
+        publish(this,TCP_DISCONNECTED,0);
         disconnect();
         sleep(5000);
     }
@@ -128,10 +121,7 @@ void Tcp::mqttRead(int32_t b)
     if (  mqttIn->complete() )
     {
         mqttIn->parse();
- //       Mutex::lock();
-        publish(new Event(this,TCP_RXD,mqttIn));
-//       firstListener()->onTcpMessage(this,mqttIn);
-//        Mutex::unlock();
+        publish(this,MQTT_MESSAGE,mqttIn);
         mqttIn=new MqttIn(256);
         mqttIn->reset();
     }

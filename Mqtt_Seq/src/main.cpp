@@ -20,6 +20,47 @@
 #include "Property.h"
 #include "Strpack.h"
 #include "Logger.h"
+
+EventId TIMER_TICK= Event::nextEventId("TIMER_TICK");
+class TimerThread : public Thread,public Sequence
+{
+
+public:
+
+    TimerThread( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
+    {
+        Sys::upTime();
+    };
+    void run()
+    {
+        struct timespec deadline;
+        clock_gettime(CLOCK_MONOTONIC, &deadline);
+        Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
+        while(true)
+        {
+// Add the time you want to sleep
+            deadline.tv_nsec += 100000000;
+
+// Normalize the time to account for the second boundary
+            if(deadline.tv_nsec >= 1000000000)
+            {
+                deadline.tv_nsec -= 1000000000;
+                deadline.tv_sec++;
+            }
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
+            Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
+//        Timer::checkAll();
+            publish(this,TIMER_TICK,0);
+        }
+
+    }
+    int handler(Event* ev)
+    {
+        return 0;
+    };
+
+
+};
 //____________________________________________________________________________________________
 
 #include "pt.h"
@@ -36,20 +77,19 @@ uint16_t nextMessageId()
 *   MQTT EVENT filter
 ******************************************************************************/
 
-bool eventIsMqtt(Event* event,Tcp* tcp,uint8_t type, uint16_t messageId)
+bool eventIsMqtt(Event* event,uint8_t type, uint16_t messageId)
 {
-    if (event->src()==tcp)
-        if ( event->id() == Tcp::TCP_RXD )
-            if ( ((MqttIn*)event->data())->type()==type)
+    if ( event->id() == Tcp::MQTT_MESSAGE )
+        if ( ((MqttIn*)event->data())->type()==type)
+        {
+            if ( messageId )
             {
-                if ( messageId )
-                {
-                    if ( ((MqttIn*)event->data())->messageId()==messageId)
-                        return true;
-                }
-                else
+                if ( ((MqttIn*)event->data())->messageId()==messageId)
                     return true;
             }
+            else
+                return true;
+        }
 
     return false;;;
 }
@@ -58,8 +98,9 @@ bool eventIsMqtt(Event* event,Tcp* tcp,uint8_t type, uint16_t messageId)
 /*****************************************************************************
    HANDLE MQTT connection and subscribe sequence
 ******************************************************************************/
-
-class MqttConnectSeq : public Sequence
+EventId MQTT_CONNECTED=Event::nextEventId("MQTT_CONNECTED");
+EventId MQTT_DISCONNECTED=Event::nextEventId("MQTT_DISCONNECTED");
+class Mqtt : public Sequence
 {
 private:
     struct pt t;
@@ -67,8 +108,8 @@ private:
     uint16_t _messageId;
 
 public :
-    enum MqttEvents {MQTT_CONNECTED=EV('M','Q','_','C'), MQTT_DISCONNECTED=EV('M','Q','_','D')};
-    MqttConnectSeq(Tcp* tcp)
+
+    Mqtt(Tcp* tcp)
     {
         _tcp=tcp;
         PT_INIT(&t);
@@ -87,31 +128,36 @@ public :
                              "system/online", "false", "", "", 1000);
             _tcp->send(mqttOut);
             timeout(1000);
-            PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_CONNACK,0) || timeout() );
+            PT_WAIT_UNTIL(&t,eventIsMqtt(event,MQTT_MSG_CONNACK,0) || timeout() );
             if ( timeout() )
             {
                 _tcp->disconnect();
-                publish(new Event(this,MQTT_DISCONNECTED,0));
+                publish(this,MQTT_DISCONNECTED,0);
                 continue;
             }
 
             timeout(1000);
             mqttOut->Subscribe(0,"#",_messageId,MQTT_QOS1_FLAG);
             _tcp->send(mqttOut);
-            PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_SUBACK,_messageId) || timeout());
+            PT_WAIT_UNTIL(&t,eventIsMqtt(event,MQTT_MSG_SUBACK,_messageId) || timeout());
             if ( timeout() )
             {
                 _tcp->disconnect();
-                publish(new Event(this,MQTT_DISCONNECTED,0));
+                publish(this,MQTT_DISCONNECTED,0);
                 continue;
             }
 
-            publish(new Event(this,MQTT_CONNECTED,0));
+            publish(this,MQTT_CONNECTED,0);
             PT_WAIT_UNTIL(&t,event->is(_tcp,Tcp::TCP_DISCONNECTED));
 
-            publish(new Event(this,MQTT_DISCONNECTED,0));
+            publish(this,MQTT_DISCONNECTED,0);
         }
         PT_END(&t);
+    }
+
+    Erc send(Bytes* pb)
+    {
+        return _tcp->send(pb);
     }
 };
 
@@ -123,16 +169,15 @@ class MqttPubQos1 : public Sequence
 {
 private:
     struct pt t;
-    Tcp* _tcp;
+    Mqtt* _mqtt;
     uint16_t _messageId;
     Property * _p;
     Strpack* _message;
 public:
-    MqttPubQos1(Tcp* tcp,Property* p)
+    MqttPubQos1(Mqtt* mqtt,Property* p)
     {
-        _tcp=tcp;
+        _mqtt=mqtt;
         _messageId=nextMessageId();
-        _message = new Strpack(100);
         _p=p;
         PT_INIT(&t);
         //TODO in destructor free memory
@@ -142,12 +187,13 @@ public:
         uint8_t header=0;
         PT_BEGIN(&t);
         if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+        _message = new Strpack(100);
         _p->toPack(*_message);
         mqttOut->Publish(header+MQTT_QOS1_FLAG,_p->name(),_message,_messageId);
-        _tcp->send(mqttOut);
+        _mqtt->send(mqttOut);
         Sys::free(_message);
         timeout(1000);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBACK,_messageId));
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBACK,_messageId));
         PT_END(&t);
     }
 };
@@ -156,16 +202,16 @@ class MqttPubQos2 : public Sequence
 {
 private:
     struct pt t;
-    Tcp* _tcp;
+    Mqtt* _mqtt;
     uint16_t _messageId;
     Property * _p;
     Strpack* _message;
 public:
-    MqttPubQos2(Tcp* tcp,Property* p)
+    MqttPubQos2(Mqtt* mqtt,Property* p)
     {
-        _tcp=tcp;
+        _mqtt=mqtt;
         _messageId=nextMessageId();
-        _message = new Strpack(100);
+
         _p=p;
     }
     int handler(Event* event)
@@ -173,18 +219,18 @@ public:
         uint8_t header=0;
         PT_BEGIN(&t);
         if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
-
+        _message = new Strpack(100);
         _p->toPack(*_message);
         mqttOut->Publish(header+MQTT_QOS2_FLAG,_p->name(),_message,_messageId);
-        _tcp->send(mqttOut);
+        _mqtt->send(mqttOut);
         Sys::free(_message);
         timeout(1000);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREC,_messageId));
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBREC,_messageId));
 
         mqttOut->PubRel(_messageId);
-        _tcp->send(mqttOut);
+        _mqtt->send(mqttOut);
         timeout(1000);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBCOMP,_messageId));
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBCOMP,_messageId));
         PT_END(&t);
     }
 
@@ -197,15 +243,15 @@ class PropertyListener : public Sequence
 {
 private:
     struct pt t;
-    Tcp* _tcp;
+    Mqtt* _mqtt;
     uint16_t _messageId;
     Property * _p;
     Strpack* _message;
 public:
-    PropertyListener(Tcp* tcp)
+    PropertyListener(Mqtt* mqtt)
     {
-        _tcp=tcp;
-        _message = new Strpack(100);
+        _mqtt=mqtt;
+
         PT_INIT(&t);
     }
     void publishCurrentProperty()
@@ -215,23 +261,24 @@ public:
         {
             if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
             mqttOut->prefix(Sys::getDeviceName());
+            _message = new Strpack(100);
             _p->toPack(*_message);
             mqttOut->Publish(header,_p->name(),_message,_messageId);
-            _tcp->send(mqttOut);
+            _mqtt->send(mqttOut);
         }
         else if ( _p->flags().qos == QOS_1  )
         {
-            new MqttPubQos1(_tcp,_p);
+            new MqttPubQos1(_mqtt,_p);
         }
         else if ( _p->flags().qos == QOS_2  )
         {
-            new MqttPubQos2(_tcp,_p);
+            new MqttPubQos2(_mqtt,_p);
         }
     }
     int handler(Event* event)
     {
         PT_BEGIN(&t);
-        PT_WAIT_UNTIL(&t,event->is(_tcp,Tcp::TCP_CONNECTED));
+        PT_WAIT_UNTIL(&t,event->is(Tcp::TCP_CONNECTED));
         while(1)
         {
             timeout(1000);
@@ -264,40 +311,35 @@ class MqttSubQos2 : public Sequence
 {
 private:
     struct pt t;
-    Tcp* _tcp;
+    Mqtt* _mqtt;
     uint16_t _messageId;
     MqttIn* clone;
 public:
-    MqttSubQos2(Tcp* tcp,uint16_t messageId)
+    MqttSubQos2(Mqtt* mqtt,uint16_t messageId)
     {
-        _tcp=tcp;
+        _mqtt=mqtt;
         _messageId=messageId;
         PT_INIT(&t);
     }
     int handler(Event* event)
     {
         PT_BEGIN(&t);
-        PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_PUBLISH,_messageId));
+        PT_WAIT_UNTIL(&t,eventIsMqtt(event,MQTT_MSG_PUBLISH,_messageId));
         // no timeout since the sequence is created because of event is there
         mqttOut->PubRec(_messageId);
-        _tcp->send(mqttOut);
+        _mqtt->send(mqttOut);
         //TODO clone message
         clone = new MqttIn(*((MqttIn*)(event->data())));
         timeout(1000);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,_tcp,MQTT_MSG_PUBREL,_messageId));
+        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBREL,_messageId));
         if ( timeout() )
         {
             Sys::free(clone);
             return PT_ENDED; // abandon and go for destruction
         }
         mqttOut->PubComp(_messageId);
-        _tcp->send(mqttOut);
-
+        _mqtt->send(mqttOut);
         Property::set(clone->topic(),clone->message());
-        Sys::getLogger().clear();
-        Sys::getLogger().append(" SET ").append(clone->topic()).append(" = ").append(clone->message());
-        Sys::getLogger().flush();
-
         Sys::free(clone); // free cloned messages
         PT_END(&t);
     }
@@ -310,15 +352,15 @@ class MqttDispatcher : public Sequence
 {
 private:
     struct pt t;
-    Tcp* _tcp;
+    Mqtt* _mqtt;
     MqttOut* _mqttOut;
     uint16_t _messageId;
 
 public :
-    MqttDispatcher(Tcp* tcp)
+    MqttDispatcher(Mqtt* mqtt)
     {
         _mqttOut = new MqttOut(100);
-        _tcp=tcp;
+        _mqtt=mqtt;
         PT_INIT(&t);
         _messageId=3000;
     };
@@ -330,7 +372,7 @@ public :
         PT_BEGIN(&t);
         while(1)
         {
-            PT_WAIT_UNTIL(&t,eventIsMqtt(event,_tcp,MQTT_MSG_PUBLISH,0));
+            PT_WAIT_UNTIL(&t,eventIsMqtt(event,MQTT_MSG_PUBLISH,0));
             {
                 mqttIn=(MqttIn*)event->data();
                 switch(mqttIn->qos())
@@ -338,25 +380,20 @@ public :
                 case MQTT_QOS0_FLAG :
                 {
                     Property::set(mqttIn->topic(),mqttIn->message());
-                    Sys::getLogger().clear();
-                    Sys::getLogger().append(" SET ").append(mqttIn->topic()).append(" = ").append(mqttIn->message());
-                    Sys::getLogger().flush();
+
                     break;
                 }
                 case MQTT_QOS1_FLAG:
                 {
                     _mqttOut->PubAck(mqttIn->messageId()); // send PUBACK
-                    _tcp->send(_mqttOut);
+                    _mqtt->send(_mqttOut);
                     Property::set(mqttIn->topic(),mqttIn->message());
-                    Property::set(mqttIn->topic(),mqttIn->message());
-                    Sys::getLogger().clear();
-                    Sys::getLogger().append(" SET ").append(mqttIn->topic()).append(" = ").append(mqttIn->message());
-                    Sys::getLogger().flush();
+
                     break;
                 }
                 case MQTT_QOS2_FLAG:
                 {
-                    new MqttSubQos2(_tcp,mqttIn->messageId()); // new sequence to handle
+                    new MqttSubQos2(_mqtt,mqttIn->messageId()); // new sequence to handle
                     break;
                 }
                 }
@@ -383,6 +420,7 @@ uint32_t getAllocSize(void)
 
     mi = mallinfo();
     memoryAllocated =  mi.uordblks;
+    Property::updated(&memoryAllocated);
 }
 
 
@@ -403,14 +441,8 @@ public:
         while(true)
         {
             Event event;
-            Queue::getDefaultQueue()->get(&event);
-            union
-            {
-                uint32_t i;
-                char c[4];
-            } u;
-            u.i = event.id();
-            std::cout<< Sys::upTime() << " | "<<u.c<<std::endl;
+            Queue::getDefaultQueue()->get(&event); // dispatch eventually IDLE message
+            std::cout<< Sys::upTime() << " | "<<event.getEventIdName()<<std::endl;
             getAllocSize();
             int i;
             for(i=0; i<MAX_SEQ; i++)
@@ -468,9 +500,9 @@ int main(int argc, char *argv[])
 //    MqttThread mqtt("mqtt",1000,1);
     Queue::getDefaultQueue()->clear();//linux queues are persistent
     Tcp tcp("tcp",1000,1);
-    MqttConnectSeq mqtt(&tcp);
-    MqttDispatcher mqttDispatcher(&tcp);
-    PropertyListener pl(&tcp);
+    Mqtt mqtt(&tcp);
+    MqttDispatcher mqttDispatcher(&mqtt);
+    PropertyListener pl(&mqtt);
 //   Mqtt mqtt(&tcp);
 //   MqttPublisher mqttPublisher;
 

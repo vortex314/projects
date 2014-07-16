@@ -44,12 +44,12 @@
 	<stdint.h>
 	<errno.h>
 
-1405365805 source:/home/lieven/micro/Common/src/Event.cpp
+1405451710 source:/home/lieven/micro/Common/src/Event.cpp
 	"Event.h"
 	"Sys.h"
 	"Erc.h"
 
-1405365805 /home/lieven/micro/Common/inc/Event.h
+1405452249 /home/lieven/micro/Common/inc/Event.h
 	<stdint.h>
 	"QueueTemplate.h"
 
@@ -66,7 +66,7 @@
 	"Str.h"
 	"Strpack.h"
 
-1405365805 /home/lieven/micro/Common/inc/Mqtt.h
+1405451922 /home/lieven/micro/Common/inc/Mqtt.h
 	"MqttIn.h"
 	"MqttOut.h"
 	"Timer.h"
@@ -115,8 +115,9 @@
 	<stdint.h>
 	"Erc.h"
 
-1405365805 source:/home/lieven/micro/Common/src/Property.cpp
+1405538866 source:/home/lieven/micro/Common/src/Property.cpp
 	"Property.h"
+	"Logger.h"
 
 1405121488 source:/home/lieven/micro/Common/src/Str.cpp
 	"Str.h"
@@ -253,12 +254,11 @@
 1404355331 /home/lieven/micro/Common/inc/EventSource.h
 	<stdint.h>
 
-1405365805 /home/lieven/micro/Common/inc/Timer.h
+1405458946 /home/lieven/micro/Common/inc/Timer.h
 	<stdint.h>
 	"Erc.h"
 	"EventSource.h"
 	"Sequence.h"
-	"Thread.h"
 
 1404298689 /home/lieven/micro/Common/inc/MqttConstants.h
 	"Str.h"
@@ -284,7 +284,7 @@
 
 1404348053 /home/lieven/micro/Common/inc/Mutex.h
 
-1405367589 /home/lieven/micro/Mqtt_Seq/inc/Tcp.h
+1405460989 /home/lieven/micro/Mqtt_Seq/inc/Tcp.h
 	"Bytes.h"
 	"Thread.h"
 	"EventSource.h"
@@ -311,14 +311,14 @@
 	<errno.h>
 	<assert.h>
 
-1405365805 source:/home/lieven/micro/Mqtt_Seq/src/Sys.cpp
+1405545449 source:/home/lieven/micro/Mqtt_Seq/src/Sys.cpp
 	"Sys.h"
 	<malloc.h>
 	"Logger.h"
 	<unistd.h>
 	<string.h>
 
-1405367604 source:/home/lieven/micro/Mqtt_Seq/src/Tcp.cpp
+1405537693 source:/home/lieven/micro/Mqtt_Seq/src/Tcp.cpp
 	"Tcp.h"
 	<sys/types.h>
 	<sys/socket.h>
@@ -338,14 +338,13 @@
 	<unistd.h>
 	"Thread.h"
 
-1405365805 source:/home/lieven/micro/Mqtt_Seq/src/Timer.cpp
+1405459343 source:/home/lieven/micro/Mqtt_Seq/src/Timer.cpp
 	"Timer.h"
 	"Sys.h"
-	"Mutex.h"
 	"Thread.h"
 	<time.h>
 
-1405369954 source:/home/lieven/micro/Mqtt_Seq/src/main.cpp
+1405541922 source:/home/lieven/micro/Mqtt_Seq/src/main.cpp
 	<iostream>
 	"Bytes.h"
 	"Str.h"
@@ -379,11 +378,11 @@
 
 1403395007 /home/lieven/micro/Common/inc/lc-switch.h
 
-1405365805 /home/lieven/micro/Common/inc/Sequence.h
+1405530986 /home/lieven/micro/Common/inc/Sequence.h
 	"Event.h"
 	"Sys.h"
 	"Queue.h"
 
-1405365805 source:/home/lieven/micro/Common/src/Sequence.cpp
+1405530986 source:/home/lieven/micro/Common/src/Sequence.cpp
 	"Sequence.h"
 

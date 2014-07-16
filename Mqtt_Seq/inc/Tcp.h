@@ -6,25 +6,16 @@
 #include "EventSource.h"
 #include "Sequence.h"
 
-class Tcp;
 
-class TcpListener
-{
-public:
-    virtual void onTcpConnect(Tcp* src)=0;
-    virtual void onTcpDisconnect(Tcp* src)=0;
-    virtual void onTcpMessage(Tcp* src,Bytes* data)=0;
-};
-
-class Tcp : public Thread,public EventSource<TcpListener>,public Sequence
+class Tcp : public Thread,public Sequence
 {
 private:
     int _sockfd;
 public:
-//    const static uint64_t TCP_CONNECTED,TCP_DISCONNECTED,TCP_RXD;
 
-    enum TcpEvents { TCP_CONNECTED=EV('T','C','P','C'), TCP_DISCONNECTED=EV('T','C','P','D'), TCP_RXD =EV('T','C','P','R')};
+    static EventId TCP_CONNECTED,TCP_DISCONNECTED,MQTT_MESSAGE;
     Tcp( const char *name, unsigned short stackDepth, char priority);
+    ~Tcp();
     Erc connect(char *ip,int portno);
 
     Erc disconnect();

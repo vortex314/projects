@@ -12,24 +12,32 @@
 #define EVENT(cls,type) ((cls<<24)+(type<<16))
 #define EV(d,c,b,a) ((a<<24)+(b<<16)+(c<<8)+(d))
 #define SE(__status,__event)  ( (__event & 0xFFFF0000) + __status)
+#define GEN_EVENT_ID(x) EventId x=Event::nextEventId( #x )
+
 #include "QueueTemplate.h"
 
 class Stream;
 class Sys;
+#define MAX_EVENT_ID    20
+typedef uint8_t EventId;
 
 class Event {
 public:
 	Event();
-	Event(void* src, int32_t id,void *data);
-	bool is(int32_t value);
-	bool is(void* src,int32_t id);
-	int32_t id();
+	Event(void* src, EventId id,void *data);
+	bool is(EventId value);
+	bool is(void* src,EventId id);
+	EventId id();
 	void* data();
-	void *src();
-public:
+	void* src();
+	static EventId nextEventId(char *s);
+	char *getEventIdName();
+private:
 	void* _src;
-	int32_t _id;
+	EventId _id;
 	void* _data;
+	static uint32_t eventIdCount;
+	static char* eventNames[MAX_EVENT_ID];
 };
 
 #endif	/* EVENT_H */

@@ -114,12 +114,12 @@ void* Property::addr()
     return _pc->_pv;
 }
 
- char* Property::meta()
+char* Property::meta()
 {
     return (char *)_pc->_meta;
 }
 
- char* Property::name()
+char* Property::name()
 {
     return (char *)_pc->_name;
 }
@@ -286,9 +286,12 @@ Property* Property::find(void* pv)
             return p;
     return 0;
 }
-
-void Property::set( Str* name, Strpack* message){
-
+#include "Logger.h"
+void Property::set( Str* name, Strpack* message)
+{
+    Sys::getLogger().clear();
+    Sys::getLogger().append(" SET ").append(name).append(" = ").append(message);
+    Sys::getLogger().flush();
     char* prefix=Sys::getDeviceName();
     char localName[30];
     int i=0;

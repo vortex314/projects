@@ -2,34 +2,44 @@
 #include "Sys.h"
 #include "Erc.h"
 
-Event::Event()
-{
-    _src = (void*) 0;
-    _id = EVENT('U', 'U');
+uint32_t Event::eventIdCount=0;
+char* Event::eventNames[MAX_EVENT_ID];
+
+EventId Event::nextEventId(char *name){
+    eventNames[eventIdCount]=name;
+    return eventIdCount++;
 }
 
-Event::Event(void* src, int32_t id,void *data)
+char* Event::getEventIdName(){
+return eventNames[_id];
+}
+
+Event::Event()
+{
+}
+
+Event::Event(void* src, EventId id,void *data)
 {
     _src = src;
     _id = id;
     _data = data;
 }
 
-bool Event::is(int32_t type)
+bool Event::is(EventId id)
 {
-    if ((_id) == (type))
+    if ((_id) == (id))
         return true;
     return false;
 }
-bool Event::is(void* src,int32_t type)
+bool Event::is(void* src,EventId id)
 {
-    if ((_id) == (type))
+    if ((_id) == (id))
         if (src == _src)
             return true;
     return false;
 }
 
-int32_t Event::id()
+EventId Event::id()
 {
     return _id;
 }

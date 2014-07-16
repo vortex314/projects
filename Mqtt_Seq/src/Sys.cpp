@@ -6,11 +6,17 @@ uint64_t Sys::_upTime=0;
 
 uint64_t Sys::upTime()  // time in msec since boot, only increasing
 {
+       struct timespec deadline;
+    clock_gettime(CLOCK_MONOTONIC, &deadline);
+            Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
     return _upTime;
 }
 
+uint32_t total=0;
+
 void * Sys::malloc(uint32_t size)
 {
+    total+=size;
     return ::malloc(size);
 #ifdef FREERTOS
     return pvPortMalloc(size);
