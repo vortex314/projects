@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <unistd.h> // sleep
+#include <malloc.h>
 #include "Thread.h"
 
 extern "C" void* pvTaskCode(void *pvParameters)
@@ -10,7 +11,7 @@ extern "C" void* pvTaskCode(void *pvParameters)
 
 Thread::Thread(const char *name, unsigned short stackDepth, char priority)
 {
-    _ref = Sys::malloc(sizeof(pthread_t));
+    _ref = ::malloc(sizeof(pthread_t));
 
 
 }

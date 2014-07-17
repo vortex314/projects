@@ -6,6 +6,8 @@
  */
 
 #include "MqttOut.h"
+#include <iostream>
+#define LOG(x) std::cout << Sys::upTime() << " | MQTT OUT " << x << std::endl
 
 MqttOut::MqttOut(int size) :
 Bytes(size) {
@@ -76,6 +78,7 @@ void MqttOut::addBytes(uint8_t* bytes, uint32_t length) {
 void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
         const char *willTopic, const char *willMsg, const char *username, const char* password,
         uint16_t keepAlive) {
+            LOG("CONNECT");
     uint8_t connectFlags = connectFlag;
 
     uint16_t clientidlen = strlen(clientId);
@@ -134,6 +137,7 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
 
 void MqttOut::Publish(uint8_t hdr,  char* topic, Bytes* msg,
         uint16_t messageId) {
+            LOG("PUBLISH");
     addHeader(MQTT_MSG_PUBLISH + hdr);
     bool addMessageId = (hdr & MQTT_QOS_MASK) ? true : false;
     int remLen = strlen(topic) + strlen(_prefix) + 2 + msg->length();
@@ -150,6 +154,7 @@ void MqttOut::Publish(uint8_t hdr,  char* topic, Bytes* msg,
 }
 
 void MqttOut::ConnAck(uint8_t erc) {
+    LOG("CONNACK");
     addHeader(MQTT_MSG_CONNACK);
     addRemainingLength(2);
     add(0);
@@ -157,29 +162,34 @@ void MqttOut::ConnAck(uint8_t erc) {
 }
 
 void MqttOut::Disconnect() {
+    LOG("DISCONNECT");
     addHeader(MQTT_MSG_DISCONNECT);
     addRemainingLength(0);
 }
 
 void MqttOut::PubRel(uint16_t messageId) {
+    LOG("PUBREL");
     addHeader(MQTT_MSG_PUBREL | MQTT_QOS1_FLAG);
     addRemainingLength(2);
     addUint16(messageId);
 }
 
 void MqttOut::PubAck(uint16_t messageId) {
+    LOG("PUBACK");
     addHeader(MQTT_MSG_PUBACK | MQTT_QOS1_FLAG);
     addRemainingLength(2);
     addUint16(messageId);
 }
 
 void MqttOut::PubRec(uint16_t messageId) {
+    LOG("PUBREC");
     addHeader(MQTT_MSG_PUBREC | MQTT_QOS1_FLAG);
     addRemainingLength(2);
     addUint16(messageId);
 }
 
 void MqttOut::PubComp(uint16_t messageId) {
+    LOG("PUBCOMP");
     addHeader(MQTT_MSG_PUBCOMP | MQTT_QOS1_FLAG);
     addRemainingLength(2);
     addUint16(messageId);
@@ -187,6 +197,7 @@ void MqttOut::PubComp(uint16_t messageId) {
 
 void MqttOut::Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
         uint8_t requestedQos) {
+            LOG("SUBSCRIBE");
     addHeader(hdr | MQTT_MSG_SUBSCRIBE);
     addRemainingLength(strlen(topic) + strlen(_prefix) + 2 + 2 + 1);
     addUint16(messageId);
@@ -195,11 +206,13 @@ void MqttOut::Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
 }
 
 void MqttOut::PingReq() {
+    LOG("PINGREQ");
     addHeader(MQTT_MSG_PINGREQ); // Message Type, DUP flag, QoS level, Retain
     addRemainingLength(0); // Remaining length
 }
 
 void MqttOut::PingResp() {
+    LOG("PINGRESP");
     addHeader(MQTT_MSG_PINGRESP); // Message Type, DUP flag, QoS level, Retain
     addRemainingLength(0); // Remaining length
 }

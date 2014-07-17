@@ -32,6 +32,7 @@ public:
 public:
     MqttIn(int size);
     MqttIn(MqttIn& src);
+    ~MqttIn();
 
     uint16_t messageId(); // if < 0 then not found
     uint8_t type();

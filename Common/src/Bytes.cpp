@@ -24,7 +24,7 @@ Bytes::Bytes() {
 }
 
 Bytes::Bytes(uint32_t size) {
-    _start = (uint8_t*) Sys::malloc(size);
+    _start = new uint8_t[size]; // (uint8_t*) Sys::malloc(size);
     _offset = 0;
     _limit = 0;
     _capacity = size;
@@ -50,7 +50,7 @@ void Bytes::sub(Bytes* parent, uint32_t length) {
 
 Bytes::~Bytes() {
     if (isMemoryOwner)
-        Sys::free(_start);
+        delete[] _start;
 }
 
 void Bytes::move(int32_t dist) {

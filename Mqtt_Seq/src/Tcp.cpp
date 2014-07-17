@@ -21,10 +21,15 @@ Tcp::Tcp( const char *name, unsigned short stackDepth, char priority):Thread(nam
 {
     unreg();
     signal(SIGPIPE, SIG_IGN);
+    _connected=false;
 };
 
 Tcp::~Tcp()
 {
+}
+
+bool Tcp::isConnected(){
+return _connected;
 }
 
 Erc Tcp::connect(char *ip,int portno)
@@ -56,12 +61,14 @@ Erc Tcp::connect(char *ip,int portno)
         std::cerr << " socket connect() : " << strerror(errno) ;
         return E_CONN_LOSS;
     }
+    _connected=true;
     return E_OK;
 }
 
 Erc Tcp::disconnect()
 {
     close(_sockfd);
+    _connected=false;
     return E_OK;
 }
 
@@ -70,7 +77,10 @@ Erc Tcp::recv(Bytes* pb)
     int n;
 
     n=::read(_sockfd,pb->data(),pb->length()) ;
-    if (n < 0) return E_CONN_LOSS;
+    if (n < 0) {
+        _connected=false;
+        return E_CONN_LOSS;
+    }
     return E_OK;
 }
 
@@ -79,7 +89,10 @@ int32_t Tcp::read()
     int n;
     uint8_t b;
     n=::read(_sockfd,&b,1) ;
-    if (n <= 0) return -1;
+    if (n <= 0) {
+        _connected=false;
+        return -1;
+    }
     return b;
 }
 
@@ -88,7 +101,10 @@ Erc Tcp::send(Bytes* pb)
     int n;
     signal(SIGPIPE, SIG_IGN);
     n=write(_sockfd,pb->data(),pb->length()) ;
-    if (n < 0) return E_CONN_LOSS;
+    if (n < 0) {
+        _connected=false;
+        return E_CONN_LOSS;
+    }
     return E_OK;
 }
 #include "Mutex.h"

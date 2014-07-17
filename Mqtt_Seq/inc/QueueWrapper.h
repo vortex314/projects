@@ -26,7 +26,7 @@ private:
 
 template<class T>
 QueueTemplate<T>::QueueTemplate(int size) {
-	_start = (T*) Sys::malloc(size * sizeof(T));
+	_start = new T[size];//(T*) Sys::malloc(size * sizeof(T));
 	_limit = size;
 	_readPos = 0;
 	_writePos = 1;

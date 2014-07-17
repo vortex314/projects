@@ -8,6 +8,7 @@
 #ifndef EVENT_H
 #define	EVENT_H
 #include <stdint.h>
+#include "Str.h"
 
 #define EVENT(cls,type) ((cls<<24)+(type<<16))
 #define EV(d,c,b,a) ((a<<24)+(b<<16)+(c<<8)+(d))
@@ -32,6 +33,7 @@ public:
 	void* src();
 	static EventId nextEventId(char *s);
 	char *getEventIdName();
+	void toString(Str* line);
 private:
 	void* _src;
 	EventId _id;

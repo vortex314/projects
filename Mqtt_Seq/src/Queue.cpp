@@ -47,11 +47,22 @@ Queue::~Queue()
 
 Erc Queue::put(void* data)
 {
-    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 )
+    struct   timespec tm;
+
+    clock_gettime(CLOCK_REALTIME, &tm);
+    tm.tv_sec += 1;
+    if( mq_timedsend( mq, (const char *)data ,_msgSize, NULL,  &tm )<0 )
     {
-        perror("mq_send");
+        perror("mq_send : QUEUE FULL ?");
         return E_AGAIN;
-    };
+    } else{
+ //       perror("mq_send : OK");
+    }
+    /*    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 )
+        {
+            perror("mq_send");
+            return E_AGAIN;
+        };*/
     return E_OK;
 }
 

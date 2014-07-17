@@ -17,6 +17,7 @@ public:
     Str(uint8_t* data, int capacity);
     const char* data();
     Str& append(const char* s);
+    Str& append(void* ptr);
     Str& append(uint64_t val);
     Str& append(uint32_t val);
     Str& append(int32_t val);

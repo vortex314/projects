@@ -17,7 +17,7 @@ CircBuf::CircBuf() {
 }
 
 CircBuf::CircBuf(int size) {
-    start = (uint8_t*) Sys::malloc(size);
+    start = new uint8_t[size];
     readPos = 0;
     writePos = 1;
     limit = size;
@@ -29,7 +29,7 @@ void CircBuf::clear() {
 }
 
 CircBuf::~CircBuf() {
-    Sys::free(start);
+    delete[] start;
 }
 
 int CircBuf::write(uint8_t b) {

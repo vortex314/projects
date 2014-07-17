@@ -11,14 +11,17 @@ class Tcp : public Thread,public Sequence
 {
 private:
     int _sockfd;
+    bool _connected;
 public:
 
     static EventId TCP_CONNECTED,TCP_DISCONNECTED,MQTT_MESSAGE;
     Tcp( const char *name, unsigned short stackDepth, char priority);
     ~Tcp();
-    Erc connect(char *ip,int portno);
 
+    Erc connect(char *ip,int portno);
     Erc disconnect();
+    bool isConnected();
+
     Erc recv(Bytes* pb);
     int32_t read();
 

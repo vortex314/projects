@@ -87,6 +87,18 @@ Str& Str::appendHex(uint8_t byt) {
     return *this;
 }
 
+Str& Str::append(void* ptr){
+    union {
+        void *ptr;
+        uint8_t b[sizeof(int)];
+    } u;
+    u.ptr=ptr;
+append("0x");
+int i;
+for(i=0;i<sizeof(int);i++)
+appendHex(u.b[i]);
+}
+
 const char* Str::data() {
 //    *(_start + _limit) = '\0';
     return (char*) _start;

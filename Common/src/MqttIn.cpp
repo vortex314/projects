@@ -8,6 +8,9 @@
 #include "MqttIn.h"
 #include "Property.h"
 
+#include <iostream>
+#define LOG(x) std::cout << Sys::upTime() << " | MQTT  IN " << x << std::endl
+
 MqttIn::MqttIn(int size) :
     Bytes(size)
 {
@@ -18,9 +21,13 @@ MqttIn::MqttIn(int size) :
 MqttIn::MqttIn(MqttIn& src)
 {
     memcpy(this,&src,sizeof(MqttIn));
+    this->_start = new uint8_t[src._capacity];
     memcpy(_start,src._start,src._limit);
 }
 
+MqttIn::~MqttIn(){
+
+}
 uint8_t MqttIn::type()
 {
     return _header & MQTT_TYPE_MASK;
@@ -35,6 +42,7 @@ uint16_t MqttIn::messageId()
 {
     return _messageId;
 }
+
  Str* MqttIn::topic(){
     return &_topic;
 }
@@ -47,6 +55,7 @@ void MqttIn::reset()
 {
     _recvState = ST_HEADER;
     clear();
+
 }
 
 void MqttIn::add(uint8_t data)
@@ -62,6 +71,7 @@ void MqttIn::add(uint8_t data)
     {
         if (addRemainingLength(data) == false)   // last byte read for length
         {
+
             _recvState = ST_PAYLOAD;
             _lengthToRead = _remainingLength;
             if (_remainingLength == 0)
@@ -136,16 +146,19 @@ void MqttIn::parse()
     case MQTT_MSG_CONNECT:
     {
         // don't do , just for forwarding based on type
+        LOG("CONNECT");
         break;
     }
     case MQTT_MSG_CONNACK:
     {
+        LOG("CONNACK");
         read();
         _returnCode = read();
         break;
     }
     case MQTT_MSG_PUBLISH:
     {
+        LOG("PUBLISH");
         uint16_t length;
         readUint16(&length);
         _topic.sub(this, length);
@@ -161,16 +174,38 @@ void MqttIn::parse()
         break;
     }
     case MQTT_MSG_SUBACK:
+    {
+        LOG("SUBACK");
+        readUint16(&_messageId);
+        break;
+    }
     case MQTT_MSG_PUBACK:
+    {
+        LOG("PUBACK");
+        readUint16(&_messageId);
+        break;
+    }
     case MQTT_MSG_PUBREC:
+    {
+        LOG("PUBREC");
+        readUint16(&_messageId);
+        break;
+    }
     case MQTT_MSG_PUBREL:
+    {
+        LOG("PUBREL");
+        readUint16(&_messageId);
+        break;
+    }
     case MQTT_MSG_PUBCOMP:
     {
+        LOG("PUBCOMP");
         readUint16(&_messageId);
         break;
     }
     case MQTT_MSG_PINGRESP:
     {
+        LOG("PINGRESP");
         break;
     }
     default:

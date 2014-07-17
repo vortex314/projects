@@ -62,7 +62,7 @@ Property::Property(const PropertyConst* pc)
 
 void Property::init(Flags flags, const char* name, const char *meta)
 {
-    _pc = (PropertyConst*) Sys::malloc(sizeof(PropertyConst));
+    _pc = (PropertyConst*) new PropertyConst;
     _pc->_name = name;
     _pc->_meta = meta;
     _pc->_flags=flags;
@@ -95,7 +95,6 @@ Property::Property(PackerInterface* instance, Flags flags,
 Property::~Property()
 {
     ASSERT(this != NULL);
-    Sys::free(this);
 }
 
 /*
