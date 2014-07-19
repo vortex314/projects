@@ -1,5 +1,5 @@
 ## Synopsis
-
+== Heading ==
 The goal is to have the grass of my lawn cut automatically.
 This started a long time ago and the journey brought me to a lot of interesting terrains of IT and electronics.
 
@@ -23,10 +23,14 @@ Use at your own risk
 
 ## PARTS
 
-#MQTT_SEQ 
+### MQTT_SEQ 
 - delivers a MQTT Client code usable on Linux and microcontrollers. 
 - It's based on extending the concept og javascript 'promise' to a 'sequence'.Which is basicly a sequence of actions, which are specified upfront and to be executed in a certain order. 
 This makes that the state machines and hierarchical state mchines are almost non-existent. The state is maintained in the code position itself ( not based on threads but on Adam Dunkels 
 protothreads). 
 
-
+'''
+void function(){
+// do something useful
+}
+'''

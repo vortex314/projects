@@ -25,6 +25,8 @@
 #define TIME_KEEP_ALIVE 10000
 #define TIME_WAIT_REPLY 1000
 #define TIME_BETWEEN_PROPERTIES 100
+#define SLEEP(xxx)  timeout(xxx); \
+                PT_WAIT_UNTIL(&t,timeout());
 
 EventId TIMER_TICK= Event::nextEventId(( char* const)"TIMER_TICK");
 class TimerThread : public Thread,public Sequence
@@ -203,9 +205,9 @@ public:
         {
             while ( _mqtt->isConnected())
             {
-                timeout(TIME_PING);
                 mqttOut->PingReq();
                 _mqtt->send(mqttOut);
+
                 timeout(TIME_WAIT_REPLY);
                 PT_WAIT_UNTIL(&t,timeout() || eventIsMqtt(event,MQTT_MSG_PINGRESP,0));
                 if ( timeout())
@@ -213,8 +215,9 @@ public:
                     _mqtt->disconnect();
                     PT_RESTART(&t);
                 }
-                timeout(TIME_PING);
-                PT_WAIT_UNTIL(&t,timeout() );   // sleep between pings
+                SLEEP(TIME_PING);
+//               timeout(TIME_PING);
+//               PT_WAIT_UNTIL(&t,timeout() );   // sleep between pings
             }
             PT_YIELD(&t);
         }
@@ -234,6 +237,7 @@ private:
     uint16_t _messageId;
     Property * _p;
     Strpack* _message;
+    uint32_t _retryCount;
 public:
     MqttPubQos1(Mqtt* mqtt,Property* p)
     {
@@ -247,16 +251,29 @@ public:
     {
         uint8_t header=0;
         PT_BEGIN(&t);
-        if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
-        _message = new Strpack(100);
-        _p->toPack(*_message);
-        mqttOut->Publish(header+MQTT_QOS1_FLAG,_p->name(),_message,_messageId);
-        _mqtt->send(mqttOut);
-        delete _message;
-        timeout(TIME_WAIT_REPLY);
-        PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBACK,_messageId));
+        _retryCount=0;
+        while ( _retryCount<3 )
+        {
+            header = MQTT_QOS1_FLAG;
+            if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+            if ( _retryCount ) header+=MQTT_DUP_FLAG;
+
+            _message = new Strpack(100);
+            _p->toPack(*_message);
+            mqttOut->Publish(header,_p->name(),_message,_messageId);
+            _mqtt->send(mqttOut);
+            delete _message;
+
+            timeout(TIME_WAIT_REPLY);
+            PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBACK,_messageId));
+            if ( timeout() )
+                _retryCount++;
+            else
+                return PT_ENDED;
+        }
         PT_END(&t);
     }
+
 };
 
 class MqttPubQos2 : public Sequence
@@ -277,19 +294,22 @@ public:
     }
     int handler(Event* event)
     {
-        uint8_t header=0;
+        uint8_t header=MQTT_QOS2_FLAG;
         PT_BEGIN(&t);
         if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+
         _message = new Strpack(100);
         _p->toPack(*_message);
-        mqttOut->Publish(header+MQTT_QOS2_FLAG,_p->name(),_message,_messageId);
+        mqttOut->Publish(header,_p->name(),_message,_messageId);
         _mqtt->send(mqttOut);
         delete _message;
+
         timeout(TIME_WAIT_REPLY);
         PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBREC,_messageId));
 
         mqttOut->PubRel(_messageId);
         _mqtt->send(mqttOut);
+
         timeout(TIME_WAIT_REPLY);
         PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBCOMP,_messageId));
         PT_END(&t);
@@ -339,28 +359,31 @@ public:
     }
     int handler(Event* event)
     {
-        if ( !_mqtt->isConnected()) PT_RESTART(&t);
         PT_BEGIN(&t);
-        PT_WAIT_UNTIL(&t,event->is(MQTT_CONNECTED));
         while(1)
         {
-            timeout(TIME_WAIT_REPLY);
-            PT_WAIT_UNTIL(&t,timeout());
-            _p = Property::first();
-            while(_p)
+            while(_mqtt->isConnected())
             {
-                if ( _p->isUpdated() )
+
+                _p = Property::first();
+                while(_p)
                 {
-                    publishCurrentProperty();
-                    _p->published();
+                    if ( _p->isUpdated() )
+                    {
+                        publishCurrentProperty();
+                        _p->published();
+                    }
+                    _p = Property::next(_p);
+                    timeout(100);
+                    PT_WAIT_UNTIL(&t,timeout());
                 }
-                _p = Property::next(_p);
-                timeout(100);
+
+                timeout(TIME_BETWEEN_PROPERTIES);
                 PT_WAIT_UNTIL(&t,timeout());
+
+                Property::updatedAll();
             }
-            timeout(TIME_BETWEEN_PROPERTIES);
-            PT_WAIT_UNTIL(&t,timeout());
-            Property::updatedAll();
+            PT_YIELD(&t);
         }
         PT_END(&t);
     }
@@ -393,6 +416,7 @@ public:
         _mqtt->send(mqttOut);
         //TODO clone message
         clone = new MqttIn(*((MqttIn*)(event->data())));
+        clone->parse();
         timeout(TIME_WAIT_REPLY);
         PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBREL,_messageId));
         if ( timeout() )
@@ -400,6 +424,7 @@ public:
             delete clone;
             return PT_ENDED; // abandon and go for destruction
         }
+
         mqttOut->PubComp(_messageId);
         _mqtt->send(mqttOut);
         Property::set(clone->topic(),clone->message());
@@ -571,20 +596,14 @@ int main(int argc, char *argv[])
 {
 //    MqttThread mqtt("mqtt",1000,1);
     Queue::getDefaultQueue()->clear();//linux queues are persistent
+    // static sequences
     Tcp tcp("tcp",1000,1);
     Mqtt mqtt(&tcp);
-    MqttDispatcher mqttDispatcher(&mqtt);
-    MqttPing pinger(&mqtt);
-    PropertyListener pl(&mqtt);
-//   Mqtt mqtt(&tcp);
-//   MqttPublisher mqttPublisher;
+    MqttDispatcher mqttDispatcher(&mqtt); // start dynamic sequences
+    MqttPing pinger(&mqtt); // ping cycle when connected
+    PropertyListener pl(&mqtt); // publish property when changed or interval timeout
 
-//   mqttPublisher.init(&mqtt);
-//   MqttSubscriber mqttSubscriber;
-//   mqttSubscriber.init(&mqtt);
-
-
-    MainThread mt("messagePump",1000,1);
+    MainThread mt("messagePump",1000,1); // both threads could be combined
     TimerThread tt("timerThread",1000,1);
     tcp.start();
     mt.start();
@@ -592,7 +611,21 @@ int main(int argc, char *argv[])
 
     ::sleep(1000000);
 
+    // common thread approach
+    /*
+    LOOP {
+        look for smallest timeout
+        read tcp with timeout
+        if ( timeout) generate timer-event
+        if ( data on tcp ) generate data-event
+        if ( disconnect on tcp ) generate disconnection event
+        execute waiting-events
+    }
+    */
+
+
 }
+
 
 
 
