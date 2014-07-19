@@ -111,6 +111,7 @@ private:
     struct pt t;
     Tcp* _tcp;
     uint16_t _messageId;
+    bool _isConnected;
 
 public :
 
@@ -120,6 +121,7 @@ public :
         PT_INIT(&t);
         _messageId=2000;
         mqttOut->prefix(Sys::getDeviceName());
+        _isConnected = false;
     };
 
     int handler(Event* event)
@@ -153,9 +155,11 @@ public :
             }
 
             publish(this,MQTT_CONNECTED,0);
+            _isConnected=true;
             PT_WAIT_UNTIL(&t,event->is(_tcp,Tcp::TCP_DISCONNECTED));
 
             publish(this,MQTT_DISCONNECTED,0);
+            _isConnected=false;
         }
         PT_END(&t);
     }
@@ -167,11 +171,11 @@ public :
 
     bool isConnected()
     {
-        _tcp->isConnected();
+        return _isConnected;
     };
     Erc disconnect()
     {
-        _tcp->disconnect();
+        return _tcp->disconnect();
     }
 };
 /*****************************************************************************
@@ -194,7 +198,6 @@ public:
     }
     int handler(Event* event)
     {
-        uint8_t header=0;
         PT_BEGIN(&t);
         while(true)
         {
@@ -336,8 +339,9 @@ public:
     }
     int handler(Event* event)
     {
+        if ( !_mqtt->isConnected()) PT_RESTART(&t);
         PT_BEGIN(&t);
-        PT_WAIT_UNTIL(&t,event->is(Tcp::TCP_CONNECTED));
+        PT_WAIT_UNTIL(&t,event->is(MQTT_CONNECTED));
         while(1)
         {
             timeout(TIME_WAIT_REPLY);
