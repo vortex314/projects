@@ -38,7 +38,7 @@ public:
     Strpack& _message;
 
     PropertySet(Str& topic,Strpack& message)
-        : _message(message),_topic(topic)
+        : _topic(topic),_message(message)
     {
 
     }
@@ -452,7 +452,7 @@ public :
                 {
                     _mqttOut->PubAck(mqttIn->messageId()); // send PUBACK
                     _mqtt->send(_mqttOut);
-                   publish(this
+                    publish(this
                             ,PROPERTY_SET
                             ,new PropertySet(*mqttIn->topic(),*mqttIn->message()));
 
@@ -476,19 +476,15 @@ public :
 ******************************************************************************/
 
 #include <malloc.h>
-uint32_t memoryAllocated;
-Property memoryAlloced(&memoryAllocated,(Flags)
-{
-    T_UINT32,M_READ,QOS_1,I_ADDRESS
-},"system/memory_used","META");
 
-void getAllocSize(void)
+uint32_t getAllocSize(void)
 {
+    uint32_t memoryAllocated;
     struct mallinfo mi;
 
     mi = mallinfo();
     memoryAllocated =  mi.uordblks;
-    Property::updated(&memoryAllocated);
+    return memoryAllocated;
 }
 
 
@@ -533,7 +529,7 @@ public:
                     };
                 }
             if ( event.data() != NULL );
- //               delete  (Bytes*)event.data();
+//               delete  (Bytes*)event.data();
         }
     }
 };
@@ -614,8 +610,20 @@ gnublin_gpio gpio;
     startup => object.publish(ALL,"");
 
 */
+#include "Property.h"
 
-class GpioPin :public Sequence
+enum Cmd
+{
+    GET_VALUE,GET_META,SET_VALUE,GET_ANY_UPDATE,GET_DESC
+};
+class TopicObject
+{
+    virtual Flags topicObject(Cmd cmd,Strpack& str)=0;
+};
+typedef  Flags (TopicObject::*TopicMethod)(enum Cmd , Strpack& );
+
+
+class GpioPin :public TopicObject
 {
 private:
     int _pin;
@@ -630,19 +638,104 @@ public:
         PT_INIT(&t);
 //       setOutput('0'));
     }
-    void setMode(char m)
+    Flags topicObject(Cmd cmd,Strpack& str)
     {
-        if ( m=='I')
+        static Flags flags = {T_STR,M_WRITE,QOS_1,I_OBJECT,true};
+        return flags;
+    }
+    Flags mode(enum Cmd cmd,Strpack& value)
+    {
+        static Flags flags = {T_STR,M_WRITE,QOS_1,I_OBJECT,true};
+        switch(cmd)
         {
-            _mode='I';
-            gpio.pinMode(_pin,INPUT);
+        case SET_VALUE :
+        {
+            setMode(value.peek(0));
+            break;
         }
-        else if ( m=='O')
+        case GET_VALUE :
+        {
+            value.append(_mode);
+            break;
+        }
+        case  GET_META :
+        {
+            value.append("desc:'Direction for pin',set:['I','O']");
+            break;
+        }
+        default:
+        {
+        }
+        }
+        return flags;
+    }
+    Flags input(enum Cmd cmd,Strpack& value)
+    {
+        static Flags flags = {T_STR,M_READ,QOS_1,I_OBJECT,true};
+        switch(cmd)
+        {
+        case SET_VALUE :
+        {
+            break;
+        }
+        case GET_VALUE :
+        case GET_ANY_UPDATE:
+        {
+            value.append(getInput());
+            break;
+        }
+        case  GET_META :
+        {
+            value.append("desc:'Input for pin',set:['0','1']");
+            break;
+        }
+        default:
+        {
+        }
+        }
+        return flags;
+    }
+    Flags output(enum Cmd cmd,Strpack& value)
+    {
+        static Flags flags = {T_STR,M_READ,QOS_1,I_OBJECT,true};
+        switch(cmd)
+        {
+        case SET_VALUE :
+        {
+            setOutput(value.peek(0));
+            break;
+        }
+        case GET_VALUE :
+        case GET_ANY_UPDATE:
+        {
+            value.append(getInput());
+            break;
+        }
+        case  GET_META :
+        {
+            value.append("desc:'Output for pin',set:['0','1']");
+            break;
+        }
+        default:
+        {
+        }
+        }
+        return flags;
+    }
+
+    void setMode(char mode)
+    {
+        if ( mode=='O')
         {
             _mode='O';
             gpio.pinMode(_pin,OUTPUT);
         }
-        else Sys::logger("invalid pin mode for GPIO");
+        else if ( mode=='I')
+        {
+            _value='I';
+            gpio.pinMode(_pin,INPUT);
+        }
+        else Sys::logger("invalid pin value for GPIO");
     }
     void setOutput(char o)
     {
@@ -658,123 +751,152 @@ public:
         }
         else Sys::logger("invalid pin value for GPIO");
     }
+    char getInput()
+    {
+        return "01"[gpio.digitalRead(_pin)];
+    }
 
-    void setValue(Str& prop,Strpack& value)
+
+};
+
+/*
+
+prop(cmd,Strpack)
+
+prop(SET_VALUE,flags,strp)
+prop(GET_VALUE,flags,strp)
+prop(GET_ANY_UPDATE,null)
+prop(GET_META,strp)
+
+*/
+
+
+
+
+class SysObject : public TopicObject
+{
+public:
+    SysObject() { }
+    Flags topicObject(Cmd cmd,Strpack& str)
     {
-        if ( prop.equals("mode"))
-        {
-            setMode(value.peek(0));
-        }
-        else if ( prop.equals("out"))
-        {
-            setOutput(value.peek(0));
-        }
-        else
-        {
-            Sys::logger(" set invalid property ");
-        }
+        static Flags flags = {T_INT32,M_READ,QOS_0,I_OBJECT,false};
+        return flags;
     }
-    Erc getValue(Str& prop,Strpack& value)
+    Flags memory(enum Cmd cmd,Strpack& value)
     {
-        if ( prop.equals("mode"))
+        static Flags flags = {T_INT32,M_READ,QOS_0,I_OBJECT,false};
+        if ( cmd == GET_VALUE )
         {
-            value.append(_mode);
+            value.append(getAllocSize());
         }
-        else if ( prop.equals("in"))
+        else if (cmd == GET_DESC)
         {
-            value.append(gpio.digitalRead(_pin));
+            value.append("desc='allocated heap memory'");
         }
-        else
+        else if ( cmd == GET_ANY_UPDATE )
         {
-            Sys::logger(" get invalid property ");
-            return E_INVAL;
-        }
-        return E_OK;
-    }
-    Erc getMeta(Str& prop,Strpack& value)
-    {
-        if ( prop.equals("mode"))
-            value.append("{ mode : 'I|O'}");
-        return E_OK;
-    }
-    int handler(Event* event)
-    {
-        PT_BEGIN(&t);
-        while(1)
-        {
-            PT_WAIT_UNTIL(&t,event->is(PROPERTY_SET));
-            PT_YIELD(&t);
-        }
-        PT_END(&t);
+            value.append(getAllocSize());
+        };
+        return flags;
     }
 };
 
 
+SysObject sys;
+GpioPin pin_1(1);
+GpioPin pin_2(2);
+GpioPin pin_3(3);
+
+struct TopicEntry
+{
+    const char* const name;
+    TopicObject& instance;
+    TopicMethod method;
+} topicList[]=
+{
+    { "system/memory"       ,sys    ,(TopicMethod)&SysObject::memory        }, // ff
+    { "gpio/1/mode"         ,pin_1  ,(TopicMethod)&GpioPin::mode            }, // ff
+    { "gpio/1/output"       ,pin_1  ,(TopicMethod)&GpioPin::output          }, // ff
+    { "gpio/1/input"        ,pin_1  ,(TopicMethod)&GpioPin::input           }, // ff
+    { "gpio/2/mode"         ,pin_2  ,(TopicMethod)&GpioPin::mode            }, // ff
+    { "gpio/2/output"       ,pin_2  ,(TopicMethod)&GpioPin::output          }, // ff
+    { "gpio/2/input"        ,pin_2  ,(TopicMethod)&GpioPin::input           }, // ff
+    { "gpio/3/mode"         ,pin_3  ,(TopicMethod)&GpioPin::mode            }, // ff
+    { "gpio/3/output"       ,pin_3  ,(TopicMethod)&GpioPin::output          }, // ff
+    { "gpio/3/input"        ,pin_3  ,(TopicMethod)&GpioPin::input           }, // ff
+
+};
 
 
-
-class SysObject : public Sequence
+class TopicListener : public Sequence
 {
 private:
-struct pt t;
+    struct pt t;
+    struct TopicEntry* topicEntry;
 public:
-    SysObject()
+    TopicListener()
     {
         PT_INIT(&t);
-    }
-    void setValue(Str& prop,Strpack& value)
-    {
-        if ( prop.equals("mode"))
-        {
-
-        }
-        else if ( prop.equals("out"))
-        {
-        }
-        else
-        {
-            Sys::logger(" set invalid property ");
-        }
-    }
-    Erc getValue(Str& prop,Strpack& value)
-    {
-        if ( prop.equals("mode"))
-        {
-        }
-        else if ( prop.equals("in"))
-        {
-        }
-        else
-        {
-            Sys::logger(" get invalid property ");
-            return E_INVAL;
-        }
-        return E_OK;
-    }
-    Erc getMeta(Str& prop,Strpack& value)
-    {
-        return E_OK;
     }
     int handler(Event* event)
     {
         PropertySet* ps;
+        const char* deviceName="pcdebian/";
         PT_BEGIN(&t);
-        while(true) {
-        PT_WAIT_UNTIL(&t,event->is(PROPERTY_SET));
-        ps = (PropertySet*)event->data();
-                Sys::getLogger().append(" PROPERTY SET : ")
-                    .append(&ps->_topic)
-                    .append(" :" )
-                    .append(&ps->_message)
-                    ;
-                Sys::getLogger().flush();
-        if ( ps->_topic.startsWith("pcdebian/system/")) {
-            if ( ps->_topic.endsWith(".set")) {
-                Str str;
-                ps->_topic.offset(strlen("pcdebian/system/"));
-                str.sub(&ps->_topic,ps->_topic.length()-4-strlen("pcdebian/system/"));
-                setValue(str,ps->_message);
+        while(true)
+        {
+            PT_WAIT_UNTIL(&t,event->is(PROPERTY_SET));
+            ps = (PropertySet*)event->data();
+            Sys::getLogger().append(" PROPERTY SET : ")
+            .append(&ps->_topic)
+            .append(" :" )
+            .append(&ps->_message)
+            ;
+            Sys::getLogger().flush();
+            // strip device Name
+            // define cmd based on extensions
+            // remove extensions
+            // find in topicObjects
+            // execute method
+            if ( ps->_topic.startsWith(deviceName))
+            {
+                Str topic(30);
+
+                Cmd cmd=GET_ANY_UPDATE;
+                ps->_topic.offset(strlen(deviceName));
+                topic.sub(&ps->_topic,ps->_topic.length()-strlen(deviceName));
+                int i;
+                topicEntry=0;
+                for(i=0; i<(sizeof(topicList)/sizeof(struct TopicEntry));i++)
+                {
+                    if ( topic.startsWith(topicList[i].name))
+                    {
+                        topicEntry = & topicList[i];
+                        break;
+                    }
                 }
+                if ( topicEntry == 0 ) PT_RESTART(&t);
+
+                if ( ps->_topic.endsWith(".set"))
+                {
+                    cmd=SET_VALUE;
+                    topic.length(topic.length()-4);
+                    ((topicEntry->instance).*(topicEntry->method))(cmd,ps->_message);
+
+                }
+                else if ( topic.endsWith(".meta"))
+                {Strpack strp(100);
+                    cmd=GET_META;
+                    topic.length(topic.length()-5);
+                    ((topicEntry->instance).*(topicEntry->method))(cmd,strp);
+                }
+                else if ( topic.endsWith(".upd"))
+                {
+                    Strpack strp(100);
+                    cmd=GET_VALUE;
+                    topic.length(topic.length()-4);
+                    ((topicEntry->instance).*(topicEntry->method))(cmd,strp);
+                };
             }
             PT_YIELD(&t);
         };
@@ -782,9 +904,6 @@ public:
     }
 
 };
-
-
-
 
 
 //_____________________________________________________________________________________________________
@@ -797,6 +916,9 @@ public:
 
 int main(int argc, char *argv[])
 {
+    Strpack strp;
+
+    ((topicList[1].instance).*(topicList[1].method))(GET_VALUE,strp);
 //    MqttThread mqtt("mqtt",1000,1);
     Queue::getDefaultQueue()->clear();//linux queues are persistent
     // static sequences
@@ -804,8 +926,9 @@ int main(int argc, char *argv[])
     mqtt=new Mqtt(&tcp);
     MqttDispatcher mqttDispatcher(mqtt); // start dynamic sequences
     MqttPing pinger(mqtt); // ping cycle when connected
+    new TopicListener();
 //   PropertyListener pl(&mqtt); // publish property when changed or interval timeout
-    SysObject sys;
+//   SysObject sys;
     GpioPin pin3(3);
     MainThread mt("messagePump",1000,1); // both threads could be combined
     TimerThread tt("timerThread",1000,1);
@@ -830,6 +953,7 @@ int main(int argc, char *argv[])
 
 
 }
+
 
 
 
