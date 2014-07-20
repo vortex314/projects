@@ -17,7 +17,7 @@
 1403395007 /home/lieven/micro/Common/inc/Erc.h
 	<stdint.h>
 
-1405365805 /home/lieven/micro/Common/inc/Sys.h
+1405802043 /home/lieven/micro/Common/inc/Sys.h
 	"stdint.h"
 	"Erc.h"
 	<iostream>
@@ -27,10 +27,10 @@
 	<malloc.h>
 	"Logger.h"
 
-1405627730 source:/home/lieven/micro/Common/src/Bytes.cpp
+1405813863 source:/home/lieven/micro/Common/src/Bytes.cpp
 	"Bytes.h"
 
-1405365805 /home/lieven/micro/Common/inc/Bytes.h
+1405794824 /home/lieven/micro/Common/inc/Bytes.h
 	<stdint.h>
 	"Erc.h"
 	"Sys.h"
@@ -43,7 +43,7 @@
 	<stdint.h>
 	<errno.h>
 
-1405635992 source:/home/lieven/micro/Common/src/Event.cpp
+1405810846 source:/home/lieven/micro/Common/src/Event.cpp
 	"Event.h"
 	"Sys.h"
 	"Erc.h"
@@ -74,14 +74,14 @@
 	"Tcp.h"
 	"EventSource.h"
 
-1405636233 /home/lieven/micro/Common/inc/Str.h
+1405794443 /home/lieven/micro/Common/inc/Str.h
 	"Bytes.h"
 	"Erc.h"
 
-1405624554 /home/lieven/micro/Common/inc/Strpack.h
+1405771788 /home/lieven/micro/Common/inc/Strpack.h
 	"Str.h"
 
-1405365805 /home/lieven/micro/Common/inc/Property.h
+1405801033 /home/lieven/micro/Common/inc/Property.h
 	<stdint.h>
 	<errno.h>
 	<string.h>
@@ -90,11 +90,11 @@
 	"Erc.h"
 	"Strpack.h"
 
-1405634688 source:/home/lieven/micro/Common/src/MqttOut.cpp
+1405806382 source:/home/lieven/micro/Common/src/MqttOut.cpp
 	"MqttOut.h"
 	<iostream>
 
-1405365805 /home/lieven/micro/Common/inc/MqttOut.h
+1405806225 /home/lieven/micro/Common/inc/MqttOut.h
 	<string.h>
 	"Bytes.h"
 	"MqttConstants.h"
@@ -117,12 +117,13 @@
 	<stdint.h>
 	"Erc.h"
 
-1405620367 source:/home/lieven/micro/Common/src/Property.cpp
+1405801455 source:/home/lieven/micro/Common/src/Property.cpp
 	"Property.h"
 	"Logger.h"
 
-1405636472 source:/home/lieven/micro/Common/src/Str.cpp
+1405815982 source:/home/lieven/micro/Common/src/Str.cpp
 	"Str.h"
+	<string.h>
 
 1405365805 source:/home/lieven/micro/Common/src/Stream.cpp
 	"Stream.h"
@@ -135,7 +136,7 @@
 	"Event.h"
 	"Queue.h"
 
-1405624566 source:/home/lieven/micro/Common/src/Strpack.cpp
+1405794824 source:/home/lieven/micro/Common/src/Strpack.cpp
 	"Strpack.h"
 	<string.h>
 
@@ -292,7 +293,7 @@
 	"EventSource.h"
 	"Sequence.h"
 
-1405365805 source:/home/lieven/micro/Mqtt_Seq/src/Logger.cpp
+1405771444 source:/home/lieven/micro/Mqtt_Seq/src/Logger.cpp
 	"Logger.h"
 	<iostream>
 
@@ -303,7 +304,7 @@
 	<stdlib.h>
 	<unistd.h>
 
-1405765080 source:/home/lieven/micro/Mqtt_Seq/src/Queue.cpp
+1405811801 source:/home/lieven/micro/Mqtt_Seq/src/Queue.cpp
 	"Queue.h"
 	<fcntl.h>
 	<sys/stat.h>
@@ -313,14 +314,14 @@
 	<errno.h>
 	<assert.h>
 
-1405545449 source:/home/lieven/micro/Mqtt_Seq/src/Sys.cpp
+1405802058 source:/home/lieven/micro/Mqtt_Seq/src/Sys.cpp
 	"Sys.h"
 	<malloc.h>
 	"Logger.h"
 	<unistd.h>
 	<string.h>
 
-1405634636 source:/home/lieven/micro/Mqtt_Seq/src/Tcp.cpp
+1405814276 source:/home/lieven/micro/Mqtt_Seq/src/Tcp.cpp
 	"Tcp.h"
 	<sys/types.h>
 	<sys/socket.h>
@@ -334,6 +335,7 @@
 	<signal.h>
 	"MqttIn.h"
 	"Mutex.h"
+	<iostream>
 
 1405620379 source:/home/lieven/micro/Mqtt_Seq/src/Thread.cpp
 	<pthread.h>
@@ -347,7 +349,7 @@
 	"Thread.h"
 	<time.h>
 
-1405761958 source:/home/lieven/micro/Mqtt_Seq/src/main.cpp
+1405816455 source:/home/lieven/micro/Mqtt_Seq/src/main.cpp
 	<iostream>
 	"Bytes.h"
 	"Str.h"
@@ -370,6 +372,8 @@
 	"Logger.h"
 	"pt.h"
 	<malloc.h>
+	"gnublin.h"
+	"Strpack.h"
 	<unistd.h>
 	"Timer.h"
 
@@ -381,11 +385,58 @@
 
 1403395007 /home/lieven/micro/Common/inc/lc-switch.h
 
-1405530986 /home/lieven/micro/Common/inc/Sequence.h
+1405802405 /home/lieven/micro/Common/inc/Sequence.h
 	"Event.h"
 	"Sys.h"
 	"Queue.h"
 
 1405530986 source:/home/lieven/micro/Common/src/Sequence.cpp
 	"Sequence.h"
+
+1405769593 source:/home/lieven/gnublin-api/gnublin.cpp
+	"gnublin.h"
+
+1405769593 /home/lieven/gnublin-api/gnublin.h
+	<cstring>
+	<ctime>
+	<fcntl.h>
+	<fstream>
+	<iostream>
+	<linux/i2c.h>
+	<linux/i2c-dev.h>
+	<linux/spi/spidev.h>
+	<sstream>
+	<stdio.h>
+	<stdlib.h>
+	<string>
+	<sys/ioctl.h>
+	<time.h>
+	<unistd.h>
+	<math.h>
+	<termios.h>
+	<unistd.h>
+	<fcntl.h>
+	<fstream>
+	<string>
+	<iostream>
+	<sstream>
+	<iomanip>
+	<string>
+	<vector>
+	<string.h>
+	<assert.h>
+	<sys/types.h>
+	<sys/socket.h>
+	<sys/unistd.h>
+	<netinet/in.h>
+	<arpa/inet.h>
+	<netdb.h>
+	<errno.h>
+	<iostream>
+	<fstream>
+	<string>
+	<iostream>
+	<stdlib.h>
+	<stdarg.h>
+	<sstream>
 

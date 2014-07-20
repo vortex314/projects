@@ -29,6 +29,24 @@
                 PT_WAIT_UNTIL(&t,timeout());
 
 EventId TIMER_TICK= Event::nextEventId(( char* const)"TIMER_TICK");
+EventId PROPERTY_SET= Event::nextEventId(( char* const)"PROPERTY_SET");
+
+class PropertySet
+{
+public:
+    Str& _topic;
+    Strpack& _message;
+
+    PropertySet(Str& topic,Strpack& message)
+        : _message(message),_topic(topic)
+    {
+
+    }
+    ~PropertySet()
+    {
+    }
+};
+
 class TimerThread : public Thread,public Sequence
 {
 
@@ -132,7 +150,7 @@ public :
         while(1)
         {
             _messageId=nextMessageId();
-            PT_WAIT_UNTIL(&t,event->is(_tcp,Tcp::TCP_CONNECTED));
+            PT_WAIT_UNTIL(&t,_tcp->isConnected());
             mqttOut->Connect(0, "clientId", MQTT_CLEAN_SESSION,
                              "system/online", "false", "", "", TIME_KEEP_ALIVE/1000);
             _tcp->send(mqttOut);
@@ -229,23 +247,45 @@ public:
 /*****************************************************************************
 *   HANDLE MQTT send publish message with qos=2 and 1
 ******************************************************************************/
+Mqtt* mqtt;
+class MqttPubQos0 : public Sequence
+{
+private :
+    Str _topic;
+    Strpack _message;
+    Flags _flags;
+public:
+
+    MqttPubQos0(Flags flags,Str& topic,Strpack& message) : _topic(topic),_message(message)
+    {
+        _flags=flags;
+    }
+    int handler(Event* event)
+    {
+        uint8_t header=0;
+        if ( _flags.retained ) header += MQTT_RETAIN_FLAG;
+        mqttOut->prefix(Sys::getDeviceName());
+        mqttOut->Publish(header,_topic,_message,nextMessageId());
+        mqtt->send(mqttOut);
+        return PT_ENDED;
+    }
+};
+
 class MqttPubQos1 : public Sequence
 {
 private:
     struct pt t;
-    Mqtt* _mqtt;
-    uint16_t _messageId;
-    Property * _p;
-    Strpack* _message;
     uint32_t _retryCount;
+    Str _topic;
+    Strpack _message;
+    Flags _flags;
+    uint16_t _messageId;
 public:
-    MqttPubQos1(Mqtt* mqtt,Property* p)
+    MqttPubQos1(Flags flags,Str& topic,Strpack& message): _topic(topic),_message(message)
     {
-        _mqtt=mqtt;
-        _messageId=nextMessageId();
-        _p=p;
+        _flags=flags;
         PT_INIT(&t);
-        //TODO in destructor free memory
+        _messageId=nextMessageId();
     }
     int handler(Event* event)
     {
@@ -255,14 +295,11 @@ public:
         while ( _retryCount<3 )
         {
             header = MQTT_QOS1_FLAG;
-            if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+            if ( _flags.retained ) header += MQTT_RETAIN_FLAG;
             if ( _retryCount ) header+=MQTT_DUP_FLAG;
 
-            _message = new Strpack(100);
-            _p->toPack(*_message);
-            mqttOut->Publish(header,_p->name(),_message,_messageId);
-            _mqtt->send(mqttOut);
-            delete _message;
+            mqttOut->Publish(header,_topic,_message,_messageId);
+            mqtt->send(mqttOut);
 
             timeout(TIME_WAIT_REPLY);
             PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBACK,_messageId));
@@ -280,35 +317,30 @@ class MqttPubQos2 : public Sequence
 {
 private:
     struct pt t;
-    Mqtt* _mqtt;
+    Str _topic;
+    Strpack _message;
+    Flags _flags;
     uint16_t _messageId;
-    Property * _p;
-    Strpack* _message;
 public:
-    MqttPubQos2(Mqtt* mqtt,Property* p)
+    MqttPubQos2(Flags flags,Str& topic,Strpack& message): _topic(topic),_message(message)
     {
-        _mqtt=mqtt;
-        _messageId=nextMessageId();
+        _flags=flags;
         PT_INIT(&t);
-        _p=p;
     }
     int handler(Event* event)
     {
         uint8_t header=MQTT_QOS2_FLAG;
         PT_BEGIN(&t);
-        if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
+        if ( _flags.retained ) header += MQTT_RETAIN_FLAG;
 
-        _message = new Strpack(100);
-        _p->toPack(*_message);
-        mqttOut->Publish(header,_p->name(),_message,_messageId);
-        _mqtt->send(mqttOut);
-        delete _message;
+        mqttOut->Publish(header,_topic,_message,_messageId);
+        mqtt->send(mqttOut);
 
         timeout(TIME_WAIT_REPLY);
         PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBREC,_messageId));
 
         mqttOut->PubRel(_messageId);
-        _mqtt->send(mqttOut);
+        mqtt->send(mqttOut);
 
         timeout(TIME_WAIT_REPLY);
         PT_WAIT_UNTIL(&t,timeout() ||  eventIsMqtt(event,MQTT_MSG_PUBCOMP,_messageId));
@@ -317,78 +349,20 @@ public:
 
 };
 
+
+void doPublish(Flags flags,Str& topic,Strpack& message)
+{
+    if ( flags.qos == QOS_0) new MqttPubQos0(flags,topic,message);
+    if ( flags.qos == QOS_1) new MqttPubQos1(flags,topic,message);
+    if ( flags.qos == QOS_2) new MqttPubQos2(flags,topic,message);
+}
+
+
+
 /*****************************************************************************
 *   HANDLE Property scan for changes
 ******************************************************************************/
-class PropertyListener : public Sequence
-{
-private:
-    struct pt t;
-    Mqtt* _mqtt;
-    uint16_t _messageId;
-    Property * _p;
-    Strpack* _message;
-public:
-    PropertyListener(Mqtt* mqtt)
-    {
-        _mqtt=mqtt;
 
-        PT_INIT(&t);
-    }
-    void publishCurrentProperty()
-    {
-        uint8_t header=0;
-        if ( _p->flags().qos == QOS_0  )
-        {
-            if ( _p->flags().retained ) header += MQTT_RETAIN_FLAG;
-            mqttOut->prefix(Sys::getDeviceName());
-            _message = new Strpack(100);
-            _p->toPack(*_message);
-            mqttOut->Publish(header,_p->name(),_message,_messageId);
-            _mqtt->send(mqttOut);
-            delete _message;
-        }
-        else if ( _p->flags().qos == QOS_1  )
-        {
-            new MqttPubQos1(_mqtt,_p);
-        }
-        else if ( _p->flags().qos == QOS_2  )
-        {
-            new MqttPubQos2(_mqtt,_p);
-        }
-    }
-    int handler(Event* event)
-    {
-        PT_BEGIN(&t);
-        while(1)
-        {
-            while(_mqtt->isConnected())
-            {
-
-                _p = Property::first();
-                while(_p)
-                {
-                    if ( _p->isUpdated() )
-                    {
-                        publishCurrentProperty();
-                        _p->published();
-                    }
-                    _p = Property::next(_p);
-                    timeout(100);
-                    PT_WAIT_UNTIL(&t,timeout());
-                }
-
-                timeout(TIME_BETWEEN_PROPERTIES);
-                PT_WAIT_UNTIL(&t,timeout());
-
-                Property::updatedAll();
-            }
-            PT_YIELD(&t);
-        }
-        PT_END(&t);
-    }
-
-};
 /*****************************************************************************
 *   HANDLE MQTT received publish message with qos=2
 ******************************************************************************/
@@ -427,7 +401,8 @@ public:
 
         mqttOut->PubComp(_messageId);
         _mqtt->send(mqttOut);
-        Property::set(clone->topic(),clone->message());
+
+        publish(this,PROPERTY_SET,new PropertySet(*clone->topic(),*clone->message()));
         delete clone;// free cloned messages
         PT_END(&t);
     }
@@ -467,7 +442,9 @@ public :
                 {
                 case MQTT_QOS0_FLAG :
                 {
-                    Property::set(mqttIn->topic(),mqttIn->message());
+                    publish(this
+                            ,PROPERTY_SET
+                            ,new PropertySet(*mqttIn->topic(),*mqttIn->message()));
 
                     break;
                 }
@@ -475,7 +452,10 @@ public :
                 {
                     _mqttOut->PubAck(mqttIn->messageId()); // send PUBACK
                     _mqtt->send(_mqttOut);
-                    Property::set(mqttIn->topic(),mqttIn->message());
+                   publish(this
+                            ,PROPERTY_SET
+                            ,new PropertySet(*mqttIn->topic(),*mqttIn->message()));
+
 
                     break;
                 }
@@ -552,8 +532,8 @@ public:
                         delete seq;
                     };
                 }
-            if ( event.data() != NULL )
-                delete  (Bytes*)event.data();
+            if ( event.data() != NULL );
+ //               delete  (Bytes*)event.data();
         }
     }
 };
@@ -585,6 +565,228 @@ Property property1(&p, (Flags)
 Property pp(&pc);
 
 
+
+#define BOARD RASPBERRY_PI
+
+#include "gnublin.h"
+/*
+   gpio_1/mode .set .get .meta
+   gpio/1/out
+   gpio/1/in
+   gpio/pin/1/mode
+   gpio/pin/1 -> true or false
+
+   gpio/0/out      - 0/1 uint8_t
+   gpio/0/in       - 0/1
+   gpio/0/mode     - R/W STR
+
+   spi/0/out       -> O
+   spi/0/in        -> I
+   spi/0/clock     -> I/O
+
+   pcdebian/spi_0_/out
+   pcdebian/spi_0_/in
+   pcdebian/spi_0_/clock
+*/
+/*
+class
+
+Property pin_0(Setter setter, Getter getter, {T_STR,M_WRITE,QOS_1,I_SETTER},
+             "gpio/pin_0/mode", "{ mode : }");
+
+    Properties gpio/pin_xxx/mode -> gpio.pinMode(xxx,mode) -> setter & getter
+    properties gpio/pin_xxx/mode ->
+*/
+#include "Strpack.h"
+gnublin_gpio gpio;
+
+/*
+    pcdebian/gpio/pin/ class Pin
+    pcdebian/gpio/pin/1/ class Pin instance 1
+        0 mode,in,out  .set,.upd,.meta
+
+    <class/><instance/><property><.method> <value>
+
+    <class/><instance/><property>.meta => object.publish(META,prop);
+    <class/><instance/><property>.upd => object.publish(VALUE,prop);
+    <class/><instance/><property>.set => object.setValue(prop,value);
+    value changed => object.publish(VALUE,property);
+    startup => object.publish(ALL,"");
+
+*/
+
+class GpioPin :public Sequence
+{
+private:
+    int _pin;
+    char _mode;
+    char _value;
+    struct pt t;
+public:
+    GpioPin(int pin)
+    {
+        _pin=pin;
+        setMode('I');
+        PT_INIT(&t);
+//       setOutput('0'));
+    }
+    void setMode(char m)
+    {
+        if ( m=='I')
+        {
+            _mode='I';
+            gpio.pinMode(_pin,INPUT);
+        }
+        else if ( m=='O')
+        {
+            _mode='O';
+            gpio.pinMode(_pin,OUTPUT);
+        }
+        else Sys::logger("invalid pin mode for GPIO");
+    }
+    void setOutput(char o)
+    {
+        if ( o=='1')
+        {
+            _value='1';
+            gpio.digitalWrite(_pin,HIGH);
+        }
+        else if ( o=='0')
+        {
+            _value='1';
+            gpio.digitalWrite(_pin,LOW);
+        }
+        else Sys::logger("invalid pin value for GPIO");
+    }
+
+    void setValue(Str& prop,Strpack& value)
+    {
+        if ( prop.equals("mode"))
+        {
+            setMode(value.peek(0));
+        }
+        else if ( prop.equals("out"))
+        {
+            setOutput(value.peek(0));
+        }
+        else
+        {
+            Sys::logger(" set invalid property ");
+        }
+    }
+    Erc getValue(Str& prop,Strpack& value)
+    {
+        if ( prop.equals("mode"))
+        {
+            value.append(_mode);
+        }
+        else if ( prop.equals("in"))
+        {
+            value.append(gpio.digitalRead(_pin));
+        }
+        else
+        {
+            Sys::logger(" get invalid property ");
+            return E_INVAL;
+        }
+        return E_OK;
+    }
+    Erc getMeta(Str& prop,Strpack& value)
+    {
+        if ( prop.equals("mode"))
+            value.append("{ mode : 'I|O'}");
+        return E_OK;
+    }
+    int handler(Event* event)
+    {
+        PT_BEGIN(&t);
+        while(1)
+        {
+            PT_WAIT_UNTIL(&t,event->is(PROPERTY_SET));
+            PT_YIELD(&t);
+        }
+        PT_END(&t);
+    }
+};
+
+
+
+
+
+class SysObject : public Sequence
+{
+private:
+struct pt t;
+public:
+    SysObject()
+    {
+        PT_INIT(&t);
+    }
+    void setValue(Str& prop,Strpack& value)
+    {
+        if ( prop.equals("mode"))
+        {
+
+        }
+        else if ( prop.equals("out"))
+        {
+        }
+        else
+        {
+            Sys::logger(" set invalid property ");
+        }
+    }
+    Erc getValue(Str& prop,Strpack& value)
+    {
+        if ( prop.equals("mode"))
+        {
+        }
+        else if ( prop.equals("in"))
+        {
+        }
+        else
+        {
+            Sys::logger(" get invalid property ");
+            return E_INVAL;
+        }
+        return E_OK;
+    }
+    Erc getMeta(Str& prop,Strpack& value)
+    {
+        return E_OK;
+    }
+    int handler(Event* event)
+    {
+        PropertySet* ps;
+        PT_BEGIN(&t);
+        while(true) {
+        PT_WAIT_UNTIL(&t,event->is(PROPERTY_SET));
+        ps = (PropertySet*)event->data();
+                Sys::getLogger().append(" PROPERTY SET : ")
+                    .append(&ps->_topic)
+                    .append(" :" )
+                    .append(&ps->_message)
+                    ;
+                Sys::getLogger().flush();
+        if ( ps->_topic.startsWith("pcdebian/system/")) {
+            if ( ps->_topic.endsWith(".set")) {
+                Str str;
+                ps->_topic.offset(strlen("pcdebian/system/"));
+                str.sub(&ps->_topic,ps->_topic.length()-4-strlen("pcdebian/system/"));
+                setValue(str,ps->_message);
+                }
+            }
+            PT_YIELD(&t);
+        };
+        PT_END(&t);
+    }
+
+};
+
+
+
+
+
 //_____________________________________________________________________________________________________
 //
 #include <unistd.h> // sleep
@@ -592,22 +794,25 @@ Property pp(&pc);
 
 //_____________________________________________________________________________________________________
 //
+
 int main(int argc, char *argv[])
 {
 //    MqttThread mqtt("mqtt",1000,1);
     Queue::getDefaultQueue()->clear();//linux queues are persistent
     // static sequences
     Tcp tcp("tcp",1000,1);
-    Mqtt mqtt(&tcp);
-    MqttDispatcher mqttDispatcher(&mqtt); // start dynamic sequences
-    MqttPing pinger(&mqtt); // ping cycle when connected
-    PropertyListener pl(&mqtt); // publish property when changed or interval timeout
-
+    mqtt=new Mqtt(&tcp);
+    MqttDispatcher mqttDispatcher(mqtt); // start dynamic sequences
+    MqttPing pinger(mqtt); // ping cycle when connected
+//   PropertyListener pl(&mqtt); // publish property when changed or interval timeout
+    SysObject sys;
+    GpioPin pin3(3);
     MainThread mt("messagePump",1000,1); // both threads could be combined
     TimerThread tt("timerThread",1000,1);
     tcp.start();
     mt.start();
     tt.start();
+
 
     ::sleep(1000000);
 
@@ -625,7 +830,6 @@ int main(int argc, char *argv[])
 
 
 }
-
 
 
 

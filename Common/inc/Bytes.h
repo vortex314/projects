@@ -39,6 +39,7 @@ public:
     uint8_t *data() const ;
 
     int poke(uint32_t offset, uint8_t b);
+    int peek(int32_t offset);
     int peek();
 
     bool hasData();

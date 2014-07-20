@@ -12,7 +12,7 @@ Property* Property::_first=NULL;
 
 const char* typeToString[] = { "UINT8", "UINT16", "UINT32", "UINT64", "INT8",
                                "INT16", "INT32", "INT64", "BOOL", "FLOAT", "DOUBLE", "BYTES", "ARRAY",
-                               "MAP", "STR"
+                               "MAP", "STR","OBJ"
                              };
 const char* modeToString[] = { "R", "W", "RW" };
 
@@ -89,6 +89,15 @@ Property::Property(PackerInterface* instance, Flags flags,
     init(flags, name, meta);
     _pc->_instance = instance;
     _pc->_flags.interface = I_INTERFACE;
+    add(this);
+}
+
+Property::Property(ObjectInterface* object, Flags flags,
+                   const char* name)
+{
+    init(flags, name, NULL);
+    _pc->_object = object;
+    _pc->_flags.interface = I_OBJECT;
     add(this);
 }
 
@@ -173,9 +182,14 @@ Erc Property::getMeta(Str& str)
 Erc Property::toPack(Strpack& packer)
 {
     if (_pc->_flags.interface == I_SETTER)
-        return _pc->_setter(packer);
-    if (_pc->_flags.interface == I_INTERFACE)
+        return _pc->_setter(_pc->_name,packer);
+    else if (_pc->_flags.interface == I_INTERFACE)
         return _pc->_instance->toPack(packer);
+    else if (_pc->_flags.interface == I_OBJECT)
+    {
+        Str prop("");
+        return _pc->_object->getValue(prop,packer);
+    }
     switch (_pc->_flags.type)
     {
     case T_UINT64:
@@ -196,8 +210,8 @@ Erc Property::toPack(Strpack& packer)
     }
     case T_STR:
     {
-        const char* ps = (const char*) _pc->_pv;
-        packer.pack(ps);
+        const Str* ps = (Str*) _pc->_pv;
+        packer.pack((Str*)ps);
         break;
     }
     case T_BYTES:
@@ -237,10 +251,16 @@ Erc Property::fromPack(Strpack& unpacker)
 {
     if (_pc->_flags.mode == M_READ)
         return E_NO_ACCESS;
-    if (_pc->_flags.interface == I_SETTER)
-        return _pc->_setter(unpacker);
-    if (_pc->_flags.interface == I_INTERFACE)
+    else if (_pc->_flags.interface == I_SETTER)
+        return _pc->_setter(_pc->_name,unpacker);
+    else if (_pc->_flags.interface == I_INTERFACE)
         return _pc->_instance->fromPack(unpacker);
+    else if (_pc->_flags.interface == I_OBJECT)
+    {
+        Str str("");
+        _pc->_object->setValue(str,unpacker);
+        return E_OK;
+    }
     switch (_pc->_flags.type)
     {
     case T_UINT64:
@@ -291,15 +311,28 @@ void Property::set( Str* name, Strpack* message)
     Sys::getLogger().clear();
     Sys::getLogger().append(" SET ").append(name).append(" = ").append(message);
     Sys::getLogger().flush();
+
+    Property* p = find(name);
+
     char* prefix=Sys::getDeviceName();
-    char localName[30];
-    int i=0;
+    Str str;
     name->offset(strlen(prefix));
-    while(name->hasData() && i<30 )
-        localName[i++]=name->read();
-    localName[i]='\0';
-    Property* p = find(localName);
-    if ( p ) p->fromPack(*message);
+    str.sub(name,name->length()-strlen(prefix));
+    if ( name->endsWith(".set"))
+    {
+        str.length(str.length()-4); // remove end
+        if (p->_pc->_flags.interface == I_OBJECT)
+            p->_pc->_object->setValue(str,*message);
+    }
+    else if ( name->endsWith(".meta"))
+    {
+    }
+    /*    char localName[30];
+        int i=0;
+        name->offset(strlen(prefix));
+        while(name->hasData() && i<30 )
+            localName[i++]=name->read();
+        localName[i]='\0';*/
 }
 
 Property* Property::findNextUpdated()
@@ -357,6 +390,7 @@ void Property::updatedAll()
     for(p=first(); p!=NULL; p=next(p))
         p->updated();
 }
+
 
 
 

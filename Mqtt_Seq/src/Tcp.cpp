@@ -93,13 +93,14 @@ int32_t Tcp::read()
         _connected=false;
         return -1;
     }
+    std::cout << "." ;
     return b;
 }
 
 Erc Tcp::send(Bytes* pb)
 {
     int n;
-    signal(SIGPIPE, SIG_IGN);
+ //   signal(SIGPIPE, SIG_IGN);
     n=write(_sockfd,pb->data(),pb->length()) ;
     if (n < 0) {
         _connected=false;
@@ -128,15 +129,17 @@ void Tcp::run()
         sleep(5000);
     }
 }
-
+#include <iostream>
 void Tcp::mqttRead(int32_t b)
 {
     static MqttIn* mqttIn=new MqttIn(256);
 
     mqttIn->add(b);
+    std::cout << "_" <<std::endl;
     if (  mqttIn->complete() )
     {
         mqttIn->parse();
+        std::cout << " MQTT_MESSAGE received " <<std::endl;
         publish(this,MQTT_MESSAGE,mqttIn);
         mqttIn=new MqttIn(256);
         mqttIn->reset();

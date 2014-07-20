@@ -15,8 +15,8 @@
 #include "Erc.h"
 #include "Strpack.h"
 extern const char *PREFIX;
-typedef Erc (*Setter)(Strpack& str);
-typedef Erc (*Getter)(Strpack& str);
+typedef Erc (*Setter)(const char* topic,Strpack& str);
+typedef Erc (*Getter)(const char* topic,Strpack& str);
 
 enum Type
 {
@@ -34,7 +34,8 @@ enum Type
     T_BYTES,
     T_ARRAY,
     T_MAP,
-    T_STR
+    T_STR,
+    T_OBJECT
 };
 
 enum Mode
@@ -51,7 +52,7 @@ enum Qos
 
 enum Interface
 {
-    I_ADDRESS, I_INTERFACE, I_SETTER
+    I_ADDRESS, I_INTERFACE, I_SETTER,I_OBJECT
 };
 
 typedef struct
@@ -71,7 +72,13 @@ public:
     ~PackerInterface()
     {
     }
-    ;
+};
+
+class ObjectInterface {
+    public:
+    virtual void setValue(Str& prop,Strpack& value)=0;
+    virtual Erc getValue(Str& prop,Strpack& value)=0;
+    virtual Erc getMeta(Str& prop,Strpack& meta)=0;
 };
 
 typedef struct
@@ -82,6 +89,7 @@ typedef struct
         Setter _setter;
         Getter _getter;
         PackerInterface* _instance;
+        ObjectInterface* _object;
     };
     const char *_name;
     const char *_meta;
@@ -98,6 +106,7 @@ public:
              const char *name, const char* meta);
     Property(PackerInterface* instance, Flags flags, const char *name,
              const char* meta);
+    Property(ObjectInterface* instance, Flags flags, const char *objectPrefix);
     Property(const PropertyConst* pc);
     virtual ~Property();
     static void add(Property* pp);

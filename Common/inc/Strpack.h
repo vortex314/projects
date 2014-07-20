@@ -20,6 +20,7 @@ public:
     void pack(const char *s);
     void pack(char *pc, uint32_t length);
     void pack(Bytes* b);
+    void pack(Str* str);
     void pack(uint64_t value);
     void pack(uint32_t value);
     void pack(int32_t value);

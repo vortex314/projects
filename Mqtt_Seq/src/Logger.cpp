@@ -15,6 +15,7 @@ Logger::~Logger()
     //dtor
 }
 #include <iostream>
+
 void Logger::flush()
 {
     std::cout << Sys::upTime() << " | " ;
@@ -24,3 +25,5 @@ void Logger::flush()
     std::cout  << std::endl;
     clear();
 }
+
+

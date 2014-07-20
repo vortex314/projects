@@ -36,10 +36,14 @@ public:
     static void interruptEnable();
     static void interruptDisable();
 
+    static void logger(const char* s);
+    static void logger(Str& str);
+    static void flushLogger();
+
     static Logger&  getLogger();
     static char* getDeviceName();
-private:
     static Logger* _logger;
+
 };
 
 

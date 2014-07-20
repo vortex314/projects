@@ -15,6 +15,8 @@
 					<Add option="-g" />
 					<Add directory="inc" />
 					<Add directory="../Common/inc" />
+					<Add directory="/home/lieven/micro/Mqtt_Seq/" />
+					<Add directory="../../gnublin-api" />
 				</Compiler>
 				<Linker>
 					<Add library="rt" />
@@ -37,6 +39,8 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="../../gnublin-api/gnublin.cpp" />
+		<Unit filename="../../gnublin-api/gnublin.h" />
 		<Unit filename="../Common/inc/Bits.cpp" />
 		<Unit filename="../Common/inc/Bits.h" />
 		<Unit filename="../Common/inc/Bytes.h" />

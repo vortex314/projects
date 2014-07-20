@@ -9,12 +9,12 @@
 
 #define PQ ((mqd_t*)_ref)
 #define QUEUE_NAME "/MQ"
-    mqd_t mq;
+//    mqd_t mq;
 Queue::Queue(uint32_t elementSize,uint32_t depth)
 {
     _ref = new mqd_t; //
     // Sys::malloc(sizeof(mqd_t));
-        mqd_t* mq = (mqd_t*)_ref;
+    mqd_t* mq = (mqd_t*)_ref;
 
     struct mq_attr attr;
 
@@ -25,12 +25,12 @@ Queue::Queue(uint32_t elementSize,uint32_t depth)
     attr.mq_curmsgs = 0;
 
     *mq = mq_open(QUEUE_NAME, O_RDWR);
-    if ( (mq < 0) && (errno==ENOENT) )
+    if ( (*mq < 0) && (errno==ENOENT) )
     {
         /* create the message queue if it doesn't exist */
         *mq = mq_open(QUEUE_NAME, O_CREAT | O_RDWR, 0777, &attr);
     }
-    if ( mq < 0 )
+    if ( *mq < 0 )
     {
         perror("mq_open");
         ASSERT(false);
@@ -57,8 +57,10 @@ Erc Queue::put(void* data)
     {
         perror("mq_send : QUEUE FULL ?");
         return E_AGAIN;
-    } else{
- //       perror("mq_send : OK");
+    }
+    else
+    {
+//       perror("mq_send : OK");
     }
     /*    if ( mq_send(mq, (const char *)data ,_msgSize,1) < 0 )
         {
@@ -86,7 +88,7 @@ Erc Queue::clear()
     size_t msgSize = _msgSize;
     char data[20];
     unsigned int prio;
-mqd_t* mq = (mqd_t*)_ref;
+    mqd_t* mq = (mqd_t*)_ref;
     struct   timespec tm;
 
     clock_gettime(CLOCK_REALTIME, &tm);

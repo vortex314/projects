@@ -14,6 +14,7 @@ class Str : public Bytes {
 public:
     Str();
     Str(int size);
+    Str(const char *s);
     Str(uint8_t* data, int capacity);
     const char* data();
     Str& append(const char* s);
@@ -26,6 +27,7 @@ public:
     Str& append(Str* str);
     bool endsWith(const char* end);
     bool startsWith(const char* start);
+    bool equals(const char* str);
     Erc parse(uint64_t* pval);
     Erc parse(uint32_t* pval);
     Erc parse(int32_t* pval);

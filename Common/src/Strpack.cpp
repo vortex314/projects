@@ -64,6 +64,10 @@ void Strpack::pack(Bytes* val) {
     pack((char*)val->data(),val->length());
 }
 
+void Strpack::pack(Str* val) {
+    pack((char*)val->data(),val->length());
+}
+
 void Strpack::pack(bool b) {
     append(b);
 }

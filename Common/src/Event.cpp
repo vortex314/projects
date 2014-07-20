@@ -56,7 +56,9 @@ void* Event::data()
 
 
 void Event::toString(Str* out){
-    out->append("{ id : ").append(eventNames[_id]);
+    out->append("{ id : ");
+    if (eventNames[_id]) out->append(eventNames[_id]);
+    else out->append("UNKNOWN");
     out->append(", src : ").append(_src);
     out->append(", data : ").append(_data);
     out->append("}");

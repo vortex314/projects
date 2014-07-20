@@ -10,7 +10,7 @@
 Bytes::Bytes(uint8_t *st, uint32_t length) {
     _start = st;
     _offset = 0;
-    _limit = 0;
+    _limit = length;
     _capacity = length;
     isMemoryOwner = false;
 }
@@ -270,7 +270,11 @@ int Bytes::poke(uint32_t idx, uint8_t b) {
 }
 
 int Bytes::peek() {
-    return _start[_offset];
+return _start[_offset];
+}
+
+int Bytes::peek(int32_t offset) {
+    return _start[offset];
 }
 
 bool Bytes::hasData() {

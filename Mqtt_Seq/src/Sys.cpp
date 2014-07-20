@@ -6,9 +6,9 @@ uint64_t Sys::_upTime=0;
 
 uint64_t Sys::upTime()  // time in msec since boot, only increasing
 {
-       struct timespec deadline;
+    struct timespec deadline;
     clock_gettime(CLOCK_MONOTONIC, &deadline);
-            Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
+    Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
     return _upTime;
 }
 
@@ -74,14 +74,14 @@ void Sys::free(void *pv)
 Logger* Sys::_logger =  new Logger(100);
 Logger&  Sys::getLogger()
 {
- //   if ( Sys::_logger == 0) Sys::_logger=new Logger();
+//   if ( Sys::_logger == 0) Sys::_logger=new Logger();
     return *Sys::_logger;
 };
 
 #include <unistd.h> // gethostname
 #include <string.h>
 
- char* Sys::getDeviceName()
+char* Sys::getDeviceName()
 {
     static    char hostname[20]="";
 
@@ -89,4 +89,19 @@ Logger&  Sys::getLogger()
     strcat(hostname,"/");
     return hostname;
 }
+
+void Sys::logger(const char* s){
+    Sys::_logger->append(s);
+}
+
+void Sys::logger(Str& str){
+    Sys::_logger->append(&str);
+}
+
+void Sys::flushLogger(){
+
+}
+
+
+
 

@@ -9,13 +9,13 @@
 #include <iostream>
 #define LOG(x) std::cout << Sys::upTime() << " | MQTT OUT " << x << std::endl
 
-MqttOut::MqttOut(int size) :
-Bytes(size) {
-    _prefix = (char*) "";
+MqttOut::MqttOut(int size) : Bytes(size),_prefix(30)
+  {
 }
 
-void MqttOut::prefix(const char *prefix) {
-    _prefix = (char*) prefix;
+void MqttOut::prefix(const char *prefix)  {
+    _prefix.clear();
+    _prefix.append(prefix);
 }
 
 void MqttOut::add(uint8_t value) {
@@ -48,15 +48,15 @@ void MqttOut::addString(const char *str) {
     addBytes((uint8_t*) str, strlen(str));
 }
 
-void MqttOut::addStr(Str* str) {
-    addUint16(str->length());
+void MqttOut::addStr(Str& str) {
+    addUint16(str.length());
     addBytes(str);
 }
 
-void MqttOut::addComposedString(char *prefix, char *str) {
-    addUint16(strlen(prefix) + strlen(str));
-    addBytes((uint8_t*) prefix, strlen(prefix));
-    addBytes((uint8_t*) str, strlen(str));
+void MqttOut::addComposedString(Str& prefix, Str &str) {
+    addUint16(prefix.length() + str.length());
+    addBytes( prefix);
+    addBytes(str );
 }
 
 void MqttOut::addMessage(uint8_t* src, uint32_t length) {
@@ -64,10 +64,10 @@ void MqttOut::addMessage(uint8_t* src, uint32_t length) {
     addBytes(src, length);
 }
 
-void MqttOut::addBytes(Bytes* bytes) {
-    bytes->offset(0);
-    for (int i = 0; i < bytes->length(); i++)
-        write(bytes->read());
+void MqttOut::addBytes(Bytes& bytes) {
+    bytes.offset(0);
+    for (int i = 0; i < bytes.length(); i++)
+        write(bytes.read());
 }
 
 void MqttOut::addBytes(uint8_t* bytes, uint32_t length) {
@@ -85,7 +85,7 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     uint16_t usernamelen = strlen(username);
     uint16_t passwordlen = strlen(password);
     uint16_t payload_len = clientidlen + 2;
-    uint16_t willTopicLen = strlen(willTopic) + strlen(_prefix);
+    uint16_t willTopicLen = strlen(willTopic) + _prefix.length();
     uint16_t willMsgLen = strlen(willMsg);
 
     // Preparing the connectFlags
@@ -124,7 +124,8 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     // Client ID - UTF encoded
     addString(clientId);
     if (willTopicLen) {
-        addComposedString((char*)_prefix,(char*)willTopic);
+        Str wt(willTopic);
+        addComposedString(_prefix,wt);
         addString(willMsg);
     }
     if (usernamelen) { // Username - UTF encoded
@@ -135,12 +136,12 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     }
 }
 
-void MqttOut::Publish(uint8_t hdr,  char* topic, Bytes* msg,
+void MqttOut::Publish(uint8_t hdr,  Str& topic, Bytes& msg,
         uint16_t messageId) {
             LOG("PUBLISH");
     addHeader(MQTT_MSG_PUBLISH + hdr);
     bool addMessageId = (hdr & MQTT_QOS_MASK) ? true : false;
-    int remLen = strlen(topic) + strlen(_prefix) + 2 + msg->length();
+    int remLen = topic.length() + _prefix.length() + 2 + msg.length();
     if (addMessageId)
         remLen += 2;
     addRemainingLength(remLen);
@@ -199,9 +200,10 @@ void MqttOut::Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
         uint8_t requestedQos) {
             LOG("SUBSCRIBE");
     addHeader(hdr | MQTT_MSG_SUBSCRIBE);
-    addRemainingLength(strlen(topic) + strlen(_prefix) + 2 + 2 + 1);
+    addRemainingLength(strlen(topic) + _prefix.length() + 2 + 2 + 1);
     addUint16(messageId);
-    addComposedString(_prefix,(char*)topic);
+    Str t(topic);
+    addComposedString(_prefix,t);
     add(requestedQos);
 }
 
