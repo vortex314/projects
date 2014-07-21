@@ -86,7 +86,6 @@ char* Sys::getDeviceName()
     static    char hostname[20]="";
 
     gethostname(hostname,20);
-    strcat(hostname,"/");
     return hostname;
 }
 

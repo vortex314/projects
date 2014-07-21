@@ -23,6 +23,12 @@ Str::Str() : Bytes()
 {
 }
 
+Str& Str::set(const char* const s) {
+    clear();
+    append(s);
+    return *this;
+}
+
 bool Str::equals(const char* s)
 {
     int i;
@@ -43,14 +49,24 @@ bool Str::endsWith(const char* s)
     return true;
 }
 
-bool Str::startsWith(const char* s)
+bool Str::startsWith(Str& s)
 {
-    int sl=strlen(s);
-    if ( sl > length()) return false;
+    if ( s.length() > length()) return false;
     int i;
-    for(i=0; i<sl; i++)
-        if ( s[i]!=peek(i)) return false;
+    for(i=0; i<s.length(); i++)
+        if (s.peek(i) !=peek(i)) return false;
     return true;
+}
+
+bool Str::startsWith(const char* const s)
+{
+    Str ss(s);
+    return startsWith(ss);
+ /*   if ( s.length() > length()) return false;
+    int i;
+    for(i=0; i<s.length(); i++)
+        if (s.peek(i) !=peek(i)) return false;
+    return true;*/
 }
 
 Str& Str::append(const char* s)

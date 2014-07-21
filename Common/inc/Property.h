@@ -62,6 +62,8 @@ typedef struct
     enum Qos qos:2;
     enum Interface interface:2;
     bool retained:1;
+    bool publishValue:1;
+    bool publishMeta:1;
 } Flags;
 
 class PackerInterface

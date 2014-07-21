@@ -196,14 +196,13 @@ void MqttOut::PubComp(uint16_t messageId) {
     addUint16(messageId);
 }
 
-void MqttOut::Subscribe(uint8_t hdr, const char *topic, uint16_t messageId,
+void MqttOut::Subscribe(uint8_t hdr, Str& topic, uint16_t messageId,
         uint8_t requestedQos) {
             LOG("SUBSCRIBE");
     addHeader(hdr | MQTT_MSG_SUBSCRIBE);
-    addRemainingLength(strlen(topic) + _prefix.length() + 2 + 2 + 1);
+    addRemainingLength(topic.length() + _prefix.length() + 2 + 2 + 1);
     addUint16(messageId);
-    Str t(topic);
-    addComposedString(_prefix,t);
+    addComposedString(_prefix,topic);
     add(requestedQos);
 }
 

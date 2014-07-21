@@ -30,6 +30,9 @@
 
 EventId TIMER_TICK= Event::nextEventId(( char* const)"TIMER_TICK");
 EventId PROPERTY_SET= Event::nextEventId(( char* const)"PROPERTY_SET");
+Str putPrefix(30);
+Str getPrefix(30);
+Str headPrefix(30);
 
 class PropertySet
 {
@@ -63,28 +66,21 @@ public:
         Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
         while(true)
         {
-// Add the time you want to sleep
-            deadline.tv_nsec += 100000000;
-
-// Normalize the time to account for the second boundary
-            if(deadline.tv_nsec >= 1000000000)
+            deadline.tv_nsec += 1000000000; // Add the time you want to sleep, 1 sec now
+            if(deadline.tv_nsec >= 1000000000) // Normalize the time to account for the second boundary
             {
                 deadline.tv_nsec -= 1000000000;
                 deadline.tv_sec++;
             }
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
             Sys::_upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
-//        Timer::checkAll();
             publish(this,TIMER_TICK,0);
         }
-
     }
     int handler(Event* ev)
     {
         return 0;
     };
-
-
 };
 //____________________________________________________________________________________________
 
@@ -125,6 +121,7 @@ bool eventIsMqtt(Event* event,uint8_t type, uint16_t messageId)
 ******************************************************************************/
 EventId MQTT_CONNECTED=Event::nextEventId(( char* const)"MQTT_CONNECTED");
 EventId MQTT_DISCONNECTED=Event::nextEventId((char* const)"MQTT_DISCONNECTED");
+
 class Mqtt : public Sequence
 {
 private:
@@ -132,15 +129,16 @@ private:
     Tcp* _tcp;
     uint16_t _messageId;
     bool _isConnected;
+    Str str;
 
 public :
 
-    Mqtt(Tcp* tcp)
+    Mqtt(Tcp* tcp) : str(30)
     {
         _tcp=tcp;
         PT_INIT(&t);
         _messageId=2000;
-        mqttOut->prefix(Sys::getDeviceName());
+//        mqttOut->prefix(Sys::getDeviceName());
         _isConnected = false;
     };
 
@@ -164,7 +162,8 @@ public :
             }
 
             timeout(TIME_WAIT_REPLY);
-            mqttOut->Subscribe(0,"#",_messageId,MQTT_QOS1_FLAG);
+            str.set("$SET/").append(Sys::getDeviceName()).append("/#");
+            mqttOut->Subscribe(0,str,_messageId,MQTT_QOS1_FLAG);
             _tcp->send(mqttOut);
             PT_WAIT_UNTIL(&t,eventIsMqtt(event,MQTT_MSG_SUBACK,_messageId) || timeout());
             if ( timeout() )
@@ -188,7 +187,6 @@ public :
     {
         return _tcp->send(pb);
     }
-
     bool isConnected()
     {
         return _isConnected;
@@ -609,13 +607,19 @@ gnublin_gpio gpio;
     value changed => object.publish(VALUE,property);
     startup => object.publish(ALL,"");
 
-*/
-#include "Property.h"
+    topic owner device listens to
+        .set
+        .upd
+        .meta
+    topic owner publishes topic
 
-enum Cmd
-{
-    GET_VALUE,GET_META,SET_VALUE,GET_ANY_UPDATE,GET_DESC
+    master device listens to topic
+
+    master publishes .set,.upd,.metaGET_ANY_UPDATE,GET_DESC
 };
+*/
+enum Cmd { CMD_GET, CMD_PUT, CMD_HEAD };
+
 class TopicObject
 {
     virtual Flags topicObject(Cmd cmd,Strpack& str)=0;
@@ -648,17 +652,17 @@ public:
         static Flags flags = {T_STR,M_WRITE,QOS_1,I_OBJECT,true};
         switch(cmd)
         {
-        case SET_VALUE :
+        case CMD_PUT :
         {
             setMode(value.peek(0));
             break;
         }
-        case GET_VALUE :
+        case CMD_GET :
         {
             value.append(_mode);
             break;
         }
-        case  GET_META :
+        case  CMD_HEAD :
         {
             value.append("desc:'Direction for pin',set:['I','O']");
             break;
@@ -674,17 +678,16 @@ public:
         static Flags flags = {T_STR,M_READ,QOS_1,I_OBJECT,true};
         switch(cmd)
         {
-        case SET_VALUE :
+        case CMD_PUT :
         {
             break;
         }
-        case GET_VALUE :
-        case GET_ANY_UPDATE:
+        case CMD_GET :
         {
             value.append(getInput());
             break;
         }
-        case  GET_META :
+        case  CMD_HEAD :
         {
             value.append("desc:'Input for pin',set:['0','1']");
             break;
@@ -700,18 +703,17 @@ public:
         static Flags flags = {T_STR,M_READ,QOS_1,I_OBJECT,true};
         switch(cmd)
         {
-        case SET_VALUE :
+        case CMD_PUT :
         {
             setOutput(value.peek(0));
             break;
         }
-        case GET_VALUE :
-        case GET_ANY_UPDATE:
+        case CMD_GET :
         {
             value.append(getInput());
             break;
         }
-        case  GET_META :
+        case  CMD_HEAD :
         {
             value.append("desc:'Output for pin',set:['0','1']");
             break;
@@ -763,10 +765,10 @@ public:
 
 prop(cmd,Strpack)
 
-prop(SET_VALUE,flags,strp)
-prop(GET_VALUE,flags,strp)
+prop(CMD_PUT,flags,strp)
+prop(CMD_GET,flags,strp)
 prop(GET_ANY_UPDATE,null)
-prop(GET_META,strp)
+prop(CMD_HEAD,strp)
 
 */
 
@@ -785,18 +787,14 @@ public:
     Flags memory(enum Cmd cmd,Strpack& value)
     {
         static Flags flags = {T_INT32,M_READ,QOS_0,I_OBJECT,false};
-        if ( cmd == GET_VALUE )
+        if ( cmd == CMD_GET )
         {
             value.append(getAllocSize());
         }
-        else if (cmd == GET_DESC)
+        else if (cmd == CMD_HEAD)
         {
             value.append("desc='allocated heap memory'");
         }
-        else if ( cmd == GET_ANY_UPDATE )
-        {
-            value.append(getAllocSize());
-        };
         return flags;
     }
 };
@@ -833,10 +831,26 @@ class TopicListener : public Sequence
 private:
     struct pt t;
     struct TopicEntry* topicEntry;
+    Flags flags;
+    Str putPrefix;
+
 public:
-    TopicListener()
+    TopicListener() : putPrefix(30)
     {
         PT_INIT(&t);
+        putPrefix.set("$PUT/").append(Sys::getDeviceName()).append("/");
+    }
+    TopicEntry* findTopic(Str& topic)
+    {
+        int i;
+        for(i=0; i<(sizeof(topicList)/sizeof(struct TopicEntry)); i++)
+        {
+            if ( topic.startsWith(topicList[i].name))
+            {
+                return  & topicList[i];
+            }
+        }
+        return 0;
     }
     int handler(Event* event)
     {
@@ -858,50 +872,48 @@ public:
             // remove extensions
             // find in topicObjects
             // execute method
-            if ( ps->_topic.startsWith(deviceName))
+            Str topic(30);
+            TopicEntry* pte;
+            if ( ps->_topic.startsWith(putPrefix))
             {
-                Str topic(30);
-
-                Cmd cmd=GET_ANY_UPDATE;
-                ps->_topic.offset(strlen(deviceName));
-                topic.sub(&ps->_topic,ps->_topic.length()-strlen(deviceName));
-                int i;
-                topicEntry=0;
-                for(i=0; i<(sizeof(topicList)/sizeof(struct TopicEntry));i++)
-                {
-                    if ( topic.startsWith(topicList[i].name))
-                    {
-                        topicEntry = & topicList[i];
-                        break;
-                    }
-                }
-                if ( topicEntry == 0 ) PT_RESTART(&t);
-
-                if ( ps->_topic.endsWith(".set"))
-                {
-                    cmd=SET_VALUE;
-                    topic.length(topic.length()-4);
-                    ((topicEntry->instance).*(topicEntry->method))(cmd,ps->_message);
-
-                }
-                else if ( topic.endsWith(".meta"))
-                {Strpack strp(100);
-                    cmd=GET_META;
-                    topic.length(topic.length()-5);
-                    ((topicEntry->instance).*(topicEntry->method))(cmd,strp);
-                }
-                else if ( topic.endsWith(".upd"))
-                {
-                    Strpack strp(100);
-                    cmd=GET_VALUE;
-                    topic.length(topic.length()-4);
-                    ((topicEntry->instance).*(topicEntry->method))(cmd,strp);
-                };
+                topic.substr(&ps->_topic,putPrefix.length());
+                pte = findTopic(topic);
+                cmd=CMD_PUT;
+                flags = ((pte->instance).*(pte->method))(cmd,ps->_message);
+            } else if ( ps->_topic.startsWith(headPrefix))
+            {
+                cmd=CMD_HEAD;
+                flags = ((pte->instance).*(pte->method))(cmd,ps->_message);
+                doPublish(flags,name,strp);
             }
-            PT_YIELD(&t);
-        };
-        PT_END(&t);
-    }
+            Cmd cmd=CMD_GET;
+            ps->_topic.offset(strlen(deviceName));
+            topic.sub(&ps->_topic,ps->_topic.length()-strlen(deviceName));
+            int i;
+            topicEntry=0;
+
+            if ( topicEntry == 0 ) PT_RESTART(&t);
+
+ if ( topic.endsWith(".meta"))
+            {
+                Strpack strp(100);
+
+            }
+            else if ( topic.endsWith(".upd"))
+            {
+                Strpack strp(100);
+                cmd=CMD_GET;
+                topic.length(topic.length()-4);
+                flags = ((topicEntry->instance).*(topicEntry->method))(cmd,strp);
+                Str name(30);
+                name.append(deviceName).append(topicEntry->name);
+                doPublish(flags,name,strp);
+            };
+        }
+        PT_YIELD(&t);
+    };
+    PT_END(&t);
+}
 
 };
 
@@ -918,7 +930,11 @@ int main(int argc, char *argv[])
 {
     Strpack strp;
 
-    ((topicList[1].instance).*(topicList[1].method))(GET_VALUE,strp);
+    getPrefix.set("$GET/").append(Sys::getDeviceName()).append("/");
+    headPrefix.set("$HEAD/").append(Sys::getDeviceName()).append("/");
+    putPrefix.set("$PUT/").append(Sys::getDeviceName()).append("/");
+
+    ((topicList[1].instance).*(topicList[1].method))(CMD_GET,strp);
 //    MqttThread mqtt("mqtt",1000,1);
     Queue::getDefaultQueue()->clear();//linux queues are persistent
     // static sequences
@@ -953,6 +969,7 @@ int main(int argc, char *argv[])
 
 
 }
+
 
 
 
