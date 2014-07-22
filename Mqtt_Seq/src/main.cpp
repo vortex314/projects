@@ -30,6 +30,7 @@
 
 EventId TIMER_TICK= Event::nextEventId(( char* const)"TIMER_TICK");
 EventId PROPERTY_SET= Event::nextEventId(( char* const)"PROPERTY_SET");
+Str prefix(30);
 Str putPrefix(30);
 Str getPrefix(30);
 Str headPrefix(30);
@@ -161,10 +162,21 @@ public :
                 continue;
             }
 
-            timeout(TIME_WAIT_REPLY);
-            str.set("$SET/").append(Sys::getDeviceName()).append("/#");
+
+            str.clear().append(putPrefix).append("#");
             mqttOut->Subscribe(0,str,_messageId,MQTT_QOS1_FLAG);
             _tcp->send(mqttOut);
+
+            str.clear().append(headPrefix).append("#");
+            mqttOut->Subscribe(0,str,_messageId+1,MQTT_QOS1_FLAG);
+            _tcp->send(mqttOut);
+
+            str.clear().append(getPrefix).append("#");
+            mqttOut->Subscribe(0,str,_messageId+2,MQTT_QOS1_FLAG);
+            _tcp->send(mqttOut);
+
+
+            timeout(TIME_WAIT_REPLY);
             PT_WAIT_UNTIL(&t,eventIsMqtt(event,MQTT_MSG_SUBACK,_messageId) || timeout());
             if ( timeout() )
             {
@@ -618,6 +630,7 @@ gnublin_gpio gpio;
     master publishes .set,.upd,.metaGET_ANY_UPDATE,GET_DESC
 };
 */
+
 enum Cmd { CMD_GET, CMD_PUT, CMD_HEAD };
 
 class TopicObject
@@ -654,13 +667,15 @@ public:
         {
         case CMD_PUT :
         {
+            flags.publishValue=true;
             setMode(value.peek(0));
             break;
         }
         case CMD_GET :
         {
             value.append(_mode);
-            break;
+             flags.publishValue=false;
+           break;
         }
         case  CMD_HEAD :
         {
@@ -680,12 +695,14 @@ public:
         {
         case CMD_PUT :
         {
-            break;
+             flags.publishValue=true;
+           break;
         }
         case CMD_GET :
         {
             value.append(getInput());
-            break;
+             flags.publishValue=false;
+           break;
         }
         case  CMD_HEAD :
         {
@@ -706,16 +723,19 @@ public:
         case CMD_PUT :
         {
             setOutput(value.peek(0));
+            flags.publishValue=true;
             break;
         }
         case CMD_GET :
         {
             value.append(getInput());
+            flags.publishValue=false;
             break;
         }
         case  CMD_HEAD :
         {
             value.append("desc:'Output for pin',set:['0','1']");
+            flags.publishMeta=false;
             break;
         }
         default:
@@ -824,22 +844,6 @@ struct TopicEntry
     { "gpio/3/input"        ,pin_3  ,(TopicMethod)&GpioPin::input           }, // ff
 
 };
-
-
-class TopicListener : public Sequence
-{
-private:
-    struct pt t;
-    struct TopicEntry* topicEntry;
-    Flags flags;
-    Str putPrefix;
-
-public:
-    TopicListener() : putPrefix(30)
-    {
-        PT_INIT(&t);
-        putPrefix.set("$PUT/").append(Sys::getDeviceName()).append("/");
-    }
     TopicEntry* findTopic(Str& topic)
     {
         int i;
@@ -852,68 +856,70 @@ public:
         }
         return 0;
     }
+
+
+class TopicListener : public Sequence
+{
+private:
+    struct pt t;
+    struct TopicEntry* topicEntry;
+    Flags flags;
+
+public:
+    TopicListener()
+    {
+        PT_INIT(&t);
+    }
+
     int handler(Event* event)
     {
         PropertySet* ps;
-        const char* deviceName="pcdebian/";
+        Str topic(30);
         PT_BEGIN(&t);
         while(true)
         {
             PT_WAIT_UNTIL(&t,event->is(PROPERTY_SET));
+
             ps = (PropertySet*)event->data();
             Sys::getLogger().append(" PROPERTY SET : ")
-            .append(&ps->_topic)
+            .append(ps->_topic)
             .append(" :" )
-            .append(&ps->_message)
-            ;
+            .append(ps->_message);
             Sys::getLogger().flush();
-            // strip device Name
-            // define cmd based on extensions
-            // remove extensions
-            // find in topicObjects
-            // execute method
-            Str topic(30);
+
+
             TopicEntry* pte;
+            Cmd cmd;
+            topic.clear();
+
             if ( ps->_topic.startsWith(putPrefix))
             {
-                topic.substr(&ps->_topic,putPrefix.length());
-                pte = findTopic(topic);
                 cmd=CMD_PUT;
+                topic.substr(ps->_topic,putPrefix.length());
+                pte = findTopic(topic);
+                if ( pte==0 ) continue;
                 flags = ((pte->instance).*(pte->method))(cmd,ps->_message);
-            } else if ( ps->_topic.startsWith(headPrefix))
+            }
+            else if ( ps->_topic.startsWith(headPrefix))
             {
                 cmd=CMD_HEAD;
+                topic.substr(ps->_topic,headPrefix.length());
+                pte = findTopic(topic);
+                if ( pte==0 ) continue;
                 flags = ((pte->instance).*(pte->method))(cmd,ps->_message);
-                doPublish(flags,name,strp);
             }
-            Cmd cmd=CMD_GET;
-            ps->_topic.offset(strlen(deviceName));
-            topic.sub(&ps->_topic,ps->_topic.length()-strlen(deviceName));
-            int i;
-            topicEntry=0;
-
-            if ( topicEntry == 0 ) PT_RESTART(&t);
-
- if ( topic.endsWith(".meta"))
+            else if ( ps->_topic.startsWith(getPrefix))
             {
-                Strpack strp(100);
-
-            }
-            else if ( topic.endsWith(".upd"))
-            {
-                Strpack strp(100);
                 cmd=CMD_GET;
-                topic.length(topic.length()-4);
-                flags = ((topicEntry->instance).*(topicEntry->method))(cmd,strp);
-                Str name(30);
-                name.append(deviceName).append(topicEntry->name);
-                doPublish(flags,name,strp);
-            };
+                topic.substr(ps->_topic,putPrefix.length());
+                pte = findTopic(topic);
+                if ( pte==0 ) continue;
+                flags = ((pte->instance).*(pte->method))(cmd,ps->_message);
+            }
+            PT_YIELD(&t);
         }
-        PT_YIELD(&t);
+        PT_END(&t);
     };
-    PT_END(&t);
-}
 
 };
 
@@ -929,10 +935,11 @@ public:
 int main(int argc, char *argv[])
 {
     Strpack strp;
+    prefix.clear().append(Sys::getDeviceName()).append("/");
 
-    getPrefix.set("$GET/").append(Sys::getDeviceName()).append("/");
-    headPrefix.set("$HEAD/").append(Sys::getDeviceName()).append("/");
-    putPrefix.set("$PUT/").append(Sys::getDeviceName()).append("/");
+    getPrefix.set("GET/").append(prefix);
+    headPrefix.set("HEAD/").append(prefix);
+    putPrefix.set("PUT/").append(prefix);
 
     ((topicList[1].instance).*(topicList[1].method))(CMD_GET,strp);
 //    MqttThread mqtt("mqtt",1000,1);
@@ -969,6 +976,8 @@ int main(int argc, char *argv[])
 
 
 }
+
+
 
 
 

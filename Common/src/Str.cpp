@@ -24,10 +24,16 @@ Str::Str() : Bytes()
 }
 
 Str& Str::set(const char* const s) {
-    clear();
+    Bytes::clear();
     append(s);
     return *this;
 }
+
+Str& Str::clear() {
+    Bytes::clear();
+    return *this;
+}
+
 
 bool Str::equals(const char* s)
 {
@@ -131,11 +137,11 @@ Str& Str::append(bool b)
     return *this;
 }
 
-Str& Str::append(Str* b)
+Str& Str::append(Str& b)
 {
-    b->offset(0);
-    while(b->hasData())
-        write(b->read());
+    b.offset(0);
+    while(b.hasData())
+        write(b.read());
     return *this;
 }
 
@@ -166,6 +172,13 @@ Str& Str::append(void* ptr)
     int i;
     for(i=0; i<sizeof(int); i++)
         appendHex(u.b[i]);
+}
+
+Str& Str::substr(Str& mstr,uint32_t offset) {
+    mstr.offset(offset);
+    while(mstr.hasData())
+        write(mstr.read());
+return *this;
 }
 
 const char* Str::data()

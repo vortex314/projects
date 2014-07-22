@@ -17,6 +17,7 @@ public:
     Str(const char* const s);
     Str(uint8_t* data, int capacity);
     const char* data();
+    Str& clear();
     Str& set(const char* const s);
     Str& append(const char* s);
     Str& append(void* ptr);
@@ -25,7 +26,8 @@ public:
     Str& append(int32_t val);
     Str& append(bool b);
     Str& appendHex(uint8_t byte);
-    Str& append(Str* str);
+    Str& append(Str& str);
+    Str& substr(Str& master,uint32_t offset);
     bool endsWith(const char* end);
     bool startsWith(Str& str);
         bool startsWith(const char* s);
