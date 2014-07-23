@@ -10,7 +10,11 @@
 
 #include <iostream>
 #define LOG(x) std::cout << Sys::upTime() << " | MQTT  IN " << x << std::endl
-
+const char* const MqttNames[]= {"UNKNOWN","CONNECT","CONNACK","PUBLISH","PUBACK","PUBREC",
+                                "PUBREL","PUBCOMP","SUBSCRIBE","SUBACK","UNSUBSCRIBE","UNSUBACK","PINGREQ",
+                                "PINGRESP","DISCONNECT"
+                               };
+const char* const QosNames[]={"QOS0","QOS1","QOS2"};
 MqttIn::MqttIn(int size) :
     Bytes(size)
 {
@@ -25,7 +29,8 @@ MqttIn::MqttIn(MqttIn& src)
     memcpy(_start,src._start,src._limit);
 }
 
-MqttIn::~MqttIn(){
+MqttIn::~MqttIn()
+{
 
 }
 uint8_t MqttIn::type()
@@ -43,11 +48,13 @@ uint16_t MqttIn::messageId()
     return _messageId;
 }
 
- Str* MqttIn::topic(){
+Str* MqttIn::topic()
+{
     return &_topic;
 }
 
- Strpack* MqttIn::message(){
+Strpack* MqttIn::message()
+{
     return &_message;
 }
 
@@ -135,6 +142,21 @@ bool MqttIn::addRemainingLength(uint8_t data)
     return ( data & 0x80);
 }
 
+void MqttIn::toString(Str& str)
+{
+ str.append("mqttIn : { type : ").append(MqttNames[type()>>4]);
+ str.append(", qos : ").append(QosNames[(_header & MQTT_QOS_MASK)>>1]);
+ str.append(", retain : ").append( (_header & 0x1)>0);
+ if ( type()==MQTT_MSG_PUBLISH  )
+    {
+        str.append(", topic : ").append(_topic);
+        str.append(", message : ").append(_message);
+    } else if ( type()==MQTT_MSG_SUBSCRIBE ) {
+        str.append(", topic : ").append(_topic);
+    }
+ str.append(" }");
+}
+
 void MqttIn::parse()
 {
     offset(0);
@@ -145,20 +167,16 @@ void MqttIn::parse()
     {
     case MQTT_MSG_CONNECT:
     {
-        // don't do , just for forwarding based on type
-        LOG("CONNECT");
         break;
     }
     case MQTT_MSG_CONNACK:
     {
-        LOG("CONNACK");
         read();
         _returnCode = read();
         break;
     }
     case MQTT_MSG_PUBLISH:
     {
-        LOG("PUBLISH");
         uint16_t length;
         readUint16(&length);
         _topic.sub(this, length);
@@ -175,42 +193,36 @@ void MqttIn::parse()
     }
     case MQTT_MSG_SUBACK:
     {
-        LOG("SUBACK");
         readUint16(&_messageId);
         break;
     }
     case MQTT_MSG_PUBACK:
     {
-        LOG("PUBACK");
         readUint16(&_messageId);
         break;
     }
     case MQTT_MSG_PUBREC:
     {
-        LOG("PUBREC");
         readUint16(&_messageId);
         break;
     }
     case MQTT_MSG_PUBREL:
     {
-        LOG("PUBREL");
         readUint16(&_messageId);
         break;
     }
     case MQTT_MSG_PUBCOMP:
     {
-        LOG("PUBCOMP");
         readUint16(&_messageId);
         break;
     }
     case MQTT_MSG_PINGRESP:
     {
-        LOG("PINGRESP");
         break;
     }
     default:
     {
-         ASSERT(false); // invalid message type, ignore noise
+        ASSERT(false); // invalid message type, ignore noise
     }
     }
 }

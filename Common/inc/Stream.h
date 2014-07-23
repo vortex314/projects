@@ -41,7 +41,7 @@ public:
     void addListener(Stream *dst,int32_t newId);
     static Listener* getListeners();
     void publish(int32_t id);
-    void publish(int32_t id,void *data);
+    void publish(int32_t id,EventData *data);
  //   uint32_t getEvents();
  //   void setEvents(uint32_t map);
 };

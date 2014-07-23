@@ -21,23 +21,26 @@ class Stream;
 class Sys;
 #define MAX_EVENT_ID    20
 typedef uint8_t EventId;
+class EventData {
+    virtual void toString(Str& str)=0;
+};
 
 class Event {
 public:
 	Event();
-	Event(void* src, EventId id,void *data);
+	Event(void* src, EventId id,EventData *data);
 	bool is(EventId value);
 	bool is(void* src,EventId id);
 	EventId id();
-	void* data();
+	EventData* data();
 	void* src();
 	static EventId nextEventId(char *s);
 	char *getEventIdName();
-	void toString(Str* line);
+	void toString(Str& line);
 private:
 	void* _src;
 	EventId _id;
-	void* _data;
+	EventData* _data;
 	static uint32_t eventIdCount;
 	static char* eventNames[MAX_EVENT_ID];
 };

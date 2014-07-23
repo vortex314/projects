@@ -60,7 +60,7 @@ void Stream::publish(int32_t id)
     publish(id,NULL);
 }
 
-void Stream::publish(int32_t id,void *data)
+void Stream::publish(int32_t id,EventData *data)
 {
     Queue::getDefaultQueue()->put(new Event(this,id,data));
 }

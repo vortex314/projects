@@ -35,7 +35,7 @@ Str putPrefix(30);
 Str getPrefix(30);
 Str headPrefix(30);
 
-class PropertySet
+class PropertySet : public EventData
 {
 public:
     Str& _topic;
@@ -49,6 +49,12 @@ public:
     ~PropertySet()
     {
     }
+    void toString(Str& str)
+{
+ str.append("{ topic : ").append(_topic);
+ str.append(", message : ").append(_message);
+ str.append(" }");
+}
 };
 
 class TimerThread : public Thread,public Sequence
@@ -511,16 +517,17 @@ public:
     };
     void run()
     {
-        Str line(100);
+        Str line(200);
         while(true)
         {
             Event event;
             Queue::getDefaultQueue()->get(&event); // dispatch eventually IDLE message
             if ( event.id() != TIMER_TICK )
             {
-                line.append(" EVENT : ");
-                event.toString(&line);
-                Sys::getLogger().append(&line);
+                line.set(" EVENT : ");
+                event.toString(line);
+
+                Sys::getLogger().append(line);
                 Sys::getLogger().flush();
                 line.clear();
                 std::cout<< Sys::upTime() << " | EVENT "<< event.getEventIdName()<<std::endl;
@@ -663,6 +670,7 @@ public:
     Flags mode(enum Cmd cmd,Strpack& value)
     {
         static Flags flags = {T_STR,M_WRITE,QOS_1,I_OBJECT,true};
+        static const char* desc="desc:'Direction for pin',set:['I','O']";
         switch(cmd)
         {
         case CMD_PUT :
@@ -679,7 +687,7 @@ public:
         }
         case  CMD_HEAD :
         {
-            value.append("desc:'Direction for pin',set:['I','O']");
+            value.append(desc);
             break;
         }
         default:

@@ -8,12 +8,13 @@
 #ifndef MQTTIN_H_
 #define MQTTIN_H_
 #include "MqttConstants.h"
+#include "Event.h"
 #include "Str.h"
 #include "Strpack.h"
 #define TOPIC_LEN  100
 #define MSG_LEN    256
 
-class MqttIn : public Bytes
+class MqttIn : public Bytes,public EventData
 {
 public:
     uint8_t _header;
@@ -48,6 +49,7 @@ public:
     void readBytes(Bytes* b, int length);
      Str* topic();
      Strpack* message();
+     void toString(Str& str);
 };
 
 #endif /* MQTTIN_H_ */

@@ -19,7 +19,7 @@ public:
     virtual ~Sequence();
     void reg();
     void unreg();
-    static void publish(void* src,EventId id,void* data);
+    static void publish(void* src,EventId id,EventData* data);
     void timeout(uint32_t msec);
     bool timeout();
     typedef enum  {NA,OK,END} Result;

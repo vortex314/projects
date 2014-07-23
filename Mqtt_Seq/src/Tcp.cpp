@@ -93,7 +93,6 @@ int32_t Tcp::read()
         _connected=false;
         return -1;
     }
-    std::cout << "." ;
     return b;
 }
 
@@ -135,11 +134,9 @@ void Tcp::mqttRead(int32_t b)
     static MqttIn* mqttIn=new MqttIn(256);
 
     mqttIn->add(b);
-    std::cout << "_" <<std::endl;
     if (  mqttIn->complete() )
     {
         mqttIn->parse();
-        std::cout << " MQTT_MESSAGE received " <<std::endl;
         publish(this,MQTT_MESSAGE,mqttIn);
         mqttIn=new MqttIn(256);
         mqttIn->reset();

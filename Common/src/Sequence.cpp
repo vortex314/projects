@@ -28,7 +28,7 @@ void Sequence::unreg()
         if(activeSequence[i]==this)
             activeSequence[i]=0;
 };
-void Sequence::publish(void* src,EventId id,void* data)
+void Sequence::publish(void* src,EventId id,EventData* data)
 {
     Event ev(src,id,data);
     Queue::getDefaultQueue()->put(&ev);
