@@ -7,6 +7,11 @@
 
 #include "Bytes.h"
 
+void myMemcpy(uint8_t *dst, uint8_t* src, int length) {
+    for (int i = 0; i < length; i++)
+        dst[i] = src[i];
+}
+
 Bytes::Bytes(uint8_t *st, uint32_t length) {
     _start = st;
     _offset = 0;
@@ -37,6 +42,12 @@ Bytes::Bytes(Bytes& parent) {
     _limit = 0;
     _capacity = parent._capacity - parent._limit;
     isMemoryOwner = false;
+}
+
+void Bytes::clone(Bytes& src){
+    myMemcpy(_start,src._start,_capacity);
+    _offset=0;
+    _limit = ( _capacity > src._limit ) ? src._limit : _capacity ;
 }
 
 void Bytes::sub(Bytes* parent, uint32_t length) {
@@ -74,12 +85,9 @@ int Bytes::capacity() {
     return _capacity;
 }
 
-void myMemcpy(uint8_t *dst, uint8_t* src, int length) {
-    for (int i = 0; i < length; i++)
-        dst[i] = src[i];
-}
 
-int Bytes::length () const {
+
+size_t Bytes::length () const {
     return _limit;
 }
 
@@ -95,8 +103,8 @@ Erc Bytes::insert(uint32_t offset,Bytes* data) {
     if ( data->_limit + _limit > _capacity ) return E_LACK_RESOURCE;
     if ( offset > _limit ) return E_INVAL;
     // move last part further
-    uint32_t delta=data->length();
-    int i;
+    size_t delta=data->length();
+    size_t i;
     for(i=_limit;i>=offset;i--) _start[i+delta]=_start[i];
     // insert data
     for(i=0;i<delta;i++) _start[offset+i]=data->_start[i];

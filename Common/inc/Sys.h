@@ -41,7 +41,7 @@ public:
     static void flushLogger();
 
     static Logger&  getLogger();
-    static char* getDeviceName();
+    static Str& getDeviceName();
     static Logger* _logger;
 
 };

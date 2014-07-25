@@ -19,6 +19,11 @@ public:
     const char* data();
     Str& clear();
     Str& set(const char* const s);
+    Str& operator+=(const char* const s);
+    Str& operator+=(Str& s);
+    Str& operator+(Str& s);
+    Str& operator=(const char* const s);
+    bool operator==(Str& str);
     Str& append(const char* s);
     Str& append(void* ptr);
     Str& append(uint64_t val);
@@ -37,6 +42,9 @@ public:
     Erc parse(int32_t* pval);
     Erc parseHex(uint8_t* pb);
 };
+
+Str& operator+(Str& lhs,Str& rhs);
+
 
 
 #endif /* STRING_H_ */

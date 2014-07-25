@@ -34,6 +34,10 @@ public:
     MqttIn(int size);
     MqttIn(MqttIn& src);
     ~MqttIn();
+    void clone(MqttIn& m) {
+        Bytes::clone(m);
+        parse();
+    }
 
     uint16_t messageId(); // if < 0 then not found
     uint8_t type();

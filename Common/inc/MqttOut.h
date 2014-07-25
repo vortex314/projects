@@ -41,7 +41,7 @@ public:
     void PubComp(uint16_t messageId);
     void Subscribe(uint8_t hdr, Str& topic, uint16_t messageId,
             uint8_t requestedQos);
-    void prefix(const char *prefix);
+    void prefix(Str& pr);
 private:
     Str _prefix;
 };

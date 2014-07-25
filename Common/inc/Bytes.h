@@ -24,12 +24,13 @@ public:
     Bytes(uint8_t* start, uint32_t size);
     Bytes(Bytes& in);
     ~Bytes();
+    void clone(Bytes& src);
     void map(uint8_t *start, uint32_t size);
     void sub(Bytes* parent,uint32_t length);
     void copy(Bytes* from);
 
     int capacity();
-    int length() const;
+    size_t length() const;
     int length(int l);
     int available();
     int offset(uint32_t offset);

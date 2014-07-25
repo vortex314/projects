@@ -37,9 +37,9 @@ Str& Str::clear() {
 
 bool Str::equals(const char* s)
 {
-    int i;
-    if ( strlen(s) != length() ) return false;
-    for(i=0; i<strlen(s) && i < length(); i++)
+    uint32_t i;
+    if ( (uint32_t)strlen(s) != length() ) return false;
+    for(i=0; i<(uint32_t)strlen(s) && i < length(); i++)
         if ( s[i]!= peek(i)) return false;
     return true;
 }
@@ -73,6 +73,40 @@ bool Str::startsWith(const char* const s)
     for(i=0; i<s.length(); i++)
         if (s.peek(i) !=peek(i)) return false;
     return true;*/
+}
+
+Str& Str::operator=(const char* s){
+    clear();
+    append(s);
+    return *this;
+}
+
+Str& Str::operator+=(const char* s){
+    while (*s != '\0')
+    {
+        write((uint8_t) (* s));
+        s++;
+    }
+    return *this;
+}
+
+Str& Str::operator+=(Str& s){
+    append(s);
+    return *this;
+}
+
+Str& Str::operator+(Str& s){
+    append(s);
+    return *this;
+}
+
+
+bool Str::operator==(Str& str){
+    if ( str.length() != length()) return false;
+    int i;
+    for(i=0; i<str.length(); i++)
+        if (str.peek(i) !=peek(i)) return false;
+    return true;
 }
 
 Str& Str::append(const char* s)
@@ -169,9 +203,10 @@ Str& Str::append(void* ptr)
     } u;
     u.ptr=ptr;
     append("0x");
-    int i;
+    uint32_t i;
     for(i=0; i<sizeof(int); i++)
         appendHex(u.b[i]);
+    return *this;
 }
 
 Str& Str::substr(Str& mstr,uint32_t offset) {
