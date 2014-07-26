@@ -15,7 +15,7 @@ public:
     Strpack();
     Strpack(int size);
     Strpack(uint8_t *pb,uint32_t length);
-    Strpack(const Strpack& orig);
+    Strpack(Strpack& orig);
     virtual ~Strpack();
     void pack(const char *s);
     void pack(char *pc, uint32_t length);

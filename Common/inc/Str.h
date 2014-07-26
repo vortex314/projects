@@ -23,6 +23,7 @@ public:
     Str& operator+=(Str& s);
     Str& operator+(Str& s);
     Str& operator=(const char* const s);
+    Str& operator=(Str& str);
     bool operator==(Str& str);
     Str& append(const char* s);
     Str& append(void* ptr);

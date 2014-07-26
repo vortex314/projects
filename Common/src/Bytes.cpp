@@ -36,12 +36,14 @@ Bytes::Bytes(uint32_t size) {
     isMemoryOwner = true;
 }
 
-Bytes::Bytes(Bytes& parent) {
-    _start = parent._start + parent._limit;
+Bytes::Bytes(Bytes& src) {
+
+    _start = new uint8_t[src._capacity];
     _offset = 0;
-    _limit = 0;
-    _capacity = parent._capacity - parent._limit;
-    isMemoryOwner = false;
+    _limit = src._limit;
+    _capacity = src._capacity;
+    myMemcpy(_start,src._start,src._limit);
+    isMemoryOwner = true;
 }
 
 void Bytes::clone(Bytes& src){

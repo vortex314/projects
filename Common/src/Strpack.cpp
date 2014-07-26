@@ -27,8 +27,7 @@ Strpack::Strpack(int size) : Str(size)
 Strpack::Strpack() {
 }
 
-Strpack::Strpack(const Strpack& orig) {
-    ASSERT(false);
+Strpack::Strpack(Strpack& orig)  : Str(orig) {
 }
 
 Strpack::~Strpack() {

@@ -200,9 +200,9 @@ void MqttOut::Subscribe(uint8_t hdr, Str& topic, uint16_t messageId,
         uint8_t requestedQos) {
             LOG("SUBSCRIBE");
     addHeader(hdr | MQTT_MSG_SUBSCRIBE);
-    addRemainingLength(topic.length() + _prefix.length() + 2 + 2 + 1);
+    addRemainingLength(topic.length()  + 2 + 2 + 1);
     addUint16(messageId);
-    addComposedString(_prefix,topic);
+    addStr(topic);
     add(requestedQos);
 }
 

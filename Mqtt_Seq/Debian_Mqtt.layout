@@ -2,13 +2,16 @@
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
 	<File name="../../gnublin-api/gnublin.cpp" open="0" top="0" tabpos="5">
-		<Cursor position="3649" topLine="102" />
+		<Cursor position="3099" topLine="102" />
 	</File>
 	<File name="../../gnublin-api/gnublin.h" open="0" top="0" tabpos="0">
 		<Cursor position="9871" topLine="306" />
 	</File>
-	<File name="../Common/inc/Bytes.h" open="1" top="0" tabpos="2">
+	<File name="../Common/inc/Bytes.h" open="0" top="0" tabpos="2">
 		<Cursor position="614" topLine="8" />
+	</File>
+	<File name="../Common/inc/Erc.h" open="0" top="0" tabpos="0">
+		<Cursor position="806" topLine="0" />
 	</File>
 	<File name="../Common/inc/Event.h" open="0" top="0" tabpos="4">
 		<Cursor position="816" topLine="9" />
@@ -31,7 +34,7 @@
 	<File name="../Common/inc/MqttOut.h" open="0" top="0" tabpos="3">
 		<Cursor position="1247" topLine="0" />
 	</File>
-	<File name="../Common/inc/Property.h" open="1" top="0" tabpos="3">
+	<File name="../Common/inc/Property.h" open="0" top="0" tabpos="3">
 		<Cursor position="934" topLine="69" />
 	</File>
 	<File name="../Common/inc/Queue.h" open="0" top="0" tabpos="0">
@@ -44,13 +47,13 @@
 		<Cursor position="411" topLine="0" />
 	</File>
 	<File name="../Common/inc/Str.h" open="0" top="0" tabpos="3">
-		<Cursor position="507" topLine="15" />
+		<Cursor position="149" topLine="2" />
 	</File>
 	<File name="../Common/inc/Stream.h" open="0" top="0" tabpos="0">
 		<Cursor position="872" topLine="23" />
 	</File>
 	<File name="../Common/inc/Strpack.h" open="0" top="0" tabpos="5">
-		<Cursor position="421" topLine="5" />
+		<Cursor position="268" topLine="0" />
 	</File>
 	<File name="../Common/inc/Sys.h" open="0" top="0" tabpos="2">
 		<Cursor position="750" topLine="0" />
@@ -65,7 +68,7 @@
 		<Cursor position="5899" topLine="207" />
 	</File>
 	<File name="../Common/src/Bytes.cpp" open="0" top="0" tabpos="4">
-		<Cursor position="6227" topLine="240" />
+		<Cursor position="893" topLine="45" />
 	</File>
 	<File name="../Common/src/CircBuf.cpp" open="0" top="0" tabpos="0">
 		<Cursor position="471" topLine="18" />
@@ -77,25 +80,25 @@
 		<Cursor position="19" topLine="0" />
 	</File>
 	<File name="../Common/src/MqttIn.cpp" open="0" top="0" tabpos="3">
-		<Cursor position="2922" topLine="18" />
+		<Cursor position="1147" topLine="23" />
 	</File>
 	<File name="../Common/src/MqttOut.cpp" open="0" top="0" tabpos="7">
-		<Cursor position="5422" topLine="170" />
+		<Cursor position="1732" topLine="177" />
 	</File>
 	<File name="../Common/src/Property.cpp" open="0" top="0" tabpos="7">
 		<Cursor position="18" topLine="54" />
 	</File>
 	<File name="../Common/src/Sequence.cpp" open="0" top="0" tabpos="6">
-		<Cursor position="501" topLine="3" />
+		<Cursor position="144" topLine="0" />
 	</File>
 	<File name="../Common/src/Str.cpp" open="0" top="0" tabpos="2">
-		<Cursor position="1729" topLine="90" />
+		<Cursor position="2788" topLine="131" />
 	</File>
 	<File name="../Common/src/Stream.cpp" open="0" top="0" tabpos="0">
 		<Cursor position="928" topLine="42" />
 	</File>
 	<File name="../Common/src/Strpack.cpp" open="0" top="0" tabpos="4">
-		<Cursor position="905" topLine="34" />
+		<Cursor position="630" topLine="0" />
 	</File>
 	<File name="inc/Publisher.h" open="0" top="0" tabpos="0">
 		<Cursor position="502" topLine="0" />
@@ -118,8 +121,8 @@
 	<File name="src/Sys.cpp" open="0" top="0" tabpos="5">
 		<Cursor position="1877" topLine="66" />
 	</File>
-	<File name="src/Tcp.cpp" open="0" top="0" tabpos="5">
-		<Cursor position="2611" topLine="105" />
+	<File name="src/Tcp.cpp" open="1" top="0" tabpos="2">
+		<Cursor position="356" topLine="91" />
 	</File>
 	<File name="src/Thread.cpp" open="0" top="0" tabpos="11">
 		<Cursor position="141" topLine="7" />
@@ -128,6 +131,6 @@
 		<Cursor position="102" topLine="0" />
 	</File>
 	<File name="src/main.cpp" open="1" top="1" tabpos="1">
-		<Cursor position="5409" topLine="152" />
+		<Cursor position="6327" topLine="403" />
 	</File>
 </CodeBlocks_layout_file>

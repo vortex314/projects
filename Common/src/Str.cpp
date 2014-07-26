@@ -58,7 +58,7 @@ bool Str::endsWith(const char* s)
 bool Str::startsWith(Str& s)
 {
     if ( s.length() > length()) return false;
-    int i;
+    uint32_t i;
     for(i=0; i<s.length(); i++)
         if (s.peek(i) !=peek(i)) return false;
     return true;
@@ -76,6 +76,12 @@ bool Str::startsWith(const char* const s)
 }
 
 Str& Str::operator=(const char* s){
+    clear();
+    append(s);
+    return *this;
+}
+
+Str& Str::operator=(Str& s){
     clear();
     append(s);
     return *this;
@@ -103,7 +109,7 @@ Str& Str::operator+(Str& s){
 
 bool Str::operator==(Str& str){
     if ( str.length() != length()) return false;
-    int i;
+    uint32_t i;
     for(i=0; i<str.length(); i++)
         if (str.peek(i) !=peek(i)) return false;
     return true;
