@@ -27,11 +27,10 @@ Strpack::Strpack(int size) : Str(size)
 Strpack::Strpack() {
 }
 
-Strpack::Strpack(Strpack& orig)  : Str(orig) {
+Strpack::~Strpack() {
 }
 
-Strpack::~Strpack() {
-//    ASSERT(false);
+Strpack::Strpack(Strpack& orig)  : Str(orig) {
 }
 
 Strpack::Strpack(uint8_t *pb, uint32_t length) : Str(pb, length) {

@@ -33,7 +33,7 @@ public:
 public:
     MqttIn(int size);
     MqttIn(MqttIn& src);
-    ~MqttIn();
+    virtual ~MqttIn();
     void clone(MqttIn& m) {
         Bytes::clone(m);
         parse();

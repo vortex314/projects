@@ -38,6 +38,8 @@ Str prefix ( 30 );
 Str putPrefix ( 30 );
 Str getPrefix ( 30 );
 
+typedef void( *SG )( void*, Strpack& );
+
 
 class TopicObject
     {
@@ -54,13 +56,13 @@ class  Prop
     {
     public :
         Str _name;
-        TopicObject* _instance;
-        TopicMethod _getter;
-        TopicMethod _setter;
+        void* _instance;
+        SG _getter;
+        SG _setter;
         Flags _flags;
         const char*  _desc;
     public :
-        Prop ( Str& name, TopicObject* instance, TopicMethod getter, TopicMethod setter,
+        Prop ( Str& name, TopicObject* instance, SG getter, SG setter,
                Flags flags, const char* const desc ) : _name ( name )
             {
             _instance = instance;
@@ -97,7 +99,8 @@ class  Prop
             if ( p )
                 {
                 if ( p->_setter )
-                    ( ( *( p->_instance ) ).* ( p->_setter ) ) ( message );
+                    p->_setter( p->_instance, message );
+//                    ( ( *( p->_instance ) ).* ( p->_setter ) ) ( message );
                 p->_flags.publishValue = true;
                 }
             Sequence::publish( 0, PROP_CHANGED, 0 );
@@ -583,8 +586,8 @@ class MainThread : public Thread
                             delete seq;
                             };
                         }
-                if ( event.data() != NULL );
-                delete  ( Bytes* )event.data();
+                if ( event.data()  )
+                    delete  ( MqttIn* )event.data();
                 }
             }
     };
@@ -595,104 +598,101 @@ class MainThread : public Thread
 
 #define BOARD RASPBERRY_PI
 #include "gnublin.h"
-
+enum Cmd { CMD_GET,CMD_PUT,CMD_META };
 #include "Strpack.h"
 gnublin_gpio gpio;
 
-class GpioPin : public TopicObject
+class Gpio : public TopicObject
     {
     private:
         int _pin;
-        char _mode;
         char _value;
         struct pt t;
     public:
-        GpioPin ( int pin )
+        Gpio ( int pin )
             {
             _pin = pin;
-            setMode ( 'I' );
+            gpio.pinMode ( _pin, INPUT );
             PT_INIT ( &t );
             Str className ( 20 );
             className.set( "gpio/" ).append ( pin ).append ( "/" );
             Str str( 30 );
             str = className;
             str += "mode";
-            new Prop (
-                str, this
-                , ( TopicMethod ) &GpioPin::getMode
-                , ( TopicMethod ) &GpioPin::setMode
-                , ( Flags )
+
+            new Prop ( str, this, getMode, setMode, ( Flags )
                 {
                 T_STR, M_WRITE, QOS_1, I_OBJECT, true
-                } //
-            , "desc:'Direction for pin',set:['I','O']" );
+                } , "desc:'Direction for pin',set:['I','O']" );
             str = className;
             str += "output";
-            new Prop (
-                str, this
-                , 0
-                , ( TopicMethod ) &GpioPin::setOutput
-                , ( Flags )
+            new Prop ( str, this, 0 , setOutput, ( Flags )
                 {
                 T_STR, M_WRITE, QOS_1, I_OBJECT, true
-                } //
-            , "desc:'Output for pin',set:['1','0']" );
+                } , "desc:'Output for pin',set:['1','0']" );
             str = className;
             str += "input";
-            new Prop (
-                str, this
-                , ( TopicMethod ) &GpioPin::getInput
-                , 0
-                , ( Flags )
+            new Prop ( str, this, getInput, 0, ( Flags )
                 {
                 T_STR, M_WRITE, QOS_1, I_OBJECT, true
-                } //
-            , "desc:'Input for pin',set:['1','0']" );
+                } , "desc:'Input for pin',set:['1','0']" );
             }
 
-        void setMode ( Strpack& value )
-            {
-            setMode ( value.peek ( 0 ) );
+        static void mode(void *instance,enum Cmd cmd,Strpack& strp){
+            static Flags flags={T_STR, M_WRITE, QOS_1, I_OBJECT, true};
+            static desc= "desc:'Input for pin',set:['1','0']" ;
+            Gpio* gpio=(Gpio*)instance;
+            if ( cmd == 1 ) {
             }
-        void getMode ( Strpack& value )
+        })
+        static void setMode( void *th, Strpack& strp )
             {
-            value.append ( _mode );
-            }
-        void getInput (  Strpack& value )
-            {
-            value.append ( getInput() );
-            }
-
-        void setOutput( Strpack& value )
-            {
-            setOutput ( value.peek ( 0 ) );
-            }
-
-        void setMode ( char mode )
-            {
+            Gpio* pin = ( ( Gpio* )th );
+            char mode = strp.peek( 0 );
             if ( mode == 'O' )
                 {
-                _mode = 'O';
-                gpio.pinMode ( _pin, OUTPUT );
+                gpio.pinMode ( pin->_pin, OUTPUT );
                 }
             else if ( mode == 'I' )
                 {
-                _value = 'I';
-                gpio.pinMode ( _pin, INPUT );
+                gpio.pinMode ( pin->_pin, INPUT );
                 }
             else Sys::logger ( "invalid pin value for GPIO" );
             }
-        void setOutput ( char o )
+        static void getMode( void *th, Strpack& strp )
             {
+            Gpio* pin = ( ( Gpio* )th );
+            char mode = strp.peek( 0 );
+            if ( mode == 'O' )
+                {
+                gpio.pinMode ( pin->_pin, OUTPUT );
+                }
+            else if ( mode == 'I' )
+                {
+                gpio.pinMode ( pin->_pin, INPUT );
+                }
+            else Sys::logger ( "invalid pin value for GPIO" );
+            }
+        static void getInput( void *th, Strpack& value )
+            {
+            Gpio* pin = ( ( Gpio* )th );
+            value.append( "01"[gpio.digitalRead ( pin->_pin ) ] );
+            }
+
+        static void setOutput( void *th, Strpack& value )
+            {
+            Gpio* pin = ( ( Gpio* )th );
+            char o = value.peek ( 0 ) ;
+
             if ( o == '1' )
                 {
-                _value = '1';
-                gpio.digitalWrite ( _pin, HIGH );
+                pin->_value = '1';
+                gpio.digitalWrite ( pin->_pin, HIGH );
                 }
             else if ( o == '0' )
                 {
-                _value = '1';
-                gpio.digitalWrite ( _pin, LOW );
+                pin->_value = '1';
+                gpio.digitalWrite ( pin->_pin, LOW );
                 }
             else Sys::logger ( "invalid pin value for GPIO" );
             }
@@ -713,28 +713,27 @@ class SysObject : public TopicObject
             {
             Str s( "sys/heapMemory" );
             //       memoryProp = new Prop(s).setter(getMemory).type(T_UINT32).mode(M_WRITE).qos(QOS_1);
-            memoryProp = new Prop (
-                s, this
-                , ( TopicMethod ) &SysObject::getMemory
-                , 0
-                , ( Flags )
+            memoryProp = new Prop ( s, this, getMemory, 0, ( Flags )
                 {
                 T_UINT32, M_WRITE, QOS_1, I_OBJECT, true
-                } //
-            , "desc:'Memory allocated to heap'" );
+                } , "desc:'Memory allocated to heap'" );
             }
-        void getMemory ( Strpack& value )
+        static void getMemory ( void *instance, Strpack& value )
             {
+            SysObject* sys = ( SysObject* )instance;
             value.append ( getAllocSize() );
-            memoryProp->_flags.publishValue = true;
+            sys->memoryProp->_flags.publishValue = true;
             }
     };
 
 
 SysObject sys;
-GpioPin pin_1 ( 1 );
-GpioPin pin_2 ( 2 );
-GpioPin pin_3 ( 3 );
+Gpio pin_1 ( 1 );
+Gpio pin_2 ( 2 );
+Gpio pin_3 ( 3 );
+
+new Prop("gpio/1/mode",&pin_1,Gpio::mode)
+
 
 
 /*****************************************************************************
@@ -771,7 +770,7 @@ class PropertyListener : public Sequence
                             p =  propList[i];
                             if ( p->_getter )
                                 {
-                                ( ( *( p->_instance ) ).*( p->_getter ) ) ( message );
+                                p->_getter( p->_instance, message );
                                 doPublish( *flags, p->_name, message );
                                 flags->publishValue = false;
                                 timeout ( TIME_WAIT_REPLY );
@@ -803,16 +802,13 @@ class PropertyListener : public Sequence
 //_____________________________________________________________________________________________________
 //
 
+
+
 int main ( int argc, char *argv[] )
     {
-    Strpack strp;
     prefix = Sys::getDeviceName();
     prefix += "/";
     mqttOut.prefix ( prefix );
-
-
-//   prefix.clear().append(Sys::getDeviceName()).append("/");
-
     getPrefix = "GET/";
     getPrefix += prefix;
     putPrefix = "PUT/";
@@ -830,7 +826,7 @@ int main ( int argc, char *argv[] )
     MqttPing pinger ( mqtt ); // ping cycle when connected
     new PropertyListener(); // publish property when changed or interval timeout
 
-    GpioPin pin3 ( 3 );
+    Gpio pin3 ( 3 );
     MainThread mt ( "messagePump", 1000, 1 ); // both threads could be combined
     TimerThread tt ( "timerThread", 1000, 1 );
     tcp.start();
