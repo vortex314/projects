@@ -83,7 +83,7 @@ Erc Tcp::recv(Bytes* pb)
     }
     return E_OK;
 }
-
+#include <cstdio>
 int32_t Tcp::read()
 {
     int n;
@@ -91,6 +91,7 @@ int32_t Tcp::read()
     n=::read(_sockfd,&b,1) ;
     if (n <= 0) {
         _connected=false;
+        perror("read failure");
         return -1;
     }
     return b;
@@ -102,6 +103,7 @@ Erc Tcp::send(Bytes* pb)
  //   signal(SIGPIPE, SIG_IGN);
     n=write(_sockfd,pb->data(),pb->length()) ;
     if (n < 0) {
+        perror("write failed");
         _connected=false;
         return E_CONN_LOSS;
     }
