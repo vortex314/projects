@@ -38,8 +38,9 @@ Str& Str::clear() {
 bool Str::equals(const char* s)
 {
     uint32_t i;
-    if ( (uint32_t)strlen(s) != length() ) return false;
-    for(i=0; i<(uint32_t)strlen(s) && i < length(); i++)
+    uint32_t slen = strlen(s);
+    if ( slen != length() ) return false;
+    for(i=0; i<slen && i < length(); i++)
         if ( s[i]!= peek(i)) return false;
     return true;
 }

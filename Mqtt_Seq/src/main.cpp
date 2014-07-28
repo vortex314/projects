@@ -38,7 +38,8 @@ Str prefix ( 30 );
 Str putPrefix ( 30 );
 Str getPrefix ( 30 );
 
-typedef void( *SG )( void*, Strpack& );
+typedef enum { CMD_GET, CMD_DESC, CMD_PUT } Cmd;
+typedef void( *Xdr )( void*, Cmd ,  Strpack& );
 
 
 class TopicObject
@@ -55,21 +56,18 @@ uint32_t propListCount = 0;
 class  Prop
     {
     public :
-        Str _name;
+        const char* _name;
         void* _instance;
-        SG _getter;
-        SG _setter;
+        Xdr _xdr;
         Flags _flags;
-        const char*  _desc;
     public :
-        Prop ( Str& name, TopicObject* instance, SG getter, SG setter,
-               Flags flags, const char* const desc ) : _name ( name )
+        Prop ( const char* name, void* instance, Xdr xdr,
+               Flags flags )
             {
+            _name = name;
             _instance = instance;
-            _getter = getter;
-            _setter = setter;
+            _xdr = xdr;
             _flags = flags;
-            _desc = desc;
             propList[propListCount++] = this;
             _flags.publishValue = true;
             _flags.publishMeta = true;
@@ -84,7 +82,7 @@ class  Prop
             for ( i = 0; i < propListCount; i++ )
                 {
                 if ( propList[i] )
-                    if ( propList[i]->_name == name )
+                    if ( name.equals( propList[i]->_name ) )
                         {
                         return  propList[i];
                         }
@@ -98,8 +96,8 @@ class  Prop
             Prop* p = findProp( str );
             if ( p )
                 {
-                if ( p->_setter )
-                    p->_setter( p->_instance, message );
+                if ( p->_xdr )
+                    p->_xdr( p->_instance, CMD_PUT, message );
 //                    ( ( *( p->_instance ) ).* ( p->_setter ) ) ( message );
                 p->_flags.publishValue = true;
                 }
@@ -218,21 +216,21 @@ class Mqtt : public Sequence
 
 
                 ( str = putPrefix ) += "#" ;
-                mqttOut.Subscribe ( 0, str, _messageId, MQTT_QOS1_FLAG );
+                mqttOut.Subscribe ( 0, str, ++_messageId, MQTT_QOS1_FLAG );
                 _tcp->send ( &mqttOut );
 
                 ( str = getPrefix ) += "#" ;
-                mqttOut.Subscribe ( 0, str, _messageId + 2, MQTT_QOS1_FLAG );
+                mqttOut.Subscribe ( 0, str, ++_messageId, MQTT_QOS1_FLAG );
                 _tcp->send ( &mqttOut );
 
                 str = "system/online";
                 msg = "true";
-                mqttOut.Publish ( MQTT_QOS1_FLAG, str, msg, nextMessageId() );
+                mqttOut.Publish ( MQTT_QOS1_FLAG, str, msg, ++_messageId );
                 _tcp->send ( &mqttOut );
 
 
                 timeout ( TIME_WAIT_REPLY );
-                PT_YIELD_UNTIL ( &t, eventIsMqtt ( event, MQTT_MSG_SUBACK, _messageId, 0 ) || timeout() );
+                PT_YIELD_UNTIL ( &t, eventIsMqtt ( event, MQTT_MSG_PUBACK, _messageId, 0 ) || timeout() );
                 if ( timeout() )
                     {
                     _tcp->disconnect();
@@ -324,22 +322,25 @@ Mqtt* mqtt;
 class MqttPubQos0 : public Sequence
     {
     private :
-        Str _topic;
-        Strpack _message;
-        Flags _flags;
+
     public:
 
-        MqttPubQos0 ( Flags flags, Str& topic, Strpack& message ) : _topic ( topic ), _message ( message )
+        MqttPubQos0 (  )
             {
-            _flags = flags;
+            }
+        void send( Prop* prop )
+            {
+            uint8_t header = 0;
+            Str topic( prop->_name );
+            Strpack message( 256 );
+            if ( prop->_flags.retained ) header += MQTT_RETAIN_FLAG;
+            prop->_xdr( prop->_instance, CMD_GET, message );
+            mqttOut.Publish ( header, topic, message, nextMessageId() );
+            mqtt->send ( mqttOut );
             }
         int handler ( Event* event )
             {
-            uint8_t header = 0;
-            if ( _flags.retained ) header += MQTT_RETAIN_FLAG;
-            mqttOut.Publish ( header, _topic, _message, nextMessageId() );
-            mqtt->send ( mqttOut );
-            return PT_ENDED;
+            return PT_YIELDED;
             }
     };
 
@@ -348,37 +349,54 @@ class MqttPubQos1 : public Sequence
     private:
         struct pt t;
         uint32_t _retryCount;
-        Str _topic;
-        Strpack _message;
-        Flags _flags;
         uint16_t _messageId;
+        Prop* prop;
+        bool _isReady;
     public:
-        MqttPubQos1 ( Flags flags, Str& topic, Strpack& message ) : _topic ( topic ), _message ( message )
+        MqttPubQos1 (  )
             {
-            _flags = flags;
             PT_INIT ( &t );
+            _isReady = true;
+            }
+        void send( Prop* p )
+            {
             _messageId = nextMessageId();
+            prop = p;
+            _isReady = false;
+            }
+        bool isReady()
+            {
+            return _isReady;
             }
         int handler ( Event* event )
             {
-            uint8_t header = 0;
+            Str topic( 50 );
+            Strpack message( 256 );
+            uint8_t header = MQTT_QOS1_FLAG;
             PT_BEGIN ( &t );
-            _retryCount = 0;
-            while ( _retryCount < 3 )
+            while ( true )
                 {
-                header = MQTT_QOS1_FLAG;
-                if ( _flags.retained ) header += MQTT_RETAIN_FLAG;
-                if ( _retryCount ) header += MQTT_DUP_FLAG;
+                PT_YIELD_UNTIL( &t, _isReady == false );
+                _retryCount = 0;
+                while ( _retryCount < 3 )
+                    {
+                    header = MQTT_QOS1_FLAG;
+                    if ( prop->_flags.retained ) header += MQTT_RETAIN_FLAG;
+                    if ( _retryCount ) header += MQTT_DUP_FLAG;
 
-                mqttOut.Publish ( header, _topic, _message, _messageId );
-                mqtt->send ( mqttOut );
+                    topic.set( prop->_name );
+                    prop->_xdr( prop->_instance, CMD_GET, message );
+                    mqttOut.Publish ( header, topic, message, _messageId );
+                    mqtt->send ( mqttOut );
 
-                timeout ( TIME_WAIT_REPLY );
-                PT_YIELD_UNTIL ( &t, timeout() ||  eventIsMqtt ( event, MQTT_MSG_PUBACK, _messageId, 0 ) );
-                if ( timeout() )
-                    _retryCount++;
-                else
-                    return PT_ENDED;
+                    timeout ( TIME_WAIT_REPLY );
+                    PT_YIELD_UNTIL ( &t, timeout() ||  eventIsMqtt ( event, MQTT_MSG_PUBACK, _messageId, 0 ) );
+                    if ( timeout() )
+                        _retryCount++;
+                    else
+                        break;
+                    }
+                _isReady = true;
                 }
             PT_END ( &t );
             }
@@ -389,47 +407,76 @@ class MqttPubQos2 : public Sequence
     {
     private:
         struct pt t;
-        Str _topic;
-        Strpack _message;
-        Flags _flags;
         uint16_t _messageId;
+        Prop* prop;
+        bool _isReady;
+        uint8_t _retryCount;
     public:
-        MqttPubQos2 ( Flags flags, Str& topic, Strpack& message ) : _topic ( topic ), _message ( message )
+        MqttPubQos2 ( )
             {
-            _flags = flags;
             PT_INIT ( &t );
+            _isReady = true;
+            }
+        void send( Prop* p )
+            {
+            _messageId = nextMessageId();
+            prop = p;
+            _isReady = false;
+            }
+        bool isReady()
+            {
+            return _isReady;
             }
         int handler ( Event* event )
             {
+            Str topic( 50 );
+            Strpack message( 256 );
             uint8_t header = MQTT_QOS2_FLAG;
             PT_BEGIN ( &t );
-            if ( _flags.retained ) header += MQTT_RETAIN_FLAG;
+            while( true )
+                {
+                PT_YIELD_UNTIL( &t, _isReady == false );
+                while( !_isReady )
+                    {
+                    _retryCount = 0;
+                    while( _retryCount < 3 )
+                        {
+                        if ( prop->_flags.retained ) header += MQTT_RETAIN_FLAG;
+                        if ( _retryCount ) header += MQTT_DUP_FLAG;
 
-            mqttOut.Publish ( header, _topic, _message, _messageId );
-            mqtt->send ( mqttOut );
+                        topic.set( prop->_name );
+                        prop->_xdr( prop->_instance, CMD_GET, message );
+                        mqttOut.Publish ( header, topic, message, _messageId );
+                        mqtt->send ( mqttOut );
 
-            timeout ( TIME_WAIT_REPLY );
-            PT_YIELD_UNTIL ( &t, timeout() ||  eventIsMqtt ( event, MQTT_MSG_PUBREC, _messageId, 0 ) );
+                        timeout ( TIME_WAIT_REPLY );
+                        PT_YIELD_UNTIL ( &t, timeout() ||  eventIsMqtt ( event, MQTT_MSG_PUBREC, _messageId, 0 ) );
+                        if ( timeout() ) _retryCount++;
+                        else break;
+                        };
+                    if ( _retryCount == 3 )  break;
+                    _retryCount = 0;
+                    while( _retryCount < 3 )
+                        {
+                        mqttOut.PubRel ( _messageId );
+                        mqtt->send ( mqttOut );
 
-            mqttOut.PubRel ( _messageId );
-            mqtt->send ( mqttOut );
-
-            timeout ( TIME_WAIT_REPLY );
-            PT_YIELD_UNTIL ( &t, timeout() ||  eventIsMqtt ( event, MQTT_MSG_PUBCOMP, _messageId, 0 ) );
+                        timeout ( TIME_WAIT_REPLY );
+                        PT_YIELD_UNTIL ( &t, timeout() ||  eventIsMqtt ( event, MQTT_MSG_PUBCOMP, _messageId, 0 ) );
+                        if ( timeout() ) _retryCount++;
+                        else break;
+                        };
+                    }
+                _isReady = true;
+                }
             PT_END ( &t );
             }
 
     };
 
-
-void doPublish ( Flags flags, Str& topic, Strpack& message )
-    {
-    if ( flags.qos == QOS_0 ) new MqttPubQos0 ( flags, topic, message );
-    if ( flags.qos == QOS_1 ) new MqttPubQos1 ( flags, topic, message );
-    if ( flags.qos == QOS_2 ) new MqttPubQos2 ( flags, topic, message );
-    }
-
-
+MqttPubQos0 mqttPubQos0;
+MqttPubQos1 mqttPubQos1;
+MqttPubQos2 mqttPubQos2;
 
 /*****************************************************************************
 *   HANDLE Property scan for changes
@@ -598,7 +645,6 @@ class MainThread : public Thread
 
 #define BOARD RASPBERRY_PI
 #include "gnublin.h"
-enum Cmd { CMD_GET,CMD_PUT,CMD_META };
 #include "Strpack.h"
 gnublin_gpio gpio;
 
@@ -614,65 +660,63 @@ class Gpio : public TopicObject
             _pin = pin;
             gpio.pinMode ( _pin, INPUT );
             PT_INIT ( &t );
-            Str className ( 20 );
-            className.set( "gpio/" ).append ( pin ).append ( "/" );
-            Str str( 30 );
-            str = className;
-            str += "mode";
 
-            new Prop ( str, this, getMode, setMode, ( Flags )
-                {
-                T_STR, M_WRITE, QOS_1, I_OBJECT, true
-                } , "desc:'Direction for pin',set:['I','O']" );
-            str = className;
-            str += "output";
-            new Prop ( str, this, 0 , setOutput, ( Flags )
-                {
-                T_STR, M_WRITE, QOS_1, I_OBJECT, true
-                } , "desc:'Output for pin',set:['1','0']" );
-            str = className;
-            str += "input";
-            new Prop ( str, this, getInput, 0, ( Flags )
-                {
-                T_STR, M_WRITE, QOS_1, I_OBJECT, true
-                } , "desc:'Input for pin',set:['1','0']" );
+
             }
 
-        static void mode(void *instance,enum Cmd cmd,Strpack& strp){
-            static Flags flags={T_STR, M_WRITE, QOS_1, I_OBJECT, true};
-            static desc= "desc:'Input for pin',set:['1','0']" ;
-            Gpio* gpio=(Gpio*)instance;
-            if ( cmd == 1 ) {
-            }
-        })
-        static void setMode( void *th, Strpack& strp )
+        static void mode( void *instance, Cmd cmd, Strpack& strp )
             {
-            Gpio* pin = ( ( Gpio* )th );
-            char mode = strp.peek( 0 );
-            if ( mode == 'O' )
+            static const char* const desc = "desc:'mode for pin',set:['1','0']" ;
+            Gpio* pin = ( Gpio* )instance;
+            if ( cmd == CMD_PUT )
                 {
-                gpio.pinMode ( pin->_pin, OUTPUT );
+                char mode = strp.peek( 0 );
+                if ( mode == 'O' )
+                    {
+                    gpio.pinMode ( pin->_pin, OUTPUT );
+                    }
+                else if ( mode == 'I' )
+                    {
+                    gpio.pinMode ( pin->_pin, INPUT );
+                    }
                 }
-            else if ( mode == 'I' )
+            else if ( cmd == CMD_GET )
                 {
-                gpio.pinMode ( pin->_pin, INPUT );
                 }
-            else Sys::logger ( "invalid pin value for GPIO" );
+            else if ( cmd == CMD_DESC )
+                {
+                strp.append( desc );
+                }
             }
-        static void getMode( void *th, Strpack& strp )
+            static void input( void *instance, Cmd cmd, Strpack& strp )
             {
-            Gpio* pin = ( ( Gpio* )th );
-            char mode = strp.peek( 0 );
-            if ( mode == 'O' )
+            static const char* const desc = "desc:'mode for pin',set:['1','0']" ;
+            Gpio* pin = ( Gpio* )instance;
+            if ( cmd == CMD_PUT )
                 {
-                gpio.pinMode ( pin->_pin, OUTPUT );
                 }
-            else if ( mode == 'I' )
+            else if ( cmd == CMD_GET )
                 {
-                gpio.pinMode ( pin->_pin, INPUT );
                 }
-            else Sys::logger ( "invalid pin value for GPIO" );
+            else if ( cmd == CMD_DESC )
+                {
+                }
             }
+            static void output( void *instance, Cmd cmd, Strpack& strp )
+            {
+            static const char* const desc = "desc:'mode for pin',set:['1','0']" ;
+            Gpio* pin = ( Gpio* )instance;
+            if ( cmd == CMD_PUT )
+                {
+                }
+            else if ( cmd == CMD_GET )
+                {
+                }
+            else if ( cmd == CMD_DESC )
+                {
+                }
+            }
+
         static void getInput( void *th, Strpack& value )
             {
             Gpio* pin = ( ( Gpio* )th );
@@ -711,18 +755,27 @@ class SysObject : public TopicObject
     public:
         SysObject()
             {
-            Str s( "sys/heapMemory" );
-            //       memoryProp = new Prop(s).setter(getMemory).type(T_UINT32).mode(M_WRITE).qos(QOS_1);
-            memoryProp = new Prop ( s, this, getMemory, 0, ( Flags )
+            memoryProp = new Prop ( "sys/heapMemory"
+                                    , this, memory
+                                    ,  ( Flags )
                 {
-                T_UINT32, M_WRITE, QOS_1, I_OBJECT, true
-                } , "desc:'Memory allocated to heap'" );
+                T_UINT32, M_READ, QOS_1, I_OBJECT, true
+                } );
             }
-        static void getMemory ( void *instance, Strpack& value )
+        static void memory ( void *instance, Cmd cmd, Strpack& value )
             {
-            SysObject* sys = ( SysObject* )instance;
-            value.append ( getAllocSize() );
-            sys->memoryProp->_flags.publishValue = true;
+            static const char* const desc = " desc:'heapMemory'";
+            if ( cmd == CMD_PUT )
+                {
+                }
+            else if ( cmd == CMD_GET )
+                {
+                value.append ( getAllocSize() );
+                }
+            else if ( cmd == CMD_DESC )
+                {
+                value.append( desc );
+                }
             }
     };
 
@@ -732,7 +785,21 @@ Gpio pin_1 ( 1 );
 Gpio pin_2 ( 2 );
 Gpio pin_3 ( 3 );
 
-new Prop("gpio/1/mode",&pin_1,Gpio::mode)
+Flags modeFlags={
+    T_STR, M_WRITE, QOS_1, I_OBJECT, true
+    };
+    Flags inputFlags={
+    T_STR, M_READ, QOS_1, I_OBJECT, true
+    };
+Prop pin1_mode( "gpio/1/mode", &pin_1, Gpio::mode, modeFlags ); //
+Prop pin2_mode( "gpio/2/mode", &pin_2, Gpio::mode, modeFlags ); //
+Prop pin3_mode( "gpio/3/mode", &pin_3, Gpio::mode, modeFlags ); //
+Prop pin1_output( "gpio/1/output", &pin_1, Gpio::output, modeFlags ); //
+Prop pin2_output( "gpio/2/output", &pin_2, Gpio::output, modeFlags ); //
+Prop pin3_output( "gpio/3/output", &pin_3, Gpio::output, modeFlags ); //
+Prop pin1_input( "gpio/1/input", &pin_1, Gpio::input, inputFlags ); //
+Prop pin2_input( "gpio/2/input", &pin_2, Gpio::input, inputFlags ); //
+Prop pin3_input( "gpio/3/input", &pin_3, Gpio::input, inputFlags ); //
 
 
 
@@ -745,9 +812,8 @@ class PropertyListener : public Sequence
     private:
         struct pt t;
         uint32_t i;
-        Strpack message;
     public:
-        PropertyListener(  ) : message ( MAX_MSG_SIZE )
+        PropertyListener(  )
             {
             PT_INIT ( &t );
             }
@@ -766,13 +832,15 @@ class PropertyListener : public Sequence
 
                         if ( flags->publishValue )
                             {
-                            message.clear();
                             p =  propList[i];
-                            if ( p->_getter )
+                            if ( p->_xdr )
                                 {
-                                p->_getter( p->_instance, message );
-                                doPublish( *flags, p->_name, message );
-                                flags->publishValue = false;
+                                p->_flags.publishValue = false;
+                                if ( p->_flags.qos == QOS_0 ) mqttPubQos0.send( p );
+                                else if ( ( p->_flags.qos == QOS_1 )  && ( mqttPubQos1.isReady() ) ) mqttPubQos1.send( p );
+                                else if ( ( p->_flags.qos == QOS_2 ) && ( mqttPubQos2.isReady() ) )mqttPubQos2.send( p );
+                                else  p->_flags.publishValue = true;
+//                               p->_xdr( p->_instance, CMD_GET, message );
                                 timeout ( TIME_WAIT_REPLY );
                                 PT_YIELD_UNTIL ( &t, timeout() );
                                 }
@@ -838,6 +906,17 @@ int main ( int argc, char *argv[] )
 
 
     }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
