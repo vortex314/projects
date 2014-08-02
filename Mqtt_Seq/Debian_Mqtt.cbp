@@ -13,12 +13,14 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-ffunction-sections -fno-rtti -fno-exceptions" />
 					<Add directory="inc" />
 					<Add directory="../Common/inc" />
 					<Add directory="/home/lieven/micro/Mqtt_Seq/" />
 					<Add directory="../../gnublin-api" />
 				</Compiler>
 				<Linker>
+					<Add option="-gc-sections" />
 					<Add library="rt" />
 				</Linker>
 			</Target>

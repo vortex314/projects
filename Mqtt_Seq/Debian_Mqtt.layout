@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="../../gnublin-api/gnublin.cpp" open="0" top="0" tabpos="5">
-		<Cursor position="3099" topLine="102" />
+	<File name="../../gnublin-api/gnublin.cpp" open="1" top="0" tabpos="3">
+		<Cursor position="5237" topLine="210" />
 	</File>
 	<File name="../../gnublin-api/gnublin.h" open="0" top="0" tabpos="0">
 		<Cursor position="9871" topLine="306" />
@@ -46,7 +46,7 @@
 	<File name="../Common/inc/Sequence.h" open="0" top="0" tabpos="7">
 		<Cursor position="411" topLine="0" />
 	</File>
-	<File name="../Common/inc/Str.h" open="1" top="0" tabpos="4">
+	<File name="../Common/inc/Str.h" open="0" top="0" tabpos="4">
 		<Cursor position="546" topLine="12" />
 	</File>
 	<File name="../Common/inc/Stream.h" open="0" top="0" tabpos="0">
@@ -91,7 +91,7 @@
 	<File name="../Common/src/Sequence.cpp" open="0" top="0" tabpos="6">
 		<Cursor position="144" topLine="0" />
 	</File>
-	<File name="../Common/src/Str.cpp" open="1" top="0" tabpos="3">
+	<File name="../Common/src/Str.cpp" open="0" top="0" tabpos="3">
 		<Cursor position="2233" topLine="93" />
 	</File>
 	<File name="../Common/src/Stream.cpp" open="0" top="0" tabpos="0">
@@ -122,7 +122,7 @@
 		<Cursor position="2017" topLine="48" />
 	</File>
 	<File name="src/Tcp.cpp" open="1" top="0" tabpos="2">
-		<Cursor position="1964" topLine="77" />
+		<Cursor position="696" topLine="99" />
 	</File>
 	<File name="src/Thread.cpp" open="0" top="0" tabpos="11">
 		<Cursor position="141" topLine="7" />
@@ -131,6 +131,6 @@
 		<Cursor position="102" topLine="0" />
 	</File>
 	<File name="src/main.cpp" open="1" top="1" tabpos="1">
-		<Cursor position="23358" topLine="702" />
+		<Cursor position="20553" topLine="564" />
 	</File>
 </CodeBlocks_layout_file>

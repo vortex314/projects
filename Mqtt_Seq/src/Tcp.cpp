@@ -20,7 +20,7 @@ EventId Tcp::TCP_DISCONNECTED=Event::nextEventId(( char* const )"TCP_DISCONNECTE
 Tcp::Tcp( const char *name, unsigned short stackDepth, char priority):Thread(name, stackDepth, priority)
 {
     unreg();
-    signal(SIGPIPE, SIG_IGN);
+ //   signal(SIGPIPE, SIG_IGN);
     _connected=false;
 };
 
