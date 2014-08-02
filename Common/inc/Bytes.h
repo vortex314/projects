@@ -25,7 +25,7 @@ public:
     Bytes(Bytes& in);
     ~Bytes();
     void clone(Bytes& src);
-    void map(uint8_t *start, uint32_t size);
+//    void map(uint8_t *start, uint32_t size);
     void sub(Bytes* parent,uint32_t length);
     void copy(Bytes* from);
 

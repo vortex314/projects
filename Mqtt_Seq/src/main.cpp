@@ -21,9 +21,9 @@
 #include "Strpack.h"
 #include "Logger.h"
 
-#define TIME_PING   5000
-#define TIME_KEEP_ALIVE 10000
-#define TIME_WAIT_REPLY 100
+#define TIME_PING   10000
+#define TIME_KEEP_ALIVE 20000
+#define TIME_WAIT_REPLY 200
 #define TIME_BETWEEN_PROPERTIES 100
 #define MAX_MSG_SIZE    256
 #define SLEEP(xxx)  timeout(xxx); \
@@ -56,11 +56,14 @@ uint32_t propListCount = 0;
 
 class  Prop {
     public :
+
         const char* _name;
         void* _instance;
         Xdr _xdr;
         Flags _flags;
+
     public :
+
         Prop ( const char* name, void* instance, Xdr xdr,
                Flags flags ) {
             _name = name;
@@ -71,9 +74,7 @@ class  Prop {
             _flags.publishValue = true;
             _flags.publishMeta = true;
             }
-        Prop ( TopicObject* instance ) {
-            _instance = instance;
-            }
+
         static Prop* findProp ( Str& name ) {
             uint32_t i;
             for ( i = 0; i < propListCount; i++ ) {
@@ -84,6 +85,7 @@ class  Prop {
                 }
             return 0;
             }
+
         static void set( Str& topic, Strpack& message, uint8_t header ) {
             Str str( 30 );
             str.substr( topic, getPrefix.length() );
@@ -91,7 +93,6 @@ class  Prop {
             if ( p ) {
                 if ( p->_xdr )
                     p->_xdr( p->_instance, CMD_PUT, message );
-//                    ( ( *( p->_instance ) ).* ( p->_setter ) ) ( message );
                 p->_flags.publishValue = true;
                 }
             Sequence::publish( 0, PROP_CHANGED, 0 );
@@ -107,6 +108,7 @@ class TimerThread : public Thread, public Sequence {
         TimerThread ( const char *name, unsigned short stackDepth, char priority ) : Thread ( name, stackDepth, priority ) {
             Sys::upTime();
             };
+
         void run() {
             struct timespec deadline;
             clock_gettime ( CLOCK_MONOTONIC, &deadline );
@@ -122,6 +124,7 @@ class TimerThread : public Thread, public Sequence {
                 publish ( this, TIMER_TICK, 0 );
                 }
             }
+
         int handler ( Event* ev ) {
             return 0;
             };
@@ -181,10 +184,12 @@ class Mqtt : public Sequence {
             PT_BEGIN ( &t );
             while ( 1 ) {
                 _messageId = nextMessageId();
+
                 PT_YIELD_UNTIL ( &t, _tcp->isConnected() );
-                mqttOut.Connect ( 0, "clientId", MQTT_CLEAN_SESSION,
+                mqttOut.Connect ( MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
                                   "system/online", "false", "", "", TIME_KEEP_ALIVE / 1000 );
                 _tcp->send ( &mqttOut );
+
                 timeout ( TIME_WAIT_REPLY );
                 PT_YIELD_UNTIL ( &t, eventIsMqtt ( event, MQTT_MSG_CONNACK, 0, 0 ) || timeout() );
                 if ( timeout() ) {
@@ -246,10 +251,11 @@ class MqttPing : public Sequence {
         struct pt t;
         uint16_t _retryCount;
     public:
+
         MqttPing (  ) {
             PT_INIT ( &t );
-            //TODO in destructor free memory
             }
+
         int handler ( Event* event ) {
             PT_BEGIN ( &t );
             while ( true ) {
@@ -571,7 +577,7 @@ class MainThread : public Thread {
 #include "Strpack.h"
 gnublin_gpio gpio;
 
-class Gpio : public TopicObject {
+class Gpio  {
     private:
         int _pin;
         char _dir;
@@ -638,11 +644,6 @@ class Gpio : public TopicObject {
                 }
             }
 
-        static void getInput( void *th, Strpack& value ) {
-            Gpio* pin = ( ( Gpio* )th );
-            value.append( "01"[gpio.digitalRead ( pin->_pin ) ] );
-            }
-
         static void setOutput( void *th, Strpack& value ) {
             Gpio* pin = ( ( Gpio* )th );
             char o = value.peek ( 0 ) ;
@@ -657,11 +658,6 @@ class Gpio : public TopicObject {
                 }
             else Sys::logger ( "invalid pin value for GPIO" );
             }
-        char getInput() {
-            return "01"[gpio.digitalRead ( _pin ) ];
-            }
-
-
     };
 
 class SysObject : public TopicObject {
@@ -687,7 +683,7 @@ class SysObject : public TopicObject {
                 value.append( desc );
                 }
             }
-        static void log(void *instance,Cmd cmd,Strpack& value){
+        static void log(void *instance,Cmd cmd,Strpack& value) {
             static const char* const desc = " desc:'logMessage'";
             if ( cmd == CMD_PUT ) {
                 }
@@ -697,11 +693,11 @@ class SysObject : public TopicObject {
             else if ( cmd == CMD_DESC ) {
                 value.append( desc );
                 }
-        }
-        static void log(const char* line){
+            }
+        static void log(const char* line) {
             logLine.set(line);
             Sequence::publish(0,PROP_CHANGED,0);
-        }
+            }
     };
 Str SysObject::logLine(100);
 
@@ -743,15 +739,13 @@ class PropertyListener : public Sequence {
             }
         int handler ( Event* event ) {
             Prop *p;
-            Flags *flags;
             PT_BEGIN ( &t );
             while ( true ) {
                 while ( mqtt->isConnected() ) { // new things to publish found
                     for ( i = 0; i <  propListCount ; i++ ) {
-                        flags = & propList[i]->_flags;
+                        p =  propList[i];
+                        if ( p->_flags.publishValue ) {
 
-                        if ( flags->publishValue ) {
-                            p =  propList[i];
                             if ( p->_xdr ) {
                                 p->_flags.publishValue = false;
                                 if ( p->_flags.qos == QOS_0 ) mqttPubQos0.send( p );
@@ -759,14 +753,16 @@ class PropertyListener : public Sequence {
                                 else if ( ( p->_flags.qos == QOS_2 ) && ( mqttPubQos2.isReady() ) )mqttPubQos2.send( p );
                                 else  p->_flags.publishValue = true;
 //                               p->_xdr( p->_instance, CMD_GET, message );
-                                timeout ( TIME_WAIT_REPLY );
-                                PT_YIELD_UNTIL ( &t, timeout() );
+                                if ( p->_flags.publishValue == false ) {
+                                    timeout ( 50 );
+                                    PT_YIELD_UNTIL ( &t, timeout() );
+                                    }
                                 }
                             }
-                        else if ( flags->publishMeta ) {
+                        else if ( p->_flags.publishMeta ) {
                             // convert flags to string
                             // add desc
-                            flags->publishMeta = false;
+                            p->_flags.publishMeta = false;
                             }
                         }
                     timeout ( 5000 ); // sleep between scans

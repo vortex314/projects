@@ -66,7 +66,7 @@ void MqttOut::addMessage(uint8_t* src, uint32_t length) {
 
 void MqttOut::addBytes(Bytes& bytes) {
     bytes.offset(0);
-    for (int i = 0; i < bytes.length(); i++)
+    for (uint32_t i = 0; i < bytes.length(); i++)
         write(bytes.read());
 }
 

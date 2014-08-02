@@ -115,7 +115,7 @@ void Tcp::run()
 //       ::sleep(3);
     while(true)
     {
-        while ( connect((char*)"localhost",1883) != E_OK )
+        while ( connect((char*)"test.mosquitto.org",1883) != E_OK )
             sleep(5000);
         publish(this,TCP_CONNECTED,0);
 
