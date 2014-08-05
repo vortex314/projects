@@ -16,15 +16,15 @@ class Str : public Bytes {
         Str(int size);
         Str(const char* const s);
         Str(uint8_t* data, int capacity);
-        const char* data();
+        const char* c_str();
         Str& clear();
         Str& set(const char* const s);
-        Str& operator+=(const char* const s);
-        Str& operator+=(Str& s);
+        Str& operator<<(const char* const s);
+        Str& operator<<(Str& s);
+        Str& operator<<(uint64_t val) { return append(val); };
         Str& operator+(Str& s);
         Str& operator=(const char* const s);
         Str& operator=(Str& str);
-        bool operator==(Str& str);
         Str& append(const char* s);
         Str& append(char s);
         Str& append(void* ptr);
@@ -35,10 +35,13 @@ class Str : public Bytes {
         Str& appendHex(uint8_t byte);
         Str& append(Str& str);
         Str& substr(Str& master,uint32_t offset);
+
+        bool operator==(Str& str);
         bool endsWith(const char* end);
         bool startsWith(Str& str);
         bool startsWith(const char* s);
         bool equals(const char* str);
+
         Erc parse(uint64_t* pval);
         Erc parse(uint32_t* pval);
         Erc parse(int32_t* pval);

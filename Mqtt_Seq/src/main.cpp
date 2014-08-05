@@ -100,6 +100,7 @@ class  Prop {
     };
 
 
+#define TIMER_TICK_INTERVAL 10000000
 
 class TimerThread : public Thread, public Sequence {
 
@@ -114,7 +115,7 @@ class TimerThread : public Thread, public Sequence {
             clock_gettime ( CLOCK_MONOTONIC, &deadline );
             Sys::_upTime = deadline.tv_sec * 1000 + deadline.tv_nsec / 1000000;
             while ( true ) {
-                deadline.tv_nsec += 1000000000; // Add the time you want to sleep, 1 sec now
+                deadline.tv_nsec += TIMER_TICK_INTERVAL; // Add the time you want to sleep, 1 sec now
                 if ( deadline.tv_nsec >= 1000000000 ) { // Normalize the time to account for the second boundary
                     deadline.tv_nsec -= 1000000000;
                     deadline.tv_sec++;
@@ -200,11 +201,11 @@ class Mqtt : public Sequence {
 
 
 
-                ( str = putPrefix ) += "#" ;
+                str.clear() << putPrefix  << "#" ;
                 mqttOut.Subscribe ( 0, str, ++_messageId, MQTT_QOS1_FLAG );
                 _tcp->send ( &mqttOut );
 
-                ( str = getPrefix ) += "#" ;
+                str.clear() << getPrefix  << "#" ;
                 mqttOut.Subscribe ( 0, str, ++_messageId, MQTT_QOS1_FLAG );
                 _tcp->send ( &mqttOut );
 
@@ -544,13 +545,9 @@ class MainThread : public Thread {
                 Event event;
                 Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
                 if ( event.id() != TIMER_TICK ) {
-                    line.set ( " EVENT : " );
-                    event.toString ( line );
-
-                    Sys::getLogger().append ( line );
-                    Sys::getLogger().flush();
-                    line.clear();
-                    std::cout << Sys::upTime() << " | EVENT " << event.getEventIdName() << std::endl;
+                    Sys::log() << " EVENT : ";
+                    event.toString ( Sys::log() );
+                    Sys::logFlush();
                     }
 
                 int i;
@@ -656,14 +653,13 @@ class Gpio  {
                 pin->_value = '1';
                 gpio.digitalWrite ( pin->_pin, LOW );
                 }
-            else Sys::logger ( "invalid pin value for GPIO" );
+            else Sys::log()<<  "invalid pin value for GPIO" ;
             }
     };
 
 class SysObject : public TopicObject {
     private:
         Prop* memoryProp;
-        static Str logLine;
     public:
         SysObject() {
             memoryProp = new Prop ( "sys/heapMemory"
@@ -686,20 +682,17 @@ class SysObject : public TopicObject {
         static void log(void *instance,Cmd cmd,Strpack& value) {
             static const char* const desc = " desc:'logMessage'";
             if ( cmd == CMD_PUT ) {
+                Sys::lastLog() = value;
                 }
             else if ( cmd == CMD_GET ) {
-                value.append ( SysObject::logLine );
+                value.append ( Sys::lastLog() );
                 }
             else if ( cmd == CMD_DESC ) {
                 value.append( desc );
                 }
             }
-        static void log(const char* line) {
-            logLine.set(line);
-            Sequence::publish(0,PROP_CHANGED,0);
-            }
+
     };
-Str SysObject::logLine(100);
 
 SysObject sys;
 Gpio pin_1 ( 1 );
@@ -748,9 +741,12 @@ class PropertyListener : public Sequence {
 
                             if ( p->_xdr ) {
                                 p->_flags.publishValue = false;
-                                if ( p->_flags.qos == QOS_0 ) mqttPubQos0.send( p );
-                                else if ( ( p->_flags.qos == QOS_1 )  && ( mqttPubQos1.isReady() ) ) mqttPubQos1.send( p );
-                                else if ( ( p->_flags.qos == QOS_2 ) && ( mqttPubQos2.isReady() ) )mqttPubQos2.send( p );
+                                if ( p->_flags.qos == QOS_0 )
+                                    mqttPubQos0.send( p );
+                                else if ( ( p->_flags.qos == QOS_1 )  && ( mqttPubQos1.isReady() ) )
+                                    mqttPubQos1.send( p );
+                                else if ( ( p->_flags.qos == QOS_2 ) && ( mqttPubQos2.isReady() ) )
+                                    mqttPubQos2.send( p );
                                 else  p->_flags.publishValue = true;
 //                               p->_xdr( p->_instance, CMD_GET, message );
                                 if ( p->_flags.publishValue == false ) {
@@ -776,38 +772,28 @@ class PropertyListener : public Sequence {
     };
 
 //_____________________________________________________________________________________________________
-//
-#include <unistd.h> // sleep
-#include "Timer.h"
-
 //_____________________________________________________________________________________________________
 //
 
 
-
 int main ( int argc, char *argv[] ) {
-    prefix = Sys::getDeviceName();
-    prefix += "/";
+    prefix << Sys::getDeviceName() << "/";
     mqttOut.prefix ( prefix );
-    getPrefix = "GET/";
-    getPrefix += prefix;
-    putPrefix = "PUT/";
-    putPrefix += prefix;
-
-
+    getPrefix <<  "GET/" << prefix;
+    putPrefix << "PUT/" << prefix;
 
     Queue::getDefaultQueue()->clear();//linux queues are persistent
-    sys.log("started... ");
+    Sys::log()<< Sys::getDeviceName() << " started... ";
+    Sys::logFlush();
     // static sequences
     Tcp tcp ( "tcp", 1000, 1 );
     mqtt = new Mqtt ( &tcp );
     new MqttSubQos2();
     new MqttSubQos1();
     new MqttSubQos0();
-    MqttPing pinger; // ping cycle when connected
+    new MqttPing(); // ping cycle when connected
     new PropertyListener(); // publish property when changed or interval timeout
 
-    Gpio pin3 ( 3 );
     MainThread mt ( "messagePump", 1000, 1 ); // both threads could be combined
     TimerThread tt ( "timerThread", 1000, 1 );
     tcp.start();

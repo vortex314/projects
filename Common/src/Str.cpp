@@ -80,7 +80,7 @@ Str& Str::operator=(Str& s) {
     return *this;
     }
 
-Str& Str::operator+=(const char* s) {
+Str& Str::operator<<(const char* s) {
     while (*s != '\0') {
         write((uint8_t) (* s));
         s++;
@@ -88,7 +88,7 @@ Str& Str::operator+=(const char* s) {
     return *this;
     }
 
-Str& Str::operator+=(Str& s) {
+Str& Str::operator<<(Str& s) {
     append(s);
     return *this;
     }
@@ -205,8 +205,9 @@ Str& Str::substr(Str& mstr,uint32_t offset) {
     return *this;
     }
 
-const char* Str::data() {
-//    *(_start + _limit) = '\0';
+const char* Str::c_str() {
+    if ( _limit < _capacity )
+    *(_start + _limit) = '\0';
     return (char*) _start;
     }
 

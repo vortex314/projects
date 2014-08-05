@@ -308,9 +308,9 @@ Property* Property::find(void* pv)
 #include "Logger.h"
 void Property::set( Str* name, Strpack* message)
 {
-    Sys::getLogger().clear();
-    Sys::getLogger().append(" SET ").append(name).append(" = ").append(message);
-    Sys::getLogger().flush();
+    Sys::log().clear();
+    Sys::log().append(" SET ").append(name).append(" = ").append(message);
+    Sys::logFlush();
 
     Property* p = find(name);
 
@@ -370,7 +370,7 @@ Property* Property::find(Str& name)
 {
     Property* p;
     for(p=first(); p!=NULL; p=next(p))
-        if (strncmp((char*) (p->_pc->_name), name.data(),
+        if (strncmp((char*) (p->_pc->_name), name.c_str(),
                     name.length()) == 0)
             return p;
     return 0;

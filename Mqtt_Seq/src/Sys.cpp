@@ -70,18 +70,14 @@ void Sys::free(void *pv)
     ASSERT(false); // trying to free something never allocated
 #endif
 }
-#include "Logger.h"
-Logger* Sys::_logger =  new Logger(100);
-Logger&  Sys::getLogger()
-{
-//   if ( Sys::_logger == 0) Sys::_logger=new Logger();
-    return *Sys::_logger;
-};
 
 #include <unistd.h> // gethostname
 #include <string.h>
+#include "Str.h"
 
 Str _hostname(30);
+Str Sys::_logLine(100);
+Str Sys::_lastLogLine(100);
 
 Str& Sys::getDeviceName()
 {
@@ -94,16 +90,21 @@ Str& Sys::getDeviceName()
     return _hostname;
 }
 
-void Sys::logger(const char* s){
-    Sys::_logger->append(s);
+Str& Sys::log(){
+    return _logLine;
 }
-
-void Sys::logger(Str& str){
-    Sys::_logger->append(&str);
+Str& Sys::lastLog(){
+    return _lastLogLine;
 }
+#include <iostream>
 
-void Sys::flushLogger(){
-
+Str& Sys::logFlush(){
+    _lastLogLine.clear() << Sys::upTime() << " | " ;
+    _logLine.offset(0);
+        _lastLogLine << _logLine.c_str();
+    std::cout  <<  _lastLogLine.c_str() << std::endl;
+    _logLine.clear();
+    return _logLine;
 }
 
 

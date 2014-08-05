@@ -18,33 +18,32 @@ class Sys;
 class Logger;
 
 
-class Sys
-{
-public:
+class Sys {
+    public:
 
-    Sys();
-    static void init();
+        Sys();
+        static void init();
 
-    static void delay_ms(uint32_t msec);
-    static uint64_t _upTime;
-    static uint64_t upTime();
-    static uint64_t _bootTime;
+        static void delay_ms(uint32_t msec);
+        static uint64_t _upTime;
+        static uint64_t upTime();
+        static uint64_t _bootTime;
 
-    static void * malloc(uint32_t size);
-    static void free(void *pv);
+        static void * malloc(uint32_t size);
+        static void free(void *pv);
 
-    static void interruptEnable();
-    static void interruptDisable();
+        static void interruptEnable();
+        static void interruptDisable();
 
-    static void logger(const char* s);
-    static void logger(Str& str);
-    static void flushLogger();
+        static Str&  log();
+        static Str&  lastLog();
+        static Str& logFlush();
+        static Str& getDeviceName();
+    private :
+        static Str _logLine;
+        static Str _lastLogLine;
 
-    static Logger&  getLogger();
-    static Str& getDeviceName();
-    static Logger* _logger;
-
-};
+    };
 
 
 #endif /* SYS_H_ */
