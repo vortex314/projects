@@ -88,6 +88,11 @@ Str& Str::operator<<(const char* s) {
     return *this;
     }
 
+    Str& Str::operator<<( char ch) {
+        write(ch);
+    return *this;
+    }
+
 Str& Str::operator<<(Str& s) {
     append(s);
     return *this;

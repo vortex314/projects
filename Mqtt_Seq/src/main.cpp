@@ -714,7 +714,7 @@ Prop pin3_output( "gpio/3/output", &pin_3, Gpio::output, modeFlags ); //
 Prop pin1_input( "gpio/1/input", &pin_1, Gpio::input, inputFlags ); //
 Prop pin2_input( "gpio/2/input", &pin_2, Gpio::input, inputFlags ); //
 Prop pin3_input( "gpio/3/input", &pin_3, Gpio::input, inputFlags ); //
-Prop sys_log("sys/log",&sys,SysObject::log,inputFlags);
+//Prop sys_log("sys/log",&sys,SysObject::log,{ T_INT32,M_READ,.qos=QOS_2,I_OBJECT,false });
 
 
 

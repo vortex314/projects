@@ -57,18 +57,18 @@ EventData* Event::data()
 }
 
 #include "MqttIn.h"
-#include "Tcp.h"
+//#include "Tcp.h"
 void Event::toString(Str& out)
 {
     out.append("{ id : ");
     if (eventNames[_id]) out.append(eventNames[_id]);
 
-    if ( data() )
+/*    if ( data() )
     {
             out.append(", data : ");
         if ( id() == Tcp::MQTT_MESSAGE)
             ((MqttIn*)data())->toString(out);
-    }
+    }*/
     out.append(" }");
 }
 
