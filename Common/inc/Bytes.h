@@ -61,6 +61,7 @@ public:
     void Decode();
     bool isGoodCrc();
     void Frame();
+    bool Feed(uint8_t b);
 public:
     uint8_t *_start;
     uint32_t _limit;

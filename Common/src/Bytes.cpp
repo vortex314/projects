@@ -272,6 +272,12 @@ void Bytes::Frame() //PUBLIC
     _limit = end - _start;
 }
 
+bool Bytes::Feed(uint8_t b){
+    if ( b == SOF && _offset > 0 ) return true;
+    else write(b);
+    return false;
+}
+
 int Bytes::poke(uint32_t idx, uint8_t b) {
     if (idx > _limit)
         return E_LACK_RESOURCE;

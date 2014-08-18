@@ -56,7 +56,7 @@ uint32_t propListCount = 0;
 
 class  Prop {
     public :
-
+        static int CHANGED;
         const char* _name;
         void* _instance;
         Xdr _xdr;
