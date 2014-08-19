@@ -53,7 +53,7 @@ Erc Queue::put(void* data)
 
     clock_gettime(CLOCK_REALTIME, &tm);
     tm.tv_sec += 1;
-    if( mq_timedsend( *mq, (const char *)data ,_msgSize, NULL,  &tm )<0 )
+    if( mq_timedsend( *mq, (const char *)data ,_msgSize, 0,  &tm )<0 )
     {
         perror("mq_send : QUEUE FULL ?");
         return E_AGAIN;

@@ -12,7 +12,7 @@
 #ifdef FREERTOS
 #include "FreeRTOS.h"
 #endif
-#include "queue.h"
+#include "Queue.h"
 class SysQueue {
 public:
 	SysQueue(uint32_t count,uint32_t size);

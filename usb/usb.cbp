@@ -42,28 +42,25 @@
 		<Linker>
 			<Add library="rt" />
 		</Linker>
-		<Unit filename="../micro/Common/src/Bytes.cpp" />
-		<Unit filename="../micro/Common/src/CircBuf.cpp" />
-		<Unit filename="../micro/Common/src/Event.cpp" />
-		<Unit filename="../micro/Common/src/EventSource.cpp" />
-		<Unit filename="../micro/Common/src/MqttIn.cpp" />
-		<Unit filename="../micro/Common/src/MqttOut.cpp" />
-		<Unit filename="../micro/Common/src/Msgpack.cpp" />
-		<Unit filename="../micro/Common/src/Node.cpp" />
-		<Unit filename="../micro/Common/src/PIC32_stubs.cpp" />
-		<Unit filename="../micro/Common/src/Pic32Stubs.h" />
-		<Unit filename="../micro/Common/src/STM32_stubs.cpp" />
-		<Unit filename="../micro/Common/src/Sequence.cpp" />
-		<Unit filename="../micro/Common/src/Str.cpp" />
-		<Unit filename="../micro/Common/src/Strpack.cpp" />
-		<Unit filename="../micro/Common/src/printf.c">
+		<Unit filename="../Common/src/Bytes.cpp" />
+		<Unit filename="../Common/src/CircBuf.cpp" />
+		<Unit filename="../Common/src/Event.cpp" />
+		<Unit filename="../Common/src/EventSource.cpp" />
+		<Unit filename="../Common/src/MqttIn.cpp" />
+		<Unit filename="../Common/src/MqttOut.cpp" />
+		<Unit filename="../Common/src/Msgpack.cpp" />
+		<Unit filename="../Common/src/Node.cpp" />
+		<Unit filename="../Common/src/PIC32_stubs.cpp" />
+		<Unit filename="../Common/src/Pic32Stubs.h" />
+		<Unit filename="../Common/src/Property.cpp" />
+		<Unit filename="../Common/src/STM32_stubs.cpp" />
+		<Unit filename="../Common/src/Sequence.cpp" />
+		<Unit filename="../Common/src/Str.cpp" />
+		<Unit filename="../Common/src/Strpack.cpp" />
+		<Unit filename="../Common/src/SysQueue.cpp" />
+		<Unit filename="../Common/src/printf.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../micro/Linux/inc/Tcp.h" />
-		<Unit filename="../micro/Linux/src/Queue.cpp" />
-		<Unit filename="../micro/Linux/src/Sys.cpp" />
-		<Unit filename="../micro/Linux/src/Tcp.cpp" />
-		<Unit filename="../micro/Linux/src/Thread.cpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
