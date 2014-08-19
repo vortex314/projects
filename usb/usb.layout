@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="Debug" />
+	<File name="../micro/Common/src/Bytes.cpp" open="0" top="0" tabpos="3">
+		<Cursor position="678" topLine="31" />
+	</File>
+	<File name="../micro/Common/src/Event.cpp" open="1" top="0" tabpos="8">
+		<Cursor position="431" topLine="12" />
+	</File>
+	<File name="../micro/Common/src/MqttIn.cpp" open="0" top="0" tabpos="4">
+		<Cursor position="672" topLine="37" />
+	</File>
+	<File name="../micro/Common/src/MqttOut.cpp" open="0" top="0" tabpos="3">
+		<Cursor position="273" topLine="4" />
+	</File>
+	<File name="../micro/Common/src/Sequence.cpp" open="1" top="0" tabpos="2">
+		<Cursor position="144" topLine="4" />
+	</File>
+	<File name="../micro/Common/src/Str.cpp" open="0" top="0" tabpos="4">
+		<Cursor position="131" topLine="9" />
+	</File>
+	<File name="../micro/Linux/inc/Tcp.h" open="1" top="0" tabpos="3">
+		<Cursor position="146" topLine="2" />
+	</File>
+	<File name="../micro/Linux/src/Queue.cpp" open="1" top="0" tabpos="5">
+		<Cursor position="970" topLine="38" />
+	</File>
+	<File name="../micro/Linux/src/Sys.cpp" open="1" top="0" tabpos="4">
+		<Cursor position="2240" topLine="68" />
+	</File>
+	<File name="../micro/Linux/src/Tcp.cpp" open="0" top="0" tabpos="0">
+		<Cursor position="2405" topLine="102" />
+	</File>
+	<File name="main.cpp" open="1" top="1" tabpos="1">
+		<Cursor position="4418" topLine="245" />
+	</File>
+</CodeBlocks_layout_file>

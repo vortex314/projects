@@ -1,0 +1,258 @@
+# depslib dependency file v1.0
+1408458289 source:/home/lieven/usb/main.cpp
+	<iostream>
+	<stdio.h>
+	<string.h>
+	<unistd.h>
+	<fcntl.h>
+	<errno.h>
+	<termios.h>
+	<stdint.h>
+	<string.h>
+	<cstdlib>
+	"Str.h"
+	<time.h>
+	"MqttOut.h"
+	<stdio.h>
+	<stdlib.h>
+	<sys/time.h>
+	<sys/types.h>
+	"Sequence.h"
+	<unistd.h>
+	"Thread.h"
+	"pt.h"
+	"Sequence.h"
+	"Tcp.h"
+	"Tcp.h"
+
+1408355007 source:/home/lieven/micro/Common/src/Bytes.cpp
+	"Bytes.h"
+
+1408355015 /home/lieven/micro/Common/inc/Bytes.h
+	<stdint.h>
+	"Erc.h"
+	"Sys.h"
+
+1406403546 /home/lieven/micro/Common/inc/Erc.h
+	<stdint.h>
+
+1407265249 /home/lieven/micro/Common/inc/Sys.h
+	"stdint.h"
+	"Erc.h"
+	<iostream>
+
+1405627795 source:/home/lieven/micro/Common/src/CircBuf.cpp
+	"CircBuf.h"
+	"Sys.h"
+
+1403395007 /home/lieven/micro/Common/inc/CircBuf.h
+	<stdint.h>
+	<errno.h>
+
+1408458370 source:/home/lieven/micro/Common/src/Event.cpp
+	"Event.h"
+	"Sys.h"
+	"Erc.h"
+	"MqttIn.h"
+
+1408458360 /home/lieven/micro/Common/inc/Event.h
+	<stdint.h>
+	"Str.h"
+	"QueueTemplate.h"
+
+1408448817 /home/lieven/micro/Common/inc/Str.h
+	"Bytes.h"
+	"Erc.h"
+
+1405620367 /home/lieven/micro/Common/inc/QueueTemplate.h
+	"Erc.h"
+	"Sys.h"
+
+1406494981 /home/lieven/micro/Common/inc/MqttIn.h
+	"MqttConstants.h"
+	"Event.h"
+	"Str.h"
+	"Strpack.h"
+
+1404298689 /home/lieven/micro/Common/inc/MqttConstants.h
+	"Str.h"
+
+1406403837 /home/lieven/micro/Common/inc/Strpack.h
+	"Str.h"
+
+1404354963 source:/home/lieven/micro/Common/src/EventSource.cpp
+	"EventSource.h"
+
+1404355331 /home/lieven/micro/Common/inc/EventSource.h
+	<stdint.h>
+
+1408355025 source:/home/lieven/micro/Common/src/MqttIn.cpp
+	"MqttIn.h"
+	"Property.h"
+	<iostream>
+
+1405945467 /home/lieven/micro/Common/inc/Property.h
+	<stdint.h>
+	<errno.h>
+	<string.h>
+	"Sys.h"
+	"Str.h"
+	"Erc.h"
+	"Strpack.h"
+
+1408229123 source:/home/lieven/micro/Common/src/MqttOut.cpp
+	"MqttOut.h"
+	<iostream>
+
+1406318844 /home/lieven/micro/Common/inc/MqttOut.h
+	<string.h>
+	"Bytes.h"
+	"MqttConstants.h"
+
+1403395007 source:/home/lieven/micro/Common/src/Msgpack.cpp
+	"Msgpack.h"
+	<string.h>
+	<limits.h>
+
+1403395007 /home/lieven/micro/Common/inc/Msgpack.h
+	<stdlib.h>
+	<stdint.h>
+	<stdbool.h>
+	"Bytes.h"
+
+1403395007 source:/home/lieven/micro/Common/src/Node.cpp
+	"Node.h"
+
+1403395007 /home/lieven/micro/Common/inc/Node.h
+	<stdint.h>
+	"Erc.h"
+
+1403395007 source:/home/lieven/micro/Common/src/PIC32_stubs.cpp
+	<stdlib.h>
+	<string.h>
+	<sys/errno.h>
+	"Sys.h"
+	<sys/types.h>
+	<stddef.h>
+	<sys/types.h>
+	<string.h>
+
+1407265483 source:/home/lieven/micro/Common/src/Property.cpp
+	"Property.h"
+	"Logger.h"
+
+1407262963 /home/lieven/micro/Common/inc/Logger.h
+
+1403395007 source:/home/lieven/micro/Common/src/STM32_stubs.cpp
+	<stdlib.h>
+	<string.h>
+	<reent.h>
+	<sys/stat.h>
+	<sys/errno.h>
+	<sys/stat.h>
+	<sys/times.h>
+	<sys/unistd.h>
+	<stm32f0xx.h>
+	<stm32f10x.h>
+	"Sys.h"
+
+1408447961 source:/home/lieven/micro/Common/src/Sequence.cpp
+	"Sequence.h"
+
+1408446949 /home/lieven/micro/Common/inc/Sequence.h
+	"Event.h"
+	"Sys.h"
+	"Queue.h"
+
+1408458046 /home/lieven/micro/Common/inc/Queue.h
+	<stdint.h>
+	"Erc.h"
+	"Event.h"
+
+1408448782 source:/home/lieven/micro/Common/src/Str.cpp
+	"Str.h"
+	<string.h>
+
+1406140813 source:/home/lieven/micro/Common/src/Stream.cpp
+	"Stream.h"
+
+1406140828 /home/lieven/micro/Common/inc/Stream.h
+	<stdint.h>
+	"Erc.h"
+	"Bytes.h"
+	"QueueTemplate.h"
+	"Event.h"
+	"Queue.h"
+
+1406495242 source:/home/lieven/micro/Common/src/Strpack.cpp
+	"Strpack.h"
+	<string.h>
+
+1403395007 source:/home/lieven/micro/Common/src/printf.c
+	"printf.h"
+
+1403395007 /home/lieven/micro/Common/inc/printf.h
+	<stdarg.h>
+
+1408457713 /home/lieven/micro/Linux/inc/Tcp.h
+	"Bytes.h"
+	"Thread.h"
+	"EventSource.h"
+	"Sequence.h"
+
+1404304355 /home/lieven/micro/Common/inc/Thread.h
+	"stdint.h"
+	"Erc.h"
+	"Sys.h"
+
+1408458064 source:/home/lieven/micro/Linux/src/Queue.cpp
+	"Queue.h"
+	<fcntl.h>
+	<sys/stat.h>
+	<mqueue.h>
+	"Sys.h"
+	<stdio.h>
+	<errno.h>
+	<assert.h>
+
+1408457932 source:/home/lieven/micro/Linux/src/Sys.cpp
+	"Sys.h"
+	<malloc.h>
+	<unistd.h>
+	<string.h>
+	"Str.h"
+	<iostream>
+
+1408448514 source:/home/lieven/micro/Linux/src/Tcp.cpp
+	"Tcp.h"
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<netdb.h>
+	<unistd.h>
+	<strings.h>
+	<errno.h>
+	<string.h>
+	<iostream>
+	<signal.h>
+	"MqttIn.h"
+	<cstdio>
+	"Mutex.h"
+	<iostream>
+
+1404348053 /home/lieven/micro/Common/inc/Mutex.h
+
+1405620379 source:/home/lieven/micro/Linux/src/Thread.cpp
+	<pthread.h>
+	<unistd.h>
+	<malloc.h>
+	"Thread.h"
+
+1403395007 /home/lieven/micro/Common/inc/pt.h
+	"lc.h"
+
+1403395007 /home/lieven/micro/Common/inc/lc.h
+	"lc-switch.h"
+
+1403395007 /home/lieven/micro/Common/inc/lc-switch.h
+
