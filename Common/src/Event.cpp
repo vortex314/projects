@@ -3,9 +3,9 @@
 #include "Erc.h"
 
 uint32_t Event::eventIdCount=0;
-char* Event::eventNames[MAX_EVENT_ID];
+const char* Event::eventNames[MAX_EVENT_ID];
 
-EventId Event::nextEventId(char *name)
+EventId Event::nextEventId(const char *name)
 {
     eventNames[eventIdCount]=name;
     return eventIdCount++;
@@ -13,30 +13,34 @@ EventId Event::nextEventId(char *name)
 
 char* Event::getEventIdName()
 {
-    return eventNames[_id];
+    return (char*)eventNames[_id];
 }
 
 Event::Event()
 {
 }
 
-Event::Event(void* src, EventId id,EventData *data)
+	Event::Event(int id){
+	    _id=id;
+	    _w=0;
+	}
+
+Event::Event(int id,uint16_t w)
 {
-    _src = src;
-    _id = id;
-    _data = data;
+    _id=id;
+    _w=w;
 }
 
-bool Event::is(EventId id)
+bool Event::is(int id)
 {
     if ((_id) == (id))
         return true;
     return false;
 }
-bool Event::is(void* src,EventId id)
+bool Event::is(int id,uint16_t w)
 {
     if ((_id) == (id))
-        if (src == _src)
+        if (w == _w)
             return true;
     return false;
 }
@@ -46,15 +50,6 @@ EventId Event::id()
     return _id;
 }
 
-void *Event::src()
-{
-    return _src;
-}
-
-EventData* Event::data()
-{
-    return _data;
-}
 
 #include "MqttIn.h"
 //#include "Tcp.h"

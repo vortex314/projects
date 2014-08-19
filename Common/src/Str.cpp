@@ -93,6 +93,11 @@ Str& Str::operator<<(const char* s) {
     return *this;
     }
 
+    Str& Str::operator<<( int i) {
+        append(i);
+    return *this;
+    }
+
 Str& Str::operator<<(Str& s) {
     append(s);
     return *this;

@@ -28,11 +28,14 @@ void Sequence::unreg()
         if(activeSequence[i]==this)
             activeSequence[i]=0;
 };
-void Sequence::publish(void* src,EventId id,EventData* data)
+
+
+void Sequence::publish(int id)
 {
-    Event ev(src,id,data);
+    Event ev(id);
     Queue::getDefaultQueue()->put(&ev);
 }
+
 void Sequence::timeout(uint32_t msec)
 {
     _timeout=Sys::upTime()+msec;

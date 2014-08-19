@@ -20,30 +20,35 @@
 class Stream;
 class Sys;
 #define MAX_EVENT_ID    20
-typedef uint8_t EventId;
+typedef int EventId;
 class EventData {
-    virtual void toString(Str& str)=0;
-};
+        virtual void toString(Str& str)=0;
+    };
 
 class Event {
-public:
-	Event();
-	Event(void* src, EventId id,EventData *data);
-	bool is(EventId value);
-	bool is(void* src,EventId id);
-	EventId id();
-	EventData* data();
-	void* src();
-	static EventId nextEventId(char *s);
-	char *getEventIdName();
-	void toString(Str& line);
-private:
-	void* _src;
-	EventId _id;
-	EventData* _data;
-	static uint32_t eventIdCount;
-	static char* eventNames[MAX_EVENT_ID];
-};
+    public:
+        Event();
+        Event(int id);
+        Event(int id,uint16_t w);
+        bool is(int id);
+        bool is(int id,uint16_t w);
+        int id();
+        uint16_t word();
+        uint8_t byte(int i);
+        static EventId nextEventId(const char *s);
+        char *getEventIdName();
+        void toString(Str& line);
+    private:
+        struct {
+            uint8_t _id:8;
+            union {
+                uint8_t _b[3];
+                uint16_t _w;
+                };
+            };
+        static uint32_t eventIdCount;
+        static const char* eventNames[MAX_EVENT_ID];
+    };
 
 #endif	/* EVENT_H */
 

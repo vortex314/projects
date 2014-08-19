@@ -40,6 +40,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add directory="../Linux/inc" />
 		</Compiler>
 		<Unit filename="../../gnublin-api/gnublin.cpp" />
 		<Unit filename="../../gnublin-api/gnublin.h" />
@@ -93,15 +94,15 @@
 		<Unit filename="../Common/src/printf.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../Linux/src/Queue.cpp" />
+		<Unit filename="../Linux/src/Sys.cpp" />
+		<Unit filename="../Linux/src/Tcp.cpp" />
+		<Unit filename="../Linux/src/Thread.cpp" />
 		<Unit filename="inc/Publisher.h" />
 		<Unit filename="inc/QueueWrapper.h" />
 		<Unit filename="inc/Tcp.h" />
 		<Unit filename="src/Logger.cpp" />
 		<Unit filename="src/Mutex.cpp" />
-		<Unit filename="src/Queue.cpp" />
-		<Unit filename="src/Sys.cpp" />
-		<Unit filename="src/Tcp.cpp" />
-		<Unit filename="src/Thread.cpp" />
 		<Unit filename="src/Timer.cpp" />
 		<Unit filename="src/main.cpp" />
 		<Extensions>

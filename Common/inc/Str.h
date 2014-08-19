@@ -21,8 +21,11 @@ class Str : public Bytes {
         Str& set(const char* const s);
         Str& operator<<(const char* const s);
         Str& operator<<(char ch);
+        Str& operator<<(int i);
         Str& operator<<(Str& s);
-        Str& operator<<(uint64_t val) { return append(val); };
+        Str& operator<<(uint64_t val) {
+            return append(val);
+            };
         Str& operator+(Str& s);
         Str& operator=(const char* const s);
         Str& operator=(Str& str);
