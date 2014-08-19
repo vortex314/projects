@@ -6,15 +6,11 @@
  */
 
 #include "SysQueue.h"
-#define FREE_RTOS
-#ifdef FREE_RTOS
+#ifdef FREERTOS
 #include "FreeRTOS.h"
 #include "queue.h"
 SysQueue* mainQueue = NULL;
-#else
-#include "QueueTemplate.h"
-QueueTemplate<class Event> Stream::_queue(20);
-#endif
+
 
 SysQueue::SysQueue(uint32_t count, uint32_t size) {
 	_qh = xQueueCreate(count,size);
@@ -68,3 +64,7 @@ Erc SysQueue::get(void *item, uint32_t timeout) {
 		return E_OK;
 	return E_LACK_RESOURCE;
 }
+#else
+#include "QueueTemplate.h"
+//QueueTemplate<class Event> Stream::_queue(20);
+#endif

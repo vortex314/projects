@@ -30,7 +30,7 @@ public:
     void copy(Bytes* from);
 
     int capacity();
-    size_t length() const;
+    int length() const;
     int length(int l);
     int available();
     int offset(uint32_t offset);

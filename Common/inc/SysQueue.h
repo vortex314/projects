@@ -9,7 +9,9 @@
 #define SYSQUEUE_H_
 #include "Erc.h"
 #include "Sys.h"
+#ifdef FREERTOS
 #include "FreeRTOS.h"
+#endif
 #include "queue.h"
 class SysQueue {
 public:
@@ -23,7 +25,9 @@ public:
 	static SysQueue* getMainQueue();
 private :
 	uint32_t _size;
+#ifdef FREERTOS
 	xQueueHandle _qh;
+#endif
 };
 
 #endif /* SYSQUEUE_H_ */

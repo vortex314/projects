@@ -89,7 +89,7 @@ int Bytes::capacity() {
 
 
 
-size_t Bytes::length () const {
+int Bytes::length () const {
     return _limit;
 }
 
@@ -105,8 +105,8 @@ Erc Bytes::insert(uint32_t offset,Bytes* data) {
     if ( data->_limit + _limit > _capacity ) return E_LACK_RESOURCE;
     if ( offset > _limit ) return E_INVAL;
     // move last part further
-    size_t delta=data->length();
-    size_t i;
+    int delta=data->length();
+    int i;
     for(i=_limit;i>=offset;i--) _start[i+delta]=_start[i];
     // insert data
     for(i=0;i<delta;i++) _start[offset+i]=data->_start[i];
