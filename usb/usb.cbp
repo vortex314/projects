@@ -11,7 +11,6 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option projectIncludeDirsRelation="2" />
 				<Compiler>
 					<Add option="-g" />
 					<Add directory="../micro/Common/inc" />
@@ -42,6 +41,41 @@
 		<Linker>
 			<Add library="rt" />
 		</Linker>
+		<Unit filename="../Common/inc/Bits.cpp" />
+		<Unit filename="../Common/inc/Bits.h" />
+		<Unit filename="../Common/inc/Bytes.h" />
+		<Unit filename="../Common/inc/CircBuf.h" />
+		<Unit filename="../Common/inc/Erc.h" />
+		<Unit filename="../Common/inc/Event.h" />
+		<Unit filename="../Common/inc/EventSource.h" />
+		<Unit filename="../Common/inc/Interface.h" />
+		<Unit filename="../Common/inc/Led.h" />
+		<Unit filename="../Common/inc/Logger.h" />
+		<Unit filename="../Common/inc/Mqtt.h" />
+		<Unit filename="../Common/inc/MqttConstants.h" />
+		<Unit filename="../Common/inc/MqttIn.h" />
+		<Unit filename="../Common/inc/MqttOut.h" />
+		<Unit filename="../Common/inc/Msgpack.h" />
+		<Unit filename="../Common/inc/Mutex.h" />
+		<Unit filename="../Common/inc/Node.h" />
+		<Unit filename="../Common/inc/Pool.h" />
+		<Unit filename="../Common/inc/Property.h" />
+		<Unit filename="../Common/inc/Queue.h" />
+		<Unit filename="../Common/inc/QueueTemplate.h" />
+		<Unit filename="../Common/inc/Sequence.h" />
+		<Unit filename="../Common/inc/Str.h" />
+		<Unit filename="../Common/inc/Stream.h" />
+		<Unit filename="../Common/inc/Strpack.h" />
+		<Unit filename="../Common/inc/Sys.h" />
+		<Unit filename="../Common/inc/SysQueue.h" />
+		<Unit filename="../Common/inc/Thread.h" />
+		<Unit filename="../Common/inc/Timer.h" />
+		<Unit filename="../Common/inc/lc-addrlabels.h" />
+		<Unit filename="../Common/inc/lc-switch.h" />
+		<Unit filename="../Common/inc/lc.h" />
+		<Unit filename="../Common/inc/printf.h" />
+		<Unit filename="../Common/inc/pt-sem.h" />
+		<Unit filename="../Common/inc/pt.h" />
 		<Unit filename="../Common/src/Bytes.cpp" />
 		<Unit filename="../Common/src/CircBuf.cpp" />
 		<Unit filename="../Common/src/Event.cpp" />
@@ -61,9 +95,16 @@
 		<Unit filename="../Common/src/printf.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../Linux/inc/Tcp.h" />
+		<Unit filename="../Linux/src/Queue.cpp" />
+		<Unit filename="../Linux/src/Sys.cpp" />
+		<Unit filename="../Linux/src/Tcp.cpp" />
+		<Unit filename="../Linux/src/Thread.cpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
-			<code_completion />
+			<code_completion>
+				<search_path add="../Common/inc" />
+			</code_completion>
 			<debugger />
 		</Extensions>
 	</Project>

@@ -5,7 +5,7 @@
 
 #include "Event.h"
 
-#define DEFAULT_QUEUE_DEPTH 100
+#define DEFAULT_QUEUE_DEPTH 10
 class Queue
 {
 public:

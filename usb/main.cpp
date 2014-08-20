@@ -147,7 +147,7 @@ class Usb {
             bytes.offset(0);
             Str line(100);
             toHex(line,bytes);
-            log <<"USB Write: " << (char*)line.data();
+            log <<"USB write: " << (char*)line.data();
             log.flush();
             int count = ::write(_fd,bytes.data(),bytes.length());
             if ( count != bytes.length()) {
@@ -156,6 +156,21 @@ class Usb {
                 }
             return E_OK;
             }
+        int read(Bytes& bytes) {
+            int count;
+            int total=0;
+            uint8_t b;
+            while(::read(_fd,&b,1)>0){
+                bytes.write(b);
+                total++;
+            }
+            bytes.offset(0);
+            Str line(100);
+            toHex(line,bytes);
+            log <<"USB read: " << (char*)line.data();
+            log.flush();
+            return total;
+        }
         int fd() {
             return _fd;
             }
@@ -185,6 +200,7 @@ class PollerThread : public Thread , public Sequence {
         void run() {
             while(true) poller(usb.fd(),0);
             }
+
         void poller(int usbFd,int tcpFd) {
             fd_set rfds;
             fd_set wfds;
@@ -205,18 +221,22 @@ class PollerThread : public Thread , public Sequence {
             tv.tv_sec = 0;
             tv.tv_usec = 1000000;
 
-            retval = select(1, &rfds, &wfds, &efds, &tv);
+            retval = select(usbFd+2, &rfds, NULL, NULL, &tv);
 
-            if (retval == -1)
+            if (retval < 0 ) {
                 perror("select()");
-            else if (retval) {
+                sleep(1);
+                }
+            else if (retval>0) { // one of the fd was set
                 if ( FD_ISSET(usbFd,&rfds) ) {
+                    Bytes bytes(100);
+                    usb.read(bytes);
                     publish(Usb::RXD);
                     }
                 if ( FD_ISSET(tcpFd,&rfds) ) {
                     }
                 if ( FD_ISSET(usbFd,&efds) ) {
-                    publish(Usb::TXD);
+                    publish(Usb::ERROR);
                     }
                 if ( FD_ISSET(tcpFd,&efds) ) {
                     }
@@ -253,11 +273,16 @@ class UsbSeq : public Sequence {
                     PT_YIELD_UNTIL ( &t, timeout() );
                     }
                 while ( usb.isConnected() ) {
-                    topic << "topic";
+                    int i;
+                    msg.clear();
+                    for(i=0;i<16;i++) {
+                        msg.write(i);
+                    }
+                    /*topic << "topic";
                     data << "data";
                     msg.Publish(0,topic,data,123);
                     msg.Encode();
-                    msg.Frame();
+                    msg.Frame();*/
                     if ( usb.write (msg) ) break;
                     timeout(1000);
                     PT_YIELD_UNTIL ( &t, timeout() );

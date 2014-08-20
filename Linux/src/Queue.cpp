@@ -1,14 +1,15 @@
-#include "Queue.h"
+
 #include <fcntl.h>           /* For O_* constants */
 #include <sys/stat.h>    /* For mode constants */
 #include <mqueue.h>
 #include "Sys.h"
+#include "Queue.h"
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
 
 #define PQ ((mqd_t*)_ref)
-#define QUEUE_NAME "/MQ2"
+#define QUEUE_NAME "/MQ"
 //    mqd_t mq;
 Queue::Queue(uint32_t elementSize,uint32_t depth)
 {
@@ -33,7 +34,7 @@ Queue::Queue(uint32_t elementSize,uint32_t depth)
     if ( *mq < 0 )
     {
         perror("mq_open");
-        ASSERT(false);
+        assert(false);
     }
 
     _msgSize = elementSize;
