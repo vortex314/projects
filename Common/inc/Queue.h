@@ -9,6 +9,7 @@
 class Queue
 {
 public:
+	Queue();
     Queue(uint32_t elementSize,uint32_t depth);
     virtual ~Queue();
 
@@ -22,7 +23,9 @@ protected:
 private:
     uint32_t _msgSize;
     void* _ref;
-
+    int readPos;
+    int writePos;
+    uint32_t* list;
     static Queue* _defaultQueue;
 
 };

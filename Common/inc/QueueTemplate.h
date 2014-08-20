@@ -9,13 +9,14 @@
 #define	QUEUETEMPLATE_H
 #include "Erc.h"
 #include "Sys.h"
+#include "assert.h"
 
 template<class T>
 class QueueTemplate {
 public:
 	QueueTemplate(int count);
-	Erc put(T t);
-	Erc get(T* t);
+	Erc put(T& t);
+	Erc get(T& t);
 	uint32_t size();
 private:
 	T* _start;
@@ -27,13 +28,14 @@ private:
 template<class T>
 QueueTemplate<T>::QueueTemplate(int size) {
 	_start = new T[size];//(T*) Sys::malloc(size * sizeof(T));
+	assert(_start!=0);
 	_limit = size;
 	_readPos = 0;
 	_writePos = 1;
 }
 
 template<class T>
-Erc QueueTemplate<T>::put(T t) {
+Erc QueueTemplate<T>::put(T& t) {
 	Erc erc;
 //	Sys::interruptDisable();
 	uint16_t newPos = (_writePos + 1) % _limit;
@@ -49,14 +51,14 @@ Erc QueueTemplate<T>::put(T t) {
 }
 
 template<class T>
-Erc QueueTemplate<T>::get(T* t) {
+Erc QueueTemplate<T>::get(T& t) {
 	Erc erc;
 //	Sys::interruptDisable();
 	uint16_t newPos = (_readPos + 1) % _limit;
 	if (newPos == _writePos) {
 		erc = E_LACK_RESOURCE;
 	} else {
-		*t = _start[newPos];
+		t = _start[newPos];
 		_readPos = newPos; // last operation ( hopefully atomic to ISR)
 		erc = E_OK;
 	}
