@@ -1,18 +1,14 @@
-/*
- * File:   Timer.h
- * Author: lieven
- *
- * Created on September 7, 2013, 12:25 AM
- */
-
 #ifndef TIMER_H
-#define	TIMER_H
-#include <stdint.h>
-#include "Erc.h"
-#include "EventSource.h"
-#include "Sequence.h"
+#define TIMER_H
 
 
+class Timer
+{
+    public:
+    static int TICK;
+        Timer() {}
+    protected:
+    private:
+};
 
-#endif	/* TIMER_H */
-
+#endif // TIMER_H

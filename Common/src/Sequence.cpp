@@ -44,3 +44,30 @@ bool Sequence::timeout()
 {
     return _timeout < Sys::upTime();
 }
+
+#include "Timer.h"
+#include "pt.h"
+#include "Log.h"
+extern Log log;
+
+
+void  Sequence::loop() {
+    Event event;
+    Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
+    if ( event.id() != Timer::TICK ) {
+        log << " EVENT : " ;
+        event.toString(log);
+        log.flush();
+        }
+
+    int i;
+    for ( i = 0; i < MAX_SEQ; i++ )
+        if ( Sequence::activeSequence[i] ) {
+            if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
+                Sequence* seq = Sequence::activeSequence[i];
+                seq->unreg();
+                delete seq;
+                };
+            }
+
+    };

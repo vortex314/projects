@@ -21,6 +21,7 @@ public:
     void unreg();
     static void publish(void* src,EventId id,EventData* data);
     static void publish(int id);
+    static void loop();
     void timeout(uint32_t msec);
     bool timeout();
     typedef enum  {NA,OK,END} Result;

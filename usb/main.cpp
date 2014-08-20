@@ -13,64 +13,14 @@ using namespace std;
 
 #include "Str.h"
 #include <time.h>
-static uint64_t _upTime=0;
+#include "Timer.h"
+#include "Log.h"
 
-uint64_t upTime() { // time in msec since boot, only increasing
-    struct timespec deadline;
-    clock_gettime(CLOCK_MONOTONIC, &deadline);
-    _upTime= deadline.tv_sec*1000 + deadline.tv_nsec/1000000;
-    return _upTime;
-    }
-
-class Log : public Str {
-    public:
-        typedef uint64_t EOL;
-        EOL eol;
-        Log() : Str(100) {
-            }
-        void flush() {
-            cout << upTime()/1000<<"."<< upTime() %1000 << " | " ;
-            offset(0);
-
-            while(hasData())
-                std::cout << read();
-            cout << std::endl;
-            clear();
-            }
-    };
 
 Log log;
 
-const char *HEX="0123456789ABCDEF";
-void toHex(Str& out,Bytes& bytes) {
-    uint32_t  i;
 
-    for(i=0; i<bytes.length(); i++) {
-        uint8_t b;
-        b=bytes.read();
-        out << (char)HEX[b>>4]<< (char)HEX[b&0x0F] << " ";
-        }
-    bytes.offset(0);
-    for(i=0; i<bytes.length(); i++) {
-        uint8_t b;
-        b=bytes.read();
-        if ( isprint((char)b)) out << (char)b;
-        else out << '.';
-        }
-    }
 
-int open_port(void) {
-    int fd;
-
-    fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY);
-
-    if (fd == -1) {
-        fprintf(stderr, "open_port: Unable to open /dev/ttyACM0 - %s\n",
-                strerror(errno));
-        }
-
-    return (fd);
-    }
 #include "MqttOut.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,109 +33,12 @@ int open_port(void) {
 #include "Sequence.h"
 #include "Tcp.h"
 
-EventId TIMER_TICK = Event::nextEventId ( ( char* const ) "TIMER_TICK" );
+
 EventId MQTT_CONNECTED = Event::nextEventId ( ( char* const ) "MQTT_CONNECTED" );
 EventId MQTT_DISCONNECTED = Event::nextEventId ( ( char* const ) "MQTT_DISCONNECTED" );
 EventId PROP_CHANGED = Event::nextEventId ( ( char* const ) "PROP_CHANGED" );
 
-class Timer {
-    public :
-        const static int TICK;
-    };
-const int Timer::TICK=Event::nextEventId ( ( char* const ) "Timer::TICK" );
-
-class Usb {
-    public:
-        const static int CONNECTED,DISCONNECTED,RXD,ERROR,TXD;
-        Usb() {
-            _fd=0;
-            }
-        Usb(const char* device) {
-            _device =  device;
-            _isConnected=false;
-            _fd=0;
-            }
-        int open() {
-            struct termios options;
-            _fd = ::open(_device, O_RDWR | O_NOCTTY | O_NDELAY);
-
-            if (_fd == -1) {
-                log <<  "USB open: Unable to open " << _device << " : "<< strerror(errno);
-                log.flush();
-                return errno;
-                }
-            fcntl(_fd, F_SETFL, FNDELAY);
-
-            tcgetattr(_fd, &options);
-            cfsetispeed(&options, B38400);
-            cfsetospeed(&options, B38400);
-
-
-            options.c_cflag |= (CLOCAL | CREAD);
-            options.c_cflag &= ~PARENB;
-            options.c_cflag &= ~CSTOPB;
-            options.c_cflag &= ~CSIZE;
-            options.c_cflag |=  CS8;
-            options.c_cflag &= ~CRTSCTS;               /* Disable hardware flow control */
-
-
-            options.c_lflag &= ~(ICANON | ECHO | ISIG);
-
-
-            tcsetattr(_fd, TCSANOW, &options);
-            log << "USB open " << _device << " succeeded.";
-            log.flush();
-            _isConnected=true;
-            return E_OK;
-            }
-        int close() {
-            _isConnected=false;
-            if ( ::close(_fd) < 0 )   return errno;
-            return E_OK;
-            }
-        int write(Bytes& bytes) {
-            bytes.offset(0);
-            Str line(100);
-            toHex(line,bytes);
-            log <<"USB write: " << (char*)line.data();
-            log.flush();
-            int count = ::write(_fd,bytes.data(),bytes.length());
-            if ( count != bytes.length()) {
-                close();
-                return errno;
-                }
-            return E_OK;
-            }
-        int read(Bytes& bytes) {
-            int count;
-            int total=0;
-            uint8_t b;
-            while(::read(_fd,&b,1)>0){
-                bytes.write(b);
-                total++;
-            }
-            bytes.offset(0);
-            Str line(100);
-            toHex(line,bytes);
-            log <<"USB read: " << (char*)line.data();
-            log.flush();
-            return total;
-        }
-        int fd() {
-            return _fd;
-            }
-        bool isConnected() {
-            return _isConnected;
-            }
-    private :
-        int _fd;
-        const char* _device;
-        bool _isConnected;
-    };
-const int Usb::RXD=Event::nextEventId("USB::RXD");
-const int Usb::ERROR=Event::nextEventId("USB::ERROR");
-const int Usb::TXD=Event::nextEventId("USB::TXD");
-
+#include "Usb.h"
 Usb usb;
 
 
@@ -221,7 +74,7 @@ class PollerThread : public Thread , public Sequence {
             tv.tv_sec = 0;
             tv.tv_usec = 1000000;
 
-            retval = select(usbFd+2, &rfds, NULL, NULL, &tv);
+            retval = select(usbFd+2, &rfds, NULL, &efds, &tv);
 
             if (retval < 0 ) {
                 perror("select()");
@@ -229,7 +82,7 @@ class PollerThread : public Thread , public Sequence {
                 }
             else if (retval>0) { // one of the fd was set
                 if ( FD_ISSET(usbFd,&rfds) ) {
-                    Bytes bytes(100);
+                    Bytes bytes(256);
                     usb.read(bytes);
                     publish(Usb::RXD);
                     }
@@ -258,7 +111,7 @@ class UsbSeq : public Sequence {
         MqttOut msg;
     public:
 
-        UsbSeq (  ) :msg(100) {
+        UsbSeq (  ) :msg(256) {
             PT_INIT ( &t );
             }
 
@@ -275,14 +128,9 @@ class UsbSeq : public Sequence {
                 while ( usb.isConnected() ) {
                     int i;
                     msg.clear();
-                    for(i=0;i<16;i++) {
-                        msg.write(i);
+                    for(i=0;i<26;i++) {
+                        msg.write('a'+i);
                     }
-                    /*topic << "topic";
-                    data << "data";
-                    msg.Publish(0,topic,data,123);
-                    msg.Encode();
-                    msg.Frame();*/
                     if ( usb.write (msg) ) break;
                     timeout(1000);
                     PT_YIELD_UNTIL ( &t, timeout() );
