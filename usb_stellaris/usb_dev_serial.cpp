@@ -73,7 +73,7 @@
 // connected to act as handshake signals.  As a result, this example mimics
 // the case where communication is always possible.  It reports DSR, DCD
 // and CTS as high to ensure that the USB host recognizes that data can be
-// sent and merely ignores the host's requested DTR and RTS states.  "TODO"
+// sent and merely ignores the host's requested DTR and RTS states.  todo
 // comments in the code indicate where code would be required to add support
 // for real handshakes.
 //
@@ -398,12 +398,12 @@ extern "C" unsigned long TxHandler(void *pvCBData, unsigned long ulEvent,
 		// Since we are using the USBBuffer, we don't need to do anything
 		// here.
 		//
-		if (usbOut.hasData()) {
+	/*	if (usbOut.hasData()) {
 			uint8_t b;
 			b = usbOut.read();
 			USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,
 					1);
-		}
+		}*/
 		break;
 
 		//
@@ -494,6 +494,28 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 
 	return (0);
 }
+#include "Timer.h"
+
+void loop() {
+    Event event;
+    Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
+    if ( event.id() != Timer::TICK ) {
+        log << " EVENT : " ;
+        event.toString(log);
+        log.flush();
+        }
+
+    int i;
+    for ( i = 0; i < MAX_SEQ; i++ )
+        if ( Sequence::activeSequence[i] ) {
+            if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
+                Sequence* seq = Sequence::activeSequence[i];
+                seq->unreg();
+                delete seq;
+                };
+            }
+
+    };
 
 //*****************************************************************************
 //
@@ -547,7 +569,8 @@ int main(void) {
 	//
 	while (1) {
 		while (usbIn.hasData()) {
-			usbOut.write(usbIn.read() );
+			uint8_t b=usbIn.read();
+			usbOut.write( b );
 		}
 
 		while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
