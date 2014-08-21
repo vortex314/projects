@@ -276,7 +276,7 @@ void Bytes::Frame() //PUBLIC
 bool Bytes::Feed(uint8_t b) {
     if ( b == SOF ) {
         if ( _offset > 0 ) return true;
-        else return false;
+        else return false;  // don't add SOF
         }
     else write(b);
     return false;

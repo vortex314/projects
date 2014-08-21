@@ -35,6 +35,12 @@ void Sequence::unreg()
 
 void Sequence::publish(int id,uint16_t detail)
 {
+    Event ev(id,detail);
+    defaultQueue.put(ev);
+}
+
+void Sequence::publish(int id)
+{
     Event ev(id);
     defaultQueue.put(ev);
 }
@@ -54,12 +60,12 @@ bool Sequence::timeout()
 extern Log log;
 
 
-
 Erc Sequence::get(Event& event){
 	return defaultQueue.get ( event );
 }
-/*
 
+
+/*
 void  Sequence::loop() {
     Event event;
     defaultQueue.get ( event ); // dispatch eventually IDLE message

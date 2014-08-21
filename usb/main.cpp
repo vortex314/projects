@@ -36,6 +36,36 @@ Tcp tcp("test.mosquitto.org",1883);
 //
 // simulates RTOS generating events into queue : Timer::TICK,Usb::RXD,Usb::CONNECTED,...
 //_______________________________________________________________________________________
+class Mqtt {
+    public:
+    static const int RXD;
+};
+
+
+const int Mqtt::RXD=Event::nextEventId("Mqtt::RXD");
+
+void eventPump() {
+    Event event;
+    Sequence::get ( event ); // dispatch eventually IDLE message
+    if ( event.id() != Timer::TICK ) {
+        Log::log() << " EVENT : " ;
+        event.toString(Log::log());
+        Log::log().flush();
+        }
+
+    int i;
+    for ( i = 0; i < MAX_SEQ; i++ )
+        if ( Sequence::activeSequence[i] ) {
+            if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
+                Sequence* seq = Sequence::activeSequence[i];
+                seq->unreg();
+                delete seq;
+                };
+            }
+
+    };
+
+
 
 class PollerThread : public Thread , public Sequence {
     public:
@@ -46,7 +76,10 @@ class PollerThread : public Thread , public Sequence {
             return 0;
             };
         void run() {
-            while(true) poller(usb.fd(),0);
+            while(true) {
+                poller(usb.fd(),0);
+                eventPump();
+            }
             }
 
         void poller(int usbFd,int tcpFd) {
@@ -131,6 +164,7 @@ class UsbSeq : public Sequence {
                                 if ( mqttIn.isGoodCrc() ){
                                     mqttIn.RemoveCrc();
                                     mqttIn.parse();
+                                    publish(Mqtt::RXD);
                                 }
                                 }
                         }
@@ -147,41 +181,17 @@ class UsbSeq : public Sequence {
     };
 
 
-void loop() {
-    Event event;
-    Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
-    if ( event.id() != Timer::TICK ) {
-        Log::log() << " EVENT : " ;
-        event.toString(Log::log());
-        Log::log().flush();
-        }
-
-    int i;
-    for ( i = 0; i < MAX_SEQ; i++ )
-        if ( Sequence::activeSequence[i] ) {
-            if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
-                Sequence* seq = Sequence::activeSequence[i];
-                seq->unreg();
-                delete seq;
-                };
-            }
-
-    };
 
 #include "Tcp.h"
 
 int main(int argc, char *argv[] ) {
-    MqttOut msg(100);
 
     if ( argc >1 ) usb=Usb(argv[1]);
     else  usb=Usb("/dev/ttyACM0");
     PollerThread poller("",0,1);
     poller.start();
     UsbSeq usbSeq;
-
-    while(true) {
-        loop();
-        }
+    sleep(100000);
     }
 
 

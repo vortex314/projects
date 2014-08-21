@@ -19,7 +19,8 @@ public:
     virtual ~Sequence();
     void reg();
     void unreg();
-    static void publish(int id,uint16_t detail=0);
+    static void publish(int id);
+    static void publish(int id,uint16_t detail);
     static Erc get(Event& event);
     static void loop();
     void timeout(uint32_t msec);
