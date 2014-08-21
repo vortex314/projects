@@ -93,7 +93,7 @@ int Bytes::length () const {
     return _limit;
     }
 
-int Bytes::offset(uint32_t pos) {
+int Bytes::offset(int32_t pos) {
     if (pos < 0)
         _offset = _limit;
     else if (pos < _capacity)

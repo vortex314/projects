@@ -2,7 +2,7 @@
 #include "Sys.h"
 Log::Log() : Str(100) {
     }
-void Log::flush() {
+Log& Log::flush() {
 /*    cout << Sys::upTime()/1000<<"."<< Sys::upTime() %1000 << " | " ;
     offset(0);
 
@@ -10,6 +10,7 @@ void Log::flush() {
         std::cout << read();
     cout << std::endl;*/
     clear();
+    return *this;
     }
 const char *HEX="0123456789ABCDEF";
 Log& Log::dump(Bytes& bytes) {

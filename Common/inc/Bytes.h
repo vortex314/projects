@@ -33,7 +33,7 @@ public:
     int length() const;
     int length(int l);
     int available();
-    int offset(uint32_t offset);
+    int offset(int32_t offset);
     int offset();
     void move(int32_t distance);
     Erc insert(uint32_t offset,Bytes* data);

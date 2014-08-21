@@ -52,14 +52,13 @@ bool Sequence::timeout()
 #include "pt.h"
 #include "Log.h"
 extern Log log;
-<<<<<<< HEAD
-/*
-=======
+
+
 
 Erc Sequence::get(Event& event){
 	return defaultQueue.get ( event );
 }
->>>>>>> 292d18033dbc6214534388472cfb0488ae399486
+/*
 
 void  Sequence::loop() {
     Event event;

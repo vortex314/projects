@@ -11,7 +11,7 @@ class Log : public Str {
     static Log& log();
         typedef uint64_t EOL;
         EOL eol;
-        Log(int size) : Str(100 ) {};
+        Log();
         Log& flush();
         Log& dump(Bytes& bytes);
     };

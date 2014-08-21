@@ -527,8 +527,8 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 	// A new packet has been received.
 	//
 	case USB_EVENT_RX_AVAILABLE: {
-		uint8_t b;
-/*		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
+		/*		uint8_t b;
+		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
 			usb.in.write(b);*/
 		Sequence::publish(Usb::RXD);
 		break;
@@ -634,7 +634,7 @@ public:
 				PT_YIELD_UNTIL( &t,
 						eventIsMqtt ( event, MQTT_MSG_CONNACK, 0, 0 ) || timeout());
 				if (timeout()) {
-					publish(this, DISCONNECTED, 0);
+					publish(DISCONNECTED);
 					continue;
 				}
 
@@ -655,14 +655,14 @@ public:
 				PT_YIELD_UNTIL( &t,
 						eventIsMqtt ( event, MQTT_MSG_PUBACK, _messageId, 0 ) || timeout());
 				if (timeout()) {
-					publish(this, DISCONNECTED, 0);
+					publish(DISCONNECTED);
 					continue;
 				}
-				publish(this, CONNECTED, 0);
+				publish(CONNECTED);
 				_isConnected = true;
 				PT_YIELD_UNTIL( &t, event->is (Usb::DISCONNECTED ));
 
-				publish(this, DISCONNECTED, 0);
+				publish( DISCONNECTED);
 				_isConnected = false;
 			}
 		PT_END ( &t );
@@ -763,7 +763,7 @@ int main(void) {
 	//
 	// Main application loop.
 	//
-	Mqtt mqtt();
+	Mqtt mqtt;
 	uint64_t clock = Sys::upTime()+100;
 	while (1) {
 		eventPump();
