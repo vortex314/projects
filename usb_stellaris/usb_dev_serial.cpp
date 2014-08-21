@@ -136,6 +136,9 @@ public:
 	}
 	Erc send(Bytes& bytes) {
 		bytes.offset(0);
+		bytes.AddCrc();
+		bytes.Encode();
+		bytes.Frame();
 		while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
 				&& bytes.hasData()) {
 			uint8_t b;
@@ -761,8 +764,13 @@ int main(void) {
 	// Main application loop.
 	//
 	Mqtt mqtt();
+	uint64_t clock = Sys::upTime()+100;
 	while (1) {
 		eventPump();
+		if ( Sys::upTime() > clock ) {
+			clock+=100;
+			Sequence::publish(Timer::TICK);
+		}
 		/*		while (usbIn.hasData()) {
 		 uint8_t b=usbIn.read();
 		 usbOut.write( b );
