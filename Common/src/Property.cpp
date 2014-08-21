@@ -305,12 +305,11 @@ Property* Property::find(void* pv)
             return p;
     return 0;
 }
-#include "Logger.h"
+#include "Log.h"
 void Property::set( Str* name, Strpack* message)
 {
-    Sys::log().clear();
-    Sys::log().append(" SET ").append(name).append(" = ").append(message);
-    Sys::logFlush();
+    Log::log().clear().append(" SET ").append(name).append(" = ").append(message);
+    Log::log().flush();
 
     Property* p = find(name);
 

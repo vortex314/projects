@@ -10,7 +10,7 @@
 void myMemcpy(uint8_t *dst, uint8_t* src, int length) {
     for (int i = 0; i < length; i++)
         dst[i] = src[i];
-}
+    }
 
 Bytes::Bytes(uint8_t *st, uint32_t length) {
     _start = st;
@@ -18,7 +18,7 @@ Bytes::Bytes(uint8_t *st, uint32_t length) {
     _limit = length;
     _capacity = length;
     isMemoryOwner = false;
-}
+    }
 
 Bytes::Bytes() {
     _start = (uint8_t*) 0;
@@ -26,7 +26,7 @@ Bytes::Bytes() {
     _limit = 0;
     _capacity = 0;
     isMemoryOwner = false;
-}
+    }
 
 Bytes::Bytes(uint32_t size) {
     _start = new uint8_t[size]; // (uint8_t*) Sys::malloc(size);
@@ -34,7 +34,7 @@ Bytes::Bytes(uint32_t size) {
     _limit = 0;
     _capacity = size;
     isMemoryOwner = true;
-}
+    }
 
 Bytes::Bytes(Bytes& src) {
 
@@ -44,13 +44,13 @@ Bytes::Bytes(Bytes& src) {
     _capacity = src._capacity;
     myMemcpy(_start,src._start,src._limit);
     isMemoryOwner = true;
-}
+    }
 
-void Bytes::clone(Bytes& src){
+void Bytes::clone(Bytes& src) {
     myMemcpy(_start,src._start,_capacity);
     _offset=0;
     _limit = ( _capacity > src._limit ) ? src._limit : _capacity ;
-}
+    }
 
 void Bytes::sub(Bytes* parent, uint32_t length) {
     _start = parent->_start + parent->_offset;
@@ -59,17 +59,17 @@ void Bytes::sub(Bytes* parent, uint32_t length) {
     else _limit = parent->_capacity - parent->_offset;
     _capacity = _limit;
     isMemoryOwner = false;
-}
+    }
 
 Bytes::~Bytes() {
     if (isMemoryOwner)
         delete[] _start;
-}
+    }
 
 void Bytes::move(int32_t dist) {
     if ((_offset + dist) > _limit) _offset = _limit;
     else _offset += dist;
-}
+    }
 
 /* ByteBuffer::ByteBuffer(ByteBuffer& in) {
  start = in.start;
@@ -81,17 +81,17 @@ void Bytes::move(int32_t dist) {
 
 uint8_t* Bytes::data() const {
     return _start;
-}
+    }
 
 int Bytes::capacity() {
     return _capacity;
-}
+    }
 
 
 
 int Bytes::length () const {
     return _limit;
-}
+    }
 
 int Bytes::offset(uint32_t pos) {
     if (pos < 0)
@@ -99,7 +99,7 @@ int Bytes::offset(uint32_t pos) {
     else if (pos < _capacity)
         _offset = pos;
     return 0;
-}
+    }
 
 Erc Bytes::insert(uint32_t offset,Bytes* data) {
     if ( data->_limit + _limit > _capacity ) return E_LACK_RESOURCE;
@@ -107,37 +107,38 @@ Erc Bytes::insert(uint32_t offset,Bytes* data) {
     // move last part further
     int delta=data->length();
     int i;
-    for(i=_limit;i>=offset;i--) _start[i+delta]=_start[i];
+    for(i=_limit; i>=offset; i--) _start[i+delta]=_start[i];
     // insert data
-    for(i=0;i<delta;i++) _start[offset+i]=data->_start[i];
+    for(i=0; i<delta; i++) _start[offset+i]=data->_start[i];
     return E_OK;
-}
+    }
 
 int Bytes::offset() {
     return _offset;
-}
+    }
 
 int Bytes::length(int l) {
     _offset = 0;
     _limit = l;
     return 0;
-}
+    }
 
 int Bytes::available() {
     if (_offset < _limit)
         return _limit - _offset;
     else
         return 0;
-}
+    }
 
 Erc Bytes::write(uint8_t value) {
     if (_offset < _capacity) {
         _start[_offset++] = value;
         _limit = _offset;
-    } else
+        }
+    else
         return E_LACK_RESOURCE;
     return 0;
-}
+    }
 
 Erc Bytes::write(uint8_t* data, int offset, int length) {
     for (int i = 0; i < length; i++) {
@@ -145,13 +146,13 @@ Erc Bytes::write(uint8_t* data, int offset, int length) {
         erc = write(data[offset + i]);
         if (erc)
             return erc;
-    }
+        }
     return 0;
-}
+    }
 
 Erc Bytes::write(Bytes* data) {
     return write(data->_start,0,data->_limit);
-}
+    }
 
 Erc Bytes::read(uint8_t* data) {
     if (_offset < _limit)
@@ -159,30 +160,30 @@ Erc Bytes::read(uint8_t* data) {
     else
         return E_AGAIN;
     return 0;
-}
+    }
 
 uint8_t Bytes::read() {
     if (_offset < _limit)
         return _start[_offset++];
     return '-';
-}
+    }
 
 void Bytes::clear() {
     _offset = 0;
     _limit = 0;
-}
+    }
 
 //PUBLIC
 //_________________________________________________________________________
 
 void Bytes::AddCrc() //PUBLIC
 //_________________________________________________________________________
-{
+    {
     offset(-1); // position at end
     uint16_t crc = Fletcher16(_start, _limit);
     write(crc & 0xFF);
     write(crc >> 8);
-}
+    }
 
 uint16_t Bytes::Fletcher16(uint8_t *begin, int length) {
     uint16_t sum1 = 0;
@@ -193,29 +194,29 @@ uint16_t Bytes::Fletcher16(uint8_t *begin, int length) {
     for (index = begin; index < end; index++) {
         sum1 = (sum1 + *index) % 255;
         sum2 = (sum2 + sum1) % 255;
-    }
+        }
 
     return (sum2 << 8) | sum1;
-}
+    }
 //_________________________________________________________________________
 
 bool Bytes::isGoodCrc() //PUBLIC
 //_________________________________________________________________________
-{
+    {
     uint16_t crc = Fletcher16(_start, _limit - 2);
     if ((*(_start + _limit - 2) == (crc & 0xFF))
             && ((*(_start + _limit - 1) == (crc >> 8))))
         return true;
     return false;
-}
+    }
 
 //_________________________________________________________________________
 
 void Bytes::RemoveCrc() //PUBLIC
 //_________________________________________________________________________
-{
+    {
     _limit -= 2;
-}
+    }
 //PUBLIC
 
 //PUBLIC
@@ -223,7 +224,7 @@ void Bytes::RemoveCrc() //PUBLIC
 
 void Bytes::Decode() //PUBLIC
 //_________________________________________________________________________
-{
+    {
     uint8_t *p, *q;
     uint8_t *_capacity = _start + _limit;
     for (p = _start; p < _capacity; p++) {
@@ -233,16 +234,16 @@ void Bytes::Decode() //PUBLIC
                 *q = *(q + 1);
             _capacity--;
             //		p++; // skip next uint8_t could also be an escape
+            }
         }
-    }
     _limit = _capacity - _start;
-}
+    }
 
 //_________________________________________________________________________
 
 void Bytes::Encode() //PUBLIC
 //_________________________________________________________________________
-{
+    {
     uint8_t *p, *q;
     uint8_t *_capacity = _start + _limit;
     for (p = _start; p < _capacity; p++) {
@@ -252,16 +253,16 @@ void Bytes::Encode() //PUBLIC
             _capacity++;
             *(p + 1) = *p ^ 0x20;
             *p = ESC;
+            }
         }
-    }
     _limit = _capacity - _start;
-}
+    }
 
 //_________________________________________________________________________
 
 void Bytes::Frame() //PUBLIC
 //_________________________________________________________________________
-{
+    {
     uint8_t *q;
     uint8_t *end = _start + _limit;
     for (q = end; q >= _start; q--)
@@ -270,34 +271,37 @@ void Bytes::Frame() //PUBLIC
     *(end + 1) = SOF;
     end += 2;
     _limit = end - _start;
-}
+    }
 
-bool Bytes::Feed(uint8_t b){
-    if ( b == SOF && _offset > 0 ) return true;
+bool Bytes::Feed(uint8_t b) {
+    if ( b == SOF ) {
+        if ( _offset > 0 ) return true;
+        else return false;
+        }
     else write(b);
     return false;
-}
+    }
 
 int Bytes::poke(uint32_t idx, uint8_t b) {
     if (idx > _limit)
         return E_LACK_RESOURCE;
     _start[idx] = b;
     return 0;
-}
+    }
 
 int Bytes::peek() {
-return _start[_offset];
-}
+    return _start[_offset];
+    }
 
 int Bytes::peek(int32_t offset) {
     return _start[offset];
-}
+    }
 
 bool Bytes::hasData() {
     return _offset < _limit;
-}
+    }
 
 bool Bytes::hasSpace() {
     return _limit < _capacity;
-}
+    }
 

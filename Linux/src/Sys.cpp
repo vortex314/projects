@@ -68,8 +68,6 @@ void Sys::free(void *pv) {
 #include "Str.h"
 
 Str _hostname(30);
-Str Sys::_logLine(100);
-Str Sys::_lastLogLine(100);
 
 Str& Sys::getDeviceName() {
     if ( _hostname.length()==0) {
@@ -81,24 +79,8 @@ Str& Sys::getDeviceName() {
     return _hostname;
     }
 
-Str& Sys::log() {
-    return _logLine;
-    }
-Str& Sys::lastLog() {
-    return _lastLogLine;
-    }
-#include <iostream>
 
-Str& Sys::logFlush() {
-    _lastLogLine.clear() << Sys::upTime() << " | " ;
-    _logLine.offset(0);
-    _lastLogLine << _logLine;
-    while(_lastLogLine.hasData())
-        std::cout << _lastLogLine.read();
-    std::cout  <<   std::endl;
-    _logLine.clear();
-    return _logLine;
-    }
+
 
 
 

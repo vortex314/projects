@@ -15,13 +15,8 @@ using namespace std;
 #include <time.h>
 #include "Timer.h"
 #include "Log.h"
-
-
-Log log;
-
-
-
 #include "MqttOut.h"
+#include "MqttIn.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -32,15 +27,15 @@ Log log;
 #include "pt.h"
 #include "Sequence.h"
 #include "Tcp.h"
-
-
-EventId MQTT_CONNECTED = Event::nextEventId ( ( char* const ) "MQTT_CONNECTED" );
-EventId MQTT_DISCONNECTED = Event::nextEventId ( ( char* const ) "MQTT_DISCONNECTED" );
-EventId PROP_CHANGED = Event::nextEventId ( ( char* const ) "PROP_CHANGED" );
-
 #include "Usb.h"
-Usb usb;
 
+
+Usb usb("/dev/ttyACM0");
+Tcp tcp("test.mosquitto.org",1883);
+//_______________________________________________________________________________________
+//
+// simulates RTOS generating events into queue : Timer::TICK,Usb::RXD,Usb::CONNECTED,...
+//_______________________________________________________________________________________
 
 class PollerThread : public Thread , public Sequence {
     public:
@@ -82,8 +77,6 @@ class PollerThread : public Thread , public Sequence {
                 }
             else if (retval>0) { // one of the fd was set
                 if ( FD_ISSET(usbFd,&rfds) ) {
-                    Bytes bytes(256);
-                    usb.read(bytes);
                     publish(Usb::RXD);
                     }
                 if ( FD_ISSET(tcpFd,&rfds) ) {
@@ -105,6 +98,8 @@ class PollerThread : public Thread , public Sequence {
             }
     };
 
+MqttIn mqttIn(120);
+
 class UsbSeq : public Sequence {
     private:
         struct pt t;
@@ -121,23 +116,34 @@ class UsbSeq : public Sequence {
             PT_BEGIN ( &t );
             while(true) {
                 while ( true ) {
-                    if ( usb.open() == E_OK ) break;
+                    if ( usb.connect() == E_OK ) break;
                     timeout(5000);
                     PT_YIELD_UNTIL ( &t, timeout() );
                     }
                 while ( usb.isConnected() ) {
-                    int i;
-                    msg.clear();
-                    for(i=0;i<26;i++) {
-                        msg.write('a'+i);
+                    if ( event->is(Usb::RXD)) {
+                        int32_t v;
+                        while(true){
+                            v=usb.read();
+                            if ( v < 0 ) break;
+                            if ( mqttIn.Feed(v) ){
+                                mqttIn.Decode();
+                                if ( mqttIn.isGoodCrc() ){
+                                    mqttIn.RemoveCrc();
+                                    mqttIn.parse();
+                                }
+                                }
+                        }
+                    } else if ( event->is(Tcp::RXD) ) {
+
                     }
-                    if ( usb.write (msg) ) break;
-                    timeout(1000);
-                    PT_YIELD_UNTIL ( &t, timeout() );
+                    PT_YIELD ( &t );
                     }
+                    tcp.disconnect();
                 }
             PT_END ( &t );
             }
+
     };
 
 
@@ -145,9 +151,9 @@ void loop() {
     Event event;
     Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
     if ( event.id() != Timer::TICK ) {
-        log << " EVENT : " ;
-        event.toString(log);
-        log.flush();
+        Log::log() << " EVENT : " ;
+        event.toString(Log::log());
+        Log::log().flush();
         }
 
     int i;

@@ -2,23 +2,22 @@
 #define USB_H
 
 #include <Sequence.h>
+#include "Link.h"
 
 
-class Usb {
+class Usb :public Link {
     public:
         const static int CONNECTED,DISCONNECTED,RXD,ERROR,TXD;
         Usb() ;
         Usb(const char* device) ;
-        int open() ;
-        int close() ;
-        int write(Bytes& bytes) ;
-        int read(Bytes& bytes) ;
+        Erc connect() ;
+        Erc disconnect() ;
+        Erc send(Bytes& bytes) ;
+        int32_t read() ;
         int fd();
-        bool isConnected() ;
     private :
         int _fd;
         const char* _device;
-        bool _isConnected;
     };
 ;
 
