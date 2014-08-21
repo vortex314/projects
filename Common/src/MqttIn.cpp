@@ -224,7 +224,7 @@ void MqttIn::parse()
                 }
         default:
                 {
-                ASSERT( false ); // invalid message type, ignore noise
+                assert( false ); // invalid message type, ignore noise
                 }
         }
     }

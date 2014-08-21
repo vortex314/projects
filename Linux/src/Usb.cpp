@@ -9,7 +9,7 @@ const int Usb::TXD=Event::nextEventId("USB::TXD");
 #include <errno.h>
 #include <termios.h>
 #include "Log.h"
-extern Log log;
+
 Usb::Usb() {
     _fd=0;
     }
@@ -23,8 +23,8 @@ Erc Usb::connect() {
     _fd = ::open(_device, O_RDWR | O_NOCTTY | O_NDELAY);
 
     if (_fd == -1) {
-        log <<  "USB connect: Unable to open " << _device << " : "<< strerror(errno);
-        log.flush();
+        Log::log() <<  "USB connect: Unable to open " << _device << " : "<< strerror(errno);
+        Log::log().flush();
         return E_AGAIN;
         }
     fcntl(_fd, F_SETFL, FNDELAY);
@@ -46,8 +46,8 @@ Erc Usb::connect() {
 
 
     tcsetattr(_fd, TCSANOW, &options);
-    log << "USB open " << _device << " succeeded.";
-    log.flush();
+    Log::log() << "USB open " << _device << " succeeded.";
+    Log::log().flush();
     isConnected(true);
     return E_OK;
     }
@@ -58,9 +58,9 @@ Erc Usb::disconnect() {
     }
 Erc Usb::send(Bytes& bytes) {
     bytes.offset(0);
-    log <<"USB write: " ;
-    log.dump(bytes);
-    log.flush();
+    Log::log() <<"USB write: " ;
+    Log::log().dump(bytes);
+    Log::log().flush();
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
