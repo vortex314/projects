@@ -50,6 +50,11 @@ EventId Event::id()
     return _id;
 }
 
+uint16_t Event::detail()
+{
+    return _w;
+}
+
 
 #include "MqttIn.h"
 //#include "Tcp.h"

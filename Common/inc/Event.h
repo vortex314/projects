@@ -33,7 +33,7 @@ class Event {
         bool is(int id);
         bool is(int id,uint16_t w);
         int id();
-        uint16_t word();
+        uint16_t detail();
         uint8_t byte(int i);
         static EventId nextEventId(const char *s);
         char *getEventIdName();

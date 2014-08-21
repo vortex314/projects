@@ -3,12 +3,12 @@
 Log::Log() : Str(100) {
     }
 void Log::flush() {
-    cout << Sys::upTime()/1000<<"."<< Sys::upTime() %1000 << " | " ;
+/*    cout << Sys::upTime()/1000<<"."<< Sys::upTime() %1000 << " | " ;
     offset(0);
 
     while(hasData())
         std::cout << read();
-    cout << std::endl;
+    cout << std::endl;*/
     clear();
     }
 const char *HEX="0123456789ABCDEF";

@@ -73,7 +73,7 @@
 // connected to act as handshake signals.  As a result, this example mimics
 // the case where communication is always possible.  It reports DSR, DCD
 // and CTS as high to ensure that the USB host recognizes that data can be
-// sent and merely ignores the host's requested DTR and RTS states.  todo
+// sent and merely ignores the host's requested DTR and RTS states.
 // comments in the code indicate where code would be required to add support
 // for real handshakes.
 //
@@ -82,15 +82,102 @@
 #include "MqttOut.h"
 #include "CircBuf.h"
 #include "Queue.h"
+#include "Event.h"
+#include "Sequence.h"
+#include "Timer.h"
+#include "Log.h"
+#include "pt.h"
 
-CircBuf usbIn(256);
-CircBuf usbOut(256);
+//*******************************************************************************
 
-//*****************************************************************************
-//
-// Configuration and tuning parameters.
-//
-//*****************************************************************************
+#define MAX_MSG_SIZE 100
+#define TIME_KEEP_ALIVE 10000
+#define TIME_WAIT_REPLY 1000
+
+//*******************************************************************************
+
+Log log;
+uint16_t gMessageId = 1;
+MqttIn mqttIn(MAX_MSG_SIZE);
+MqttOut mqttOut(MAX_MSG_SIZE);
+Str putPrefix(20);
+Str getPrefix(20);
+Str prefix(20);
+#define MAX_BUFFER 2
+
+class Usb: public Sequence {
+private:
+	bool _isConnected;
+	int _index;
+	MqttIn* mqttIn[MAX_BUFFER];
+
+public:
+	CircBuf in;
+	static const int CONNECTED, DISCONNECTED, RXD, MQTT_MESSAGE;
+
+	Usb() :
+			in(256) {
+		_index = 0;
+		for(int i=0;i<MAX_BUFFER;i++) mqttIn[i] = new MqttIn(MAX_MSG_SIZE);
+		_index=0;
+	}
+	void nextIndex(){
+		_index++;
+		if ( _index==MAX_BUFFER) _index=0;
+	}
+	bool isConnected() {
+		return _isConnected;
+	}
+	void isConnected(bool bConnected) {
+		_isConnected = bConnected;
+	}
+	void reset() {
+		in.clear();
+	}
+	Erc send(Bytes& bytes) {
+		bytes.offset(0);
+		while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
+				&& bytes.hasData()) {
+			uint8_t b;
+			b = bytes.read();
+			USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,
+					1);
+		}
+		if (bytes.hasData() == false)
+			return E_OK;
+		return EAGAIN;
+	}
+
+	MqttIn* getMessage(int idx){
+		return mqttIn[idx];
+	}
+
+	int handler(Event* event) {
+		if (event->is(Usb::CONNECTED))
+			isConnected(true);
+		else if (event->is(Usb::DISCONNECTED))
+			isConnected(false);
+		else if (event->is(Usb::RXD)) {
+			uint8_t b;
+			while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1)) {
+				mqttIn[_index]->add(b);
+				if (mqttIn[_index]->complete()) {
+					publish(Usb::MQTT_MESSAGE,_index);
+					nextIndex();
+					mqttIn[_index]->clear();
+				}
+			}
+
+		}
+		return 0;
+	}
+};
+const int Usb::CONNECTED = Event::nextEventId("Usb::CONNECTED");
+const int Usb::DISCONNECTED = Event::nextEventId("Usb::DISCONNECTED");
+const int Usb::RXD = Event::nextEventId("Usb::RXD");
+const int Usb::MQTT_MESSAGE = Event::nextEventId("Usb::MQTT_MESSAGE");
+
+Usb usb;
 
 //*****************************************************************************
 //
@@ -188,8 +275,6 @@ static volatile tBoolean g_bUSBConfigured = false;
 // Internal function prototypes.
 //
 //*****************************************************************************
-static void CheckForSerialStateChange(const tUSBDCDCDevice *psDevice,
-		long lErrors);
 static void SetControlLineState(unsigned short usState);
 static tBoolean SetLineCoding(tLineCoding *psLineCoding);
 static void GetLineCoding(tLineCoding *psLineCoding);
@@ -210,17 +295,7 @@ __error__(char *pcFilename, unsigned long ulLine)
 }
 #endif
 
-//*****************************************************************************
-//
-// Interrupt handler for the system tick counter.
-//
-//*****************************************************************************
-extern "C" void SysTickIntHandler(void) {
-	//
-	// Update our system time.
-	//
-	g_ulSysTickCount++;
-}
+
 
 //*****************************************************************************
 //
@@ -229,7 +304,7 @@ extern "C" void SysTickIntHandler(void) {
 //*****************************************************************************
 static void SetControlLineState(unsigned short usState) {
 	//
-	// TODO: If configured with GPIOs controlling the handshake lines,
+	// If configured with GPIOs controlling the handshake lines,
 	// set them appropriately depending upon the flags passed in the wValue
 	// field of the request structure passed.
 	//
@@ -301,8 +376,8 @@ extern "C" unsigned long ControlHandler(void *pvCBData, unsigned long ulEvent,
 		//
 		USBBufferFlush(&g_sTxBuffer);
 		USBBufferFlush(&g_sRxBuffer);
-		usbIn.clear();
-		usbOut.clear();
+		Sequence::publish(Usb::CONNECTED);
+		usb.reset();
 		break;
 
 		//
@@ -310,6 +385,7 @@ extern "C" unsigned long ControlHandler(void *pvCBData, unsigned long ulEvent,
 		//
 	case USB_EVENT_DISCONNECTED:
 		g_bUSBConfigured = false;
+		Sequence::publish(Usb::DISCONNECTED);
 		break;
 
 		//
@@ -398,12 +474,12 @@ extern "C" unsigned long TxHandler(void *pvCBData, unsigned long ulEvent,
 		// Since we are using the USBBuffer, we don't need to do anything
 		// here.
 		//
-	/*	if (usbOut.hasData()) {
-			uint8_t b;
-			b = usbOut.read();
-			USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,
-					1);
-		}*/
+		/*	if (usbOut.hasData()) {
+		 uint8_t b;
+		 b = usbOut.read();
+		 USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,
+		 1);
+		 }*/
 		break;
 
 		//
@@ -449,8 +525,9 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 	//
 	case USB_EVENT_RX_AVAILABLE: {
 		uint8_t b;
-		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
-			usbIn.write(b);
+/*		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
+			usb.in.write(b);*/
+		Sequence::publish(Usb::RXD);
 		break;
 	}
 
@@ -494,28 +571,140 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 
 	return (0);
 }
-#include "Timer.h"
 
-void loop() {
-    Event event;
-    Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
-    if ( event.id() != Timer::TICK ) {
-        log << " EVENT : " ;
-        event.toString(log);
-        log.flush();
-        }
+uint16_t nextMessageId() {
+	return gMessageId++;
+}
 
-    int i;
-    for ( i = 0; i < MAX_SEQ; i++ )
-        if ( Sequence::activeSequence[i] ) {
-            if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
-                Sequence* seq = Sequence::activeSequence[i];
-                seq->unreg();
-                delete seq;
-                };
-            }
+/*****************************************************************************
+ *   MQTT EVENT filter
+ ******************************************************************************/
 
-    };
+bool eventIsMqtt(Event* event, uint8_t type, uint16_t messageId, uint8_t qos) {
+	if (event->id() != Usb::MQTT_MESSAGE)
+		return false;
+	MqttIn* mqttIn;
+	mqttIn = usb.getMessage(event->detail());
+	if (type)
+		if (mqttIn->type() != type)
+			return false;
+	if (messageId)
+		if (mqttIn->messageId() != messageId)
+			return false;
+	if (qos)
+		if (mqttIn->qos() != qos)
+			return false;
+	return true;
+}
+
+class Mqtt: public Sequence {
+private:
+	struct pt t;
+	uint16_t _messageId;
+	bool _isConnected;
+	Str str;
+	Str msg;
+
+public:
+	const static int DISCONNECTED, CONNECTED, IN;
+
+	Mqtt() :
+			str(30), msg(10) {
+		PT_INIT( &t);
+		_messageId = 2000;
+		_isConnected = false;
+	}
+
+	int handler(Event* event) {
+		PT_BEGIN ( &t )
+			;
+			while (1) {
+				_messageId = nextMessageId();
+
+				PT_YIELD_UNTIL( &t, usb.isConnected());
+				mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
+						"system/online", "false", "", "",
+						TIME_KEEP_ALIVE / 1000);
+				usb.send(mqttOut);
+
+				timeout(TIME_WAIT_REPLY);
+				PT_YIELD_UNTIL( &t,
+						eventIsMqtt ( event, MQTT_MSG_CONNACK, 0, 0 ) || timeout());
+				if (timeout()) {
+					publish(this, DISCONNECTED, 0);
+					continue;
+				}
+
+				str.clear() << putPrefix << "#";
+				mqttOut.Subscribe(0, str, ++_messageId, MQTT_QOS1_FLAG);
+				usb.send(mqttOut);
+
+				str.clear() << getPrefix << "#";
+				mqttOut.Subscribe(0, str, ++_messageId, MQTT_QOS1_FLAG);
+				usb.send(mqttOut);
+
+				str = "system/online";
+				msg = "true";
+				mqttOut.Publish(MQTT_QOS1_FLAG, str, msg, ++_messageId);
+				usb.send(mqttOut);
+
+				timeout(TIME_WAIT_REPLY);
+				PT_YIELD_UNTIL( &t,
+						eventIsMqtt ( event, MQTT_MSG_PUBACK, _messageId, 0 ) || timeout());
+				if (timeout()) {
+					publish(this, DISCONNECTED, 0);
+					continue;
+				}
+				publish(this, CONNECTED, 0);
+				_isConnected = true;
+				PT_YIELD_UNTIL( &t, event->is (Usb::DISCONNECTED ));
+
+				publish(this, DISCONNECTED, 0);
+				_isConnected = false;
+			}
+		PT_END ( &t );
+}
+
+Erc send(Bytes& pb) {
+	if (usb.isConnected())
+		return usb.send(pb);
+	else
+		return E_AGAIN;
+}
+bool isConnected() {
+	return _isConnected;
+}
+;
+Erc disconnect() {
+	return E_OK;
+}
+};
+const int Mqtt::CONNECTED = Event::nextEventId("MQTT_CONNECTED");
+const int Mqtt::DISCONNECTED = Event::nextEventId("MQTT_DISCONNECTED");
+
+void eventPump() {
+	Event event;
+	Erc erc;
+	erc = Sequence::get(event); // dispatch eventually IDLE message
+	if ( erc== E_LACK_RESOURCE) return;
+	if (event.id() != Timer::TICK) {
+		log << " EVENT : ";
+		event.toString(log);
+		log.flush();
+	}
+
+	int i;
+	for (i = 0; i < MAX_SEQ; i++)
+		if (Sequence::activeSequence[i]) {
+			if (Sequence::activeSequence[i]->handler(&event) == PT_ENDED) {
+				Sequence* seq = Sequence::activeSequence[i];
+				seq->unreg();
+				delete seq;
+			};
+		}
+
+}
+;
 
 //*****************************************************************************
 //
@@ -523,6 +712,10 @@ void loop() {
 //
 //*****************************************************************************
 int main(void) {
+	prefix << "Stellaris" << "/";
+	mqttOut.prefix(prefix);
+	getPrefix << "GET/" << prefix;
+	putPrefix << "PUT/" << prefix;
 	//
 	// Enable lazy stacking for interrupt handlers.  This allows floating-point
 	// instructions to be used within interrupt handlers, but at the expense of
@@ -567,17 +760,19 @@ int main(void) {
 	//
 	// Main application loop.
 	//
+	Mqtt mqtt();
 	while (1) {
-		while (usbIn.hasData()) {
-			uint8_t b=usbIn.read();
-			usbOut.write( b );
-		}
+		eventPump();
+		/*		while (usbIn.hasData()) {
+		 uint8_t b=usbIn.read();
+		 usbOut.write( b );
+		 }
 
-		while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
-				&& usbOut.hasData()) {
-			uint8_t b;
-			b = usbOut.read();
-			USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,1);
-		}
+		 while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
+		 && usbOut.hasData()) {
+		 uint8_t b;
+		 b = usb.out.read();
+		 USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,1);
+		 }*/
 	}
 }

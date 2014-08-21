@@ -20,7 +20,8 @@ public:
     void reg();
     void unreg();
     static void publish(void* src,EventId id,EventData* data);
-    static void publish(int id);
+    static void publish(int id,uint16_t detail=0);
+    static Erc get(Event& event);
     static void loop();
     void timeout(uint32_t msec);
     bool timeout();

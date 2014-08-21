@@ -1,4 +1,7 @@
 #include "Sequence.h"
+#include "QueueTemplate.h"
+
+QueueTemplate<Event> defaultQueue(10);
 
 uint32_t Sequence::activeSequenceCount=0;
 Sequence* Sequence::activeSequence[MAX_SEQ];
@@ -30,10 +33,10 @@ void Sequence::unreg()
 };
 
 
-void Sequence::publish(int id)
+void Sequence::publish(int id,uint16_t detail)
 {
     Event ev(id);
-    Queue::getDefaultQueue()->put(&ev);
+    defaultQueue.put(ev);
 }
 
 void Sequence::timeout(uint32_t msec)
@@ -49,11 +52,18 @@ bool Sequence::timeout()
 #include "pt.h"
 #include "Log.h"
 extern Log log;
+<<<<<<< HEAD
 /*
+=======
+
+Erc Sequence::get(Event& event){
+	return defaultQueue.get ( event );
+}
+>>>>>>> 292d18033dbc6214534388472cfb0488ae399486
 
 void  Sequence::loop() {
     Event event;
-    Queue::getDefaultQueue()->get ( &event ); // dispatch eventually IDLE message
+    defaultQueue.get ( event ); // dispatch eventually IDLE message
     if ( event.id() != Timer::TICK ) {
         log << " EVENT : " ;
         event.toString(log);
