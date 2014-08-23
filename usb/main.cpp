@@ -38,15 +38,15 @@ Tcp tcp("test.mosquitto.org",1883);
 //_______________________________________________________________________________________
 class Mqtt {
     public:
-    static const int RXD;
-};
+        static const int RXD;
+    };
 
 
 const int Mqtt::RXD=Event::nextEventId("Mqtt::RXD");
 
 void eventPump() {
     Event event;
-    Sequence::get ( event ); // dispatch eventually IDLE message
+    if ( Sequence::get ( event ) == E_LACK_RESOURCE ) return ; // dispatch eventually IDLE message
     if ( event.id() != Timer::TICK ) {
         Log::log() << " EVENT : " ;
         event.toString(Log::log());
@@ -77,9 +77,9 @@ class PollerThread : public Thread , public Sequence {
             };
         void run() {
             while(true) {
-                poller(usb.fd(),0);
+                poller(usb.fd(),tcp.fd());
                 eventPump();
-            }
+                }
             }
 
         void poller(int usbFd,int tcpFd) {
@@ -93,16 +93,18 @@ class PollerThread : public Thread , public Sequence {
             FD_ZERO(&rfds);
             FD_ZERO(&wfds);
             FD_ZERO(&efds);
-            FD_SET(usbFd, &rfds);
-            FD_SET(tcpFd,&rfds);
-            FD_SET(usbFd, &efds);
-            FD_SET(tcpFd,&efds);
+            if ( usbFd ) FD_SET(usbFd, &rfds);
+            if ( tcpFd ) FD_SET(tcpFd,&rfds);
+            if ( usbFd ) FD_SET(usbFd, &efds);
+            if ( tcpFd )  FD_SET(tcpFd,&efds);
 
             /* Wait up to five seconds. */
             tv.tv_sec = 0;
             tv.tv_usec = 1000000;
+            int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
+            maxFd+=1;
 
-            retval = select(usbFd+2, &rfds, NULL, &efds, &tv);
+            retval = select(maxFd, &rfds, NULL, &efds, &tv);
 
             if (retval < 0 ) {
                 perror("select()");
@@ -113,16 +115,13 @@ class PollerThread : public Thread , public Sequence {
                     publish(Usb::RXD);
                     }
                 if ( FD_ISSET(tcpFd,&rfds) ) {
+                    publish(Tcp::RXD);
                     }
                 if ( FD_ISSET(usbFd,&efds) ) {
                     publish(Usb::ERROR);
                     }
                 if ( FD_ISSET(tcpFd,&efds) ) {
-                    }
-                if ( FD_ISSET(usbFd,&wfds) ) {
-                    publish(Usb::TXD);
-                    }
-                if ( FD_ISSET(tcpFd,&wfds) ) {
+                    publish(Tcp::ERROR);
                     }
                 }
             else
@@ -133,13 +132,50 @@ class PollerThread : public Thread , public Sequence {
 
 MqttIn mqttIn(120);
 
-class UsbSeq : public Sequence {
+
+class Gateway : public Sequence {
+    private:
+        struct pt t;
+    public:
+
+        Gateway (  )   {
+            PT_INIT ( &t );
+            }
+
+        int handler ( Event* event ) {
+            PT_BEGIN ( &t );
+            while(true) {
+                PT_YIELD_UNTIL(&t,event->is(Tcp::MESSAGE) || event->is(Usb::MESSAGE));
+                if ( event->is(Tcp::MESSAGE))  {
+                    Bytes* msg = tcp.recv();
+                    usb.send(*msg);
+                    }
+                else if ( event->is(Usb::MESSAGE))  {
+                    Bytes* msg = usb.recv();
+                    assert(msg!=NULL);
+                    MqttIn* mqttIn=(MqttIn*)(msg);
+                    if ( mqttIn->length() >1 ) { // sometimes bad message
+                        mqttIn->parse();
+                        if ( mqttIn->type() == MQTT_MSG_CONNECT )
+                            if ( !tcp.isConnected())
+                                tcp.connect();
+                        tcp.send(*msg);
+                        }
+                    }
+                PT_YIELD ( &t );
+                }
+
+            PT_END ( &t );
+            }
+    };
+
+class UsbConnection : public Sequence {
     private:
         struct pt t;
         MqttOut msg;
     public:
 
-        UsbSeq (  ) :msg(256) {
+        UsbConnection (  ) :msg(256) {
             PT_INIT ( &t );
             }
 
@@ -154,26 +190,9 @@ class UsbSeq : public Sequence {
                     PT_YIELD_UNTIL ( &t, timeout() );
                     }
                 while ( usb.isConnected() ) {
-                    if ( event->is(Usb::RXD)) {
-                        int32_t v;
-                        while(true){
-                            v=usb.read();
-                            if ( v < 0 ) break;
-                            if ( mqttIn.Feed(v) ){
-                                mqttIn.Decode();
-                                if ( mqttIn.isGoodCrc() ){
-                                    mqttIn.RemoveCrc();
-                                    mqttIn.parse();
-                                    publish(Mqtt::RXD);
-                                }
-                                }
-                        }
-                    } else if ( event->is(Tcp::RXD) ) {
-
-                    }
                     PT_YIELD ( &t );
                     }
-                    tcp.disconnect();
+                tcp.disconnect();
                 }
             PT_END ( &t );
             }
@@ -186,11 +205,10 @@ class UsbSeq : public Sequence {
 
 int main(int argc, char *argv[] ) {
 
-    if ( argc >1 ) usb=Usb(argv[1]);
-    else  usb=Usb("/dev/ttyACM0");
     PollerThread poller("",0,1);
     poller.start();
-    UsbSeq usbSeq;
+    UsbConnection usbConnection;
+    Gateway gtw;
     sleep(100000);
     }
 

@@ -3,21 +3,33 @@
 
 #include <Sequence.h>
 #include "Link.h"
+#include "CircBuf.h"
+#include "pt.h"
 
 
-class Usb :public Link {
+class Usb :public Link,public Sequence  {
+
     public:
-        const static int CONNECTED,DISCONNECTED,RXD,ERROR,TXD;
-        Usb() ;
+        const static int CONNECTED,DISCONNECTED,RXD,ERROR,MESSAGE,FREE;
+
         Usb(const char* device) ;
         Erc connect() ;
         Erc disconnect() ;
         Erc send(Bytes& bytes) ;
-        int32_t read() ;
+        Bytes* recv() ;
+
+        int handler(Event* event);
+
+
         int fd();
     private :
+    int32_t read() ;
+        struct pt t;
         int _fd;
         const char* _device;
+        bool _isComplete;
+        Bytes msg;
+        CircBuf inBuffer;
     };
 ;
 

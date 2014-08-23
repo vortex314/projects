@@ -8,7 +8,8 @@ using namespace std;
 
 class Log : public Str {
     public:
-    static Log& log();
+        static Log& log();
+        Log(int size);
         typedef uint64_t EOL;
         EOL eol;
         Log();
