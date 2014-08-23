@@ -87,6 +87,7 @@
 #include "Timer.h"
 #include "Log.h"
 #include "pt.h"
+#include "Board.h"
 
 //*******************************************************************************
 
@@ -118,12 +119,14 @@ public:
 	Usb() :
 			in(256) {
 		_index = 0;
-		for(int i=0;i<MAX_BUFFER;i++) mqttIn[i] = new MqttIn(MAX_MSG_SIZE);
-		_index=0;
+		for (int i = 0; i < MAX_BUFFER; i++)
+			mqttIn[i] = new MqttIn(MAX_MSG_SIZE);
+		_index = 0;
 	}
-	void nextIndex(){
+	void nextIndex() {
 		_index++;
-		if ( _index==MAX_BUFFER) _index=0;
+		if (_index == MAX_BUFFER)
+			_index = 0;
 	}
 	bool isConnected() {
 		return _isConnected;
@@ -135,10 +138,10 @@ public:
 		in.clear();
 	}
 	Erc send(Bytes& bytes) {
-		bytes.offset(0);
 		bytes.AddCrc();
 		bytes.Encode();
 		bytes.Frame();
+		bytes.offset(0);
 		while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
 				&& bytes.hasData()) {
 			uint8_t b;
@@ -151,7 +154,7 @@ public:
 		return EAGAIN;
 	}
 
-	MqttIn* getMessage(int idx){
+	MqttIn* getMessage(int idx) {
 		return mqttIn[idx];
 	}
 
@@ -165,7 +168,7 @@ public:
 			while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1)) {
 				mqttIn[_index]->add(b);
 				if (mqttIn[_index]->complete()) {
-					publish(Usb::MQTT_MESSAGE,_index);
+					publish(Usb::MQTT_MESSAGE, _index);
 					nextIndex();
 					mqttIn[_index]->clear();
 				}
@@ -297,8 +300,6 @@ __error__(char *pcFilename, unsigned long ulLine)
 	}
 }
 #endif
-
-
 
 //*****************************************************************************
 //
@@ -528,8 +529,8 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 	//
 	case USB_EVENT_RX_AVAILABLE: {
 		/*		uint8_t b;
-		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
-			usb.in.write(b);*/
+		 while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
+		 usb.in.write(b);*/
 		Sequence::publish(Usb::RXD);
 		break;
 	}
@@ -600,6 +601,33 @@ bool eventIsMqtt(Event* event, uint8_t type, uint16_t messageId, uint8_t qos) {
 	return true;
 }
 
+typedef enum {
+		LED_BLUE = 1, LED_GREEN, LED_RED
+	} Led;
+
+#define LED_INTERVAL 100
+class LedBlink: public Sequence {
+private:
+	struct pt t;
+
+public:
+	LedBlink() {
+		PT_INIT( &t);
+	}
+	int handler(Event* event) {
+		PT_BEGIN ( &t )
+			while (true) {
+				timeout(99);
+				PT_YIELD_UNTIL( &t, timeout());
+				Board::setLedOn(LED_GREEN,true);
+				timeout(1);
+				PT_YIELD_UNTIL( &t, timeout());
+				Board::setLedOn(LED_GREEN,false);
+			}
+		PT_END ( &t );
+}
+};
+
 class Mqtt: public Sequence {
 private:
 	struct pt t;
@@ -662,7 +690,7 @@ public:
 				_isConnected = true;
 				PT_YIELD_UNTIL( &t, event->is (Usb::DISCONNECTED ));
 
-				publish( DISCONNECTED);
+				publish(DISCONNECTED);
 				_isConnected = false;
 			}
 		PT_END ( &t );
@@ -689,7 +717,8 @@ void eventPump() {
 	Event event;
 	Erc erc;
 	erc = Sequence::get(event); // dispatch eventually IDLE message
-	if ( erc== E_LACK_RESOURCE) return;
+	if (erc == E_LACK_RESOURCE)
+		return;
 	if (event.id() != Timer::TICK) {
 		log << " EVENT : ";
 		event.toString(log);
@@ -764,11 +793,13 @@ int main(void) {
 	// Main application loop.
 	//
 	Mqtt mqtt;
-	uint64_t clock = Sys::upTime()+100;
+	LedBlink ledBlink;
+	Board::init();
+	uint64_t clock = Sys::upTime() + 100;
 	while (1) {
 		eventPump();
-		if ( Sys::upTime() > clock ) {
-			clock+=100;
+		if (Sys::upTime() > clock) {
+			clock += 100;
 			Sequence::publish(Timer::TICK);
 		}
 		/*		while (usbIn.hasData()) {
