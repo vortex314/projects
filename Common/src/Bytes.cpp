@@ -203,6 +203,7 @@ uint16_t Bytes::Fletcher16(uint8_t *begin, int length) {
 bool Bytes::isGoodCrc() //PUBLIC
 //_________________________________________________________________________
     {
+    if ( _limit < 3 ) return false; // need at least 3 bytes
     uint16_t crc = Fletcher16(_start, _limit - 2);
     if ((*(_start + _limit - 2) == (crc & 0xFF))
             && ((*(_start + _limit - 1) == (crc >> 8))))
@@ -275,8 +276,11 @@ void Bytes::Frame() //PUBLIC
 
 bool Bytes::Feed(uint8_t b) {
     if ( b == SOF ) {
-        if ( _offset > 0 ) return true;
-        else return false;  // don't add SOF
+        if ( _offset > 0 )
+            return true;
+        else {
+            return false;  // don't add SOF
+            }
         }
     else write(b);
     return false;

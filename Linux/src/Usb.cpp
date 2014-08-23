@@ -1,7 +1,8 @@
 #include "Usb.h"
 const int Usb::RXD=Event::nextEventId("USB::RXD");
 const int Usb::ERROR=Event::nextEventId("USB::ERROR");
-const int Usb::TXD=Event::nextEventId("USB::TXD");
+const int Usb::MESSAGE=Event::nextEventId("USB::MESSAGE");
+const int Usb::FREE=Event::nextEventId("USB::FREE");
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -10,13 +11,12 @@ const int Usb::TXD=Event::nextEventId("USB::TXD");
 #include <termios.h>
 #include "Log.h"
 
-Usb::Usb() {
-    _fd=0;
-    }
-Usb::Usb(const char* device) {
+Usb::Usb(const char* device) : msg(100),inBuffer(256) {
     _device =  device;
     isConnected(false);
     _fd=0;
+    PT_INIT(&t);
+    _isComplete = false;
     }
 Erc Usb::connect() {
     struct termios options;
@@ -53,9 +53,11 @@ Erc Usb::connect() {
     }
 Erc Usb::disconnect() {
     isConnected(false);
+    _isComplete=false;
     if ( ::close(_fd) < 0 )   return errno;
     return E_OK;
     }
+
 Erc Usb::send(Bytes& bytes) {
     bytes.offset(0);
     Log::log() <<"USB write: " ;
@@ -71,6 +73,7 @@ Erc Usb::send(Bytes& bytes) {
         }
     return E_OK;
     }
+
 int32_t Usb::read() {
     uint8_t b;
     if (::read(_fd,&b,1)>0) {
@@ -78,8 +81,62 @@ int32_t Usb::read() {
         }
     return -1;
     }
+
+int Usb::handler ( Event* event ) {
+    int32_t b;
+
+    PT_BEGIN ( &t );
+    while(true) {
+        while( isConnected()) {
+            PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && _isComplete==false) );
+            if ( event->is(RXD) ) {
+                while( (b=read()) >=0 ) {
+                    inBuffer.write(b);
+                    }
+                }
+            else if ( event->is(FREE)) { // re-use buffer after message handled
+                _isComplete=false;
+                msg.clear();
+                };
+            if ( inBuffer.hasData() && _isComplete==false) {
+                while( inBuffer.hasData() ) {
+                    if ( msg.Feed(inBuffer.read())) {
+                        Log::log() <<  "USB rxd " ;
+                        Log::log().dump(msg);
+                        Log::log().flush();
+                        msg.Decode();
+                        if ( msg.isGoodCrc() ) {
+                            msg.RemoveCrc();
+                            publish(MESSAGE);
+                            publish(FREE); // re-use buffer after message handled
+                            _isComplete=true;
+                            }
+                        else {
+                            msg.clear(); // throw away bad data
+                            }
+                        }
+                    }
+                }
+            PT_YIELD ( &t );
+            }
+        PT_YIELD_UNTIL ( &t,isConnected() );
+        }
+
+    PT_END ( &t );
+    }
+
+Bytes* Usb::recv() {
+    if ( _isComplete ) {
+
+        return &msg;
+        }
+    return 0;
+    }
+
 int Usb::fd() {
     return _fd;
     }
+
+
 
 

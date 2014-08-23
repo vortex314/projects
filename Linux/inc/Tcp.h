@@ -5,18 +5,23 @@
 #include "Thread.h"
 #include "EventSource.h"
 #include "Sequence.h"
+#include "Link.h"
+#include "pt.h"
 
 
-class Tcp : public Sequence
+class Tcp : public Link,public Sequence
 {
 private:
     int _sockfd;
     bool _connected;
     const char* _host;
     uint16_t _port;
+    Bytes msg;
+    bool _isComplete;
+    struct pt t;
 public:
 
-    static int CONNECTED,DISCONNECTED,RXD,TXD;
+    static int CONNECTED,DISCONNECTED,RXD,MESSAGE,FREE,ERROR;
     Tcp( const char *host,uint16_t port);
     ~Tcp();
 
@@ -24,13 +29,15 @@ public:
     Erc disconnect();
     bool isConnected();
 
-    Erc recv(Bytes* pb);
+    Bytes* recv();
     int32_t read();
+    Bytes* getMessage(int msgIdx);
 
-    Erc send(Bytes* pb);
+    Erc send(Bytes& pb);
     void run();
     void mqttRead(int32_t b);
-    int handler(Event*event){return 0;};
+    int handler(Event*event);
+    int fd();
 };
 
 #endif // TCP_H

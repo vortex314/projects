@@ -83,7 +83,7 @@
 		<Cursor position="19" topLine="0" />
 	</File>
 	<File name="../Common/src/MqttIn.cpp" open="0" top="0" tabpos="5">
-		<Cursor position="610" topLine="0" />
+		<Cursor position="3310" topLine="118" />
 	</File>
 	<File name="../Common/src/MqttOut.cpp" open="0" top="0" tabpos="6">
 		<Cursor position="1401" topLine="63" />
@@ -109,8 +109,8 @@
 	<File name="../Common/src/printf.c" open="0" top="0" tabpos="11">
 		<Cursor position="0" topLine="0" />
 	</File>
-	<File name="../Linux/src/Queue.cpp" open="1" top="1" tabpos="2">
-		<Cursor position="1821" topLine="75" />
+	<File name="../Linux/src/Queue.cpp" open="0" top="0" tabpos="2">
+		<Cursor position="1821" topLine="72" />
 	</File>
 	<File name="inc/Publisher.h" open="0" top="0" tabpos="0">
 		<Cursor position="502" topLine="0" />
@@ -131,6 +131,6 @@
 		<Cursor position="102" topLine="0" />
 	</File>
 	<File name="src/main.cpp" open="0" top="0" tabpos="1">
-		<Cursor position="12570" topLine="383" />
+		<Cursor position="2580" topLine="79" />
 	</File>
 </CodeBlocks_layout_file>

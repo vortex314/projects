@@ -19,7 +19,7 @@
 
 class Stream;
 class Sys;
-#define MAX_EVENT_ID    20
+#define MAX_EVENT_ID    50
 typedef int EventId;
 class EventData {
         virtual void toString(Str& str)=0;

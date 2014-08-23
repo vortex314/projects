@@ -69,6 +69,6 @@ void Event::toString(Str& out)
         if ( id() == Tcp::MQTT_MESSAGE)
             ((MqttIn*)data())->toString(out);
     }*/
-    out.append(" }");
+    out.append(" } = ") << _id ;
 }
 

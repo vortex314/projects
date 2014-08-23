@@ -4,11 +4,14 @@
 #include <iostream>
 
 Str _lastLogLine(100);
-
 Log _SysLog(100);
-Log& Log::log(){
+
+Log& Log::log() {
     return _SysLog;
-}
+    }
+
+Log::Log(int size):Str(size) {
+    }
 
 Log& Log::flush() {
     _lastLogLine.clear() << Sys::upTime() << " | " ;
@@ -25,15 +28,14 @@ Log& Log::flush() {
 
 const char *HEX="0123456789ABCDEF";
 Log& Log::dump(Bytes& bytes) {
-    uint32_t  i;
-
-    for(i=0; i<bytes.length(); i++) {
+    bytes.offset(0);
+    while(bytes.hasData()) {
         uint8_t b;
         b=bytes.read();
         *this << (char)HEX[b>>4]<< (char)HEX[b&0x0F] << " ";
         }
     bytes.offset(0);
-    for(i=0; i<bytes.length(); i++) {
+    while(bytes.hasData()) {
         uint8_t b;
         b=bytes.read();
         if ( isprint((char)b)) *this << (char)b;

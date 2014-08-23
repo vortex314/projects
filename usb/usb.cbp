@@ -50,6 +50,7 @@
 		<Unit filename="../Common/inc/EventSource.h" />
 		<Unit filename="../Common/inc/Interface.h" />
 		<Unit filename="../Common/inc/Led.h" />
+		<Unit filename="../Common/inc/Link.h" />
 		<Unit filename="../Common/inc/Logger.h" />
 		<Unit filename="../Common/inc/Mqtt.h" />
 		<Unit filename="../Common/inc/MqttConstants.h" />
@@ -80,6 +81,7 @@
 		<Unit filename="../Common/src/CircBuf.cpp" />
 		<Unit filename="../Common/src/Event.cpp" />
 		<Unit filename="../Common/src/EventSource.cpp" />
+		<Unit filename="../Common/src/Link.cpp" />
 		<Unit filename="../Common/src/MqttIn.cpp" />
 		<Unit filename="../Common/src/MqttOut.cpp" />
 		<Unit filename="../Common/src/Msgpack.cpp" />
@@ -92,14 +94,17 @@
 		<Unit filename="../Common/src/Str.cpp" />
 		<Unit filename="../Common/src/Strpack.cpp" />
 		<Unit filename="../Common/src/SysQueue.cpp" />
+		<Unit filename="../Common/src/Timer.cpp" />
 		<Unit filename="../Common/src/printf.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../Linux/inc/Tcp.h" />
+		<Unit filename="../Linux/src/Log.cpp" />
 		<Unit filename="../Linux/src/Queue.cpp" />
 		<Unit filename="../Linux/src/Sys.cpp" />
 		<Unit filename="../Linux/src/Tcp.cpp" />
 		<Unit filename="../Linux/src/Thread.cpp" />
+		<Unit filename="../Linux/src/Usb.cpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion>
