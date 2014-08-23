@@ -22,7 +22,6 @@ private:
 	uint16_t writePos;
 	uint16_t limit;
 public:
-	CircBuf();
 	CircBuf(int size);
 	~CircBuf();
 	int write(uint8_t b);

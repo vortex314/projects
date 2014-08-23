@@ -2,6 +2,7 @@
 #define TCP_H
 
 #include "Bytes.h"
+#include "MqttIn.h"
 #include "Thread.h"
 #include "EventSource.h"
 #include "Sequence.h"
@@ -16,8 +17,7 @@ private:
     bool _connected;
     const char* _host;
     uint16_t _port;
-    Bytes msg;
-    bool _isComplete;
+    MqttIn msg;
     struct pt t;
 public:
 
@@ -29,12 +29,11 @@ public:
     Erc disconnect();
     bool isConnected();
 
-    Bytes* recv();
+    MqttIn* recv();
     int32_t read();
-    Bytes* getMessage(int msgIdx);
-
     Erc send(Bytes& pb);
-    void run();
+
+
     void mqttRead(int32_t b);
     int handler(Event*event);
     int fd();

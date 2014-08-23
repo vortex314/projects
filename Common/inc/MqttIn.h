@@ -14,7 +14,7 @@
 #define TOPIC_LEN  100
 #define MSG_LEN    256
 
-class MqttIn : public Bytes,public EventData
+class MqttIn : public Bytes
 {
 public:
     uint8_t _header;

@@ -15,6 +15,7 @@ class Log : public Str {
         Log();
         Log& flush();
         Log& dump(Bytes& bytes);
+        Log& message(const char* header,Bytes& bytes);
     };
 
 

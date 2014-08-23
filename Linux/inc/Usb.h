@@ -5,6 +5,7 @@
 #include "Link.h"
 #include "CircBuf.h"
 #include "pt.h"
+#include "MqttIn.h"
 
 
 class Usb :public Link,public Sequence  {
@@ -16,7 +17,7 @@ class Usb :public Link,public Sequence  {
         Erc connect() ;
         Erc disconnect() ;
         Erc send(Bytes& bytes) ;
-        Bytes* recv() ;
+        MqttIn* recv() ;
 
         int handler(Event* event);
 
@@ -28,7 +29,7 @@ class Usb :public Link,public Sequence  {
         int _fd;
         const char* _device;
         bool _isComplete;
-        Bytes msg;
+        MqttIn msg;
         CircBuf inBuffer;
     };
 ;

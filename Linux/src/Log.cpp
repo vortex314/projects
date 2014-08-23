@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-Str _lastLogLine(100);
-Log _SysLog(100);
+Str _lastLogLine(256);
+Log _SysLog(256);
 
 Log& Log::log() {
     return _SysLog;
@@ -42,4 +42,11 @@ Log& Log::dump(Bytes& bytes) {
         else *this << '.';
         }
     return *this;
+    }
+
+    Log& Log::message(const char *header , Bytes& bytes){
+        bytes.offset(0);
+        append(header);
+        dump(bytes);
+        flush();
     }
