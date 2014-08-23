@@ -10,13 +10,6 @@
 //#include "Message.h"
 #include "assert.h"
 
-CircBuf::CircBuf() {
-    start = (uint8_t*) 0;
-    readPos = 0;
-    writePos = 1;
-    limit = 0;
-}
-
 CircBuf::CircBuf(int size) {
     start = new uint8_t[size];
     assert(start != 0);

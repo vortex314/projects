@@ -20,6 +20,9 @@ Usb::Usb(const char* device) : msg(100),inBuffer(256) {
     }
 Erc Usb::connect() {
     struct termios options;
+    Log::log() << " USB Connecting to " << _device  << " ...";
+    Log::log().flush();
+
     _fd = ::open(_device, O_RDWR | O_NOCTTY | O_NDELAY);
 
     if (_fd == -1) {
@@ -59,10 +62,7 @@ Erc Usb::disconnect() {
     }
 
 Erc Usb::send(Bytes& bytes) {
-    bytes.offset(0);
-    Log::log() <<"USB write: " ;
-    Log::log().dump(bytes);
-    Log::log().flush();
+    Log::log().message("USB send : ",bytes);
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
@@ -85,10 +85,15 @@ int32_t Usb::read() {
 int Usb::handler ( Event* event ) {
     int32_t b;
 
+    if ( event->is(Usb::ERROR )) {
+        disconnect();
+        connect();
+        return 0;
+    }
     PT_BEGIN ( &t );
     while(true) {
         while( isConnected()) {
-            PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && _isComplete==false) );
+            PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
             if ( event->is(RXD) ) {
                 while( (b=read()) >=0 ) {
                     inBuffer.write(b);
@@ -98,18 +103,18 @@ int Usb::handler ( Event* event ) {
                 _isComplete=false;
                 msg.clear();
                 };
-            if ( inBuffer.hasData() && _isComplete==false) {
+            if ( inBuffer.hasData() && (_isComplete==false) ) {
                 while( inBuffer.hasData() ) {
                     if ( msg.Feed(inBuffer.read())) {
-                        Log::log() <<  "USB rxd " ;
-                        Log::log().dump(msg);
-                        Log::log().flush();
+                        Log::log().message("USB recv : " ,msg);
                         msg.Decode();
                         if ( msg.isGoodCrc() ) {
                             msg.RemoveCrc();
-                            publish(MESSAGE);
+                         Log::log().message("USB recv clean: " ,msg);
+                           publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
                             _isComplete=true;
+                            break;
                             }
                         else {
                             msg.clear(); // throw away bad data
@@ -125,9 +130,8 @@ int Usb::handler ( Event* event ) {
     PT_END ( &t );
     }
 
-Bytes* Usb::recv() {
+MqttIn* Usb::recv() {
     if ( _isComplete ) {
-
         return &msg;
         }
     return 0;

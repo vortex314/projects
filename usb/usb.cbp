@@ -86,10 +86,8 @@
 		<Unit filename="../Common/src/MqttOut.cpp" />
 		<Unit filename="../Common/src/Msgpack.cpp" />
 		<Unit filename="../Common/src/Node.cpp" />
-		<Unit filename="../Common/src/PIC32_stubs.cpp" />
 		<Unit filename="../Common/src/Pic32Stubs.h" />
 		<Unit filename="../Common/src/Property.cpp" />
-		<Unit filename="../Common/src/STM32_stubs.cpp" />
 		<Unit filename="../Common/src/Sequence.cpp" />
 		<Unit filename="../Common/src/Str.cpp" />
 		<Unit filename="../Common/src/Strpack.cpp" />

@@ -20,13 +20,13 @@ Bytes::Bytes(uint8_t *st, uint32_t length) {
     isMemoryOwner = false;
     }
 
-Bytes::Bytes() {
+/* Bytes::Bytes() {
     _start = (uint8_t*) 0;
     _offset = 0;
     _limit = 0;
     _capacity = 0;
     isMemoryOwner = false;
-    }
+    }*/
 
 Bytes::Bytes(uint32_t size) {
     _start = new uint8_t[size]; // (uint8_t*) Sys::malloc(size);

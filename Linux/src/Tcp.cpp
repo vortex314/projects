@@ -20,12 +20,10 @@ EventId Tcp::FREE=Event::nextEventId(( char* const )"TCP::FREE");
 EventId Tcp::ERROR=Event::nextEventId(( char* const )"TCP::ERROR");
 
 Tcp::Tcp( const char *host,uint16_t port) : msg(100) {
-    unreg();
 //   signal(SIGPIPE, SIG_IGN);
     _host=host;
     _port=port;
     _connected=false;
-    _isComplete=false;
     };
 
 Tcp::~Tcp() {
@@ -45,7 +43,7 @@ Erc Tcp::connect() {
     if (_sockfd < 0) {
         return E_INVAL;
         }
-    server = gethostbyname("test.mosquitto.org");
+    server = gethostbyname(_host);
     if (server == NULL) {
         return E_NOT_FOUND;
         }
@@ -64,6 +62,8 @@ Erc Tcp::connect() {
         return E_CONN_LOSS;
         }
     _connected=true;
+    Log::log() <<  "Tcp connect: connected to " << _host << " : " << _port;
+    Log::log().flush();
     return E_OK;
     }
 
@@ -74,9 +74,9 @@ Erc Tcp::disconnect() {
     return E_OK;
     }
 
-Bytes* Tcp::recv() {
-if ( _isComplete ) return &msg;
-else return 0;
+MqttIn* Tcp::recv() {
+    if ( msg.complete() ) return &msg;
+    else return 0;
     }
 #include <cstdio>
 int32_t Tcp::read() {
@@ -91,10 +91,11 @@ int32_t Tcp::read() {
     return b;
     }
 
-Erc Tcp::send(Bytes& pb) {
+Erc Tcp::send(Bytes& bytes) {
     int n;
 //   signal(SIGPIPE, SIG_IGN);
-    n=write(_sockfd,pb.data(),pb.length()) ;
+    Log::log().message("TCP send : " ,bytes);
+    n=write(_sockfd,bytes.data(),bytes.length()) ;
     if (n < 0) {
         perror("write failed");
         _connected=false;
@@ -102,37 +103,8 @@ Erc Tcp::send(Bytes& pb) {
         }
     return E_OK;
     }
-#include "Mutex.h"
-void Tcp::run() {
-//       ::sleep(3);
-    while(true) {
-        while ( connect() != E_OK )
-            sleep(5000);
-        publish(Tcp::CONNECTED);
 
-        while(true) {
-            int32_t b=read();
-            if ( b < 0 ) break;
-            mqttRead(b);
-            }
-        publish(Tcp::DISCONNECTED);
-        disconnect();
-        sleep(5000);
-        }
-    }
-#include <iostream>
-void Tcp::mqttRead(int32_t b) {
-    static MqttIn* mqttIn=new MqttIn(256);
 
-    mqttIn->add(b);
-    if (  mqttIn->complete() ) {
-        mqttIn->parse();
-        publish(Tcp::RXD);
-        mqttIn=new MqttIn(256);
-        mqttIn->reset();
-        }
-
-    }
 
 int Tcp::handler ( Event* event ) {
     int32_t b;
@@ -140,20 +112,23 @@ int Tcp::handler ( Event* event ) {
     while(true) {
         while( isConnected()) {
             PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE));
-            if ( event->is(RXD) && _isComplete == false ){
-            while( (b=read()) >=0 ) {
-                if ( msg.Feed(b)) {
-                    _isComplete = true;
-                    publish(MESSAGE);
-                    publish(FREE);
-                    publish(RXD);  // maybe pending data
+            if ( event->is(RXD) && msg.complete() == false ) {
+                while( (b=read()) >=0 ) {
+                    msg.add(b);
+                    if (  msg.complete() ) {
+                        Log::log().message("TCP recv : " ,msg);
+                        msg.parse();
+                        publish(MESSAGE);
+                        publish(FREE);
+                        publish(RXD);  // maybe pending data
+                        break;
+                        }
                     PT_YIELD ( &t );
                     }
                 }
-            } else if ( event->is(FREE)) {
-                msg.clear();
-                _isComplete = false;
-            }
+            else if ( event->is(FREE)) {
+                msg.reset();
+                }
             PT_YIELD ( &t );
             }
         PT_YIELD_UNTIL ( &t,isConnected() );
@@ -162,5 +137,11 @@ int Tcp::handler ( Event* event ) {
     }
 
 int Tcp::fd() {
-    return _sockfd;
+    if ( _connected )
+        return _sockfd;
+    else
+        return 0;
     }
+
+
+

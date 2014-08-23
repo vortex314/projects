@@ -314,7 +314,7 @@ void Property::set( Str* name, Strpack* message)
     Property* p = find(name);
 
     Str prefix=Sys::getDeviceName();
-    Str str;
+    /*Str str;
     name->offset(prefix.length());
     str.sub(name,name->length()-prefix.length());
     if ( name->endsWith(".set"))

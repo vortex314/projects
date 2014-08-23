@@ -16,9 +16,6 @@ Str::Str(uint8_t *pstart, int size) : Bytes(pstart, size) {
 Str::Str(const char* s) : Bytes((uint8_t*)s,strlen(s)) {
     }
 
-Str::Str() : Bytes() {
-    }
-
 Str& Str::set(const char* const s) {
     Bytes::clear();
     append(s);

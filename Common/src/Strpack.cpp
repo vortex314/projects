@@ -24,8 +24,6 @@
 #define LONG_MAX 0x7FFFFFFFFFFFFFFFL
 Strpack::Strpack(int size) : Str(size)
 {};
-Strpack::Strpack() {
-}
 
 Strpack::~Strpack() {
 }

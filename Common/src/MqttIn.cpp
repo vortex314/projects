@@ -16,15 +16,16 @@ const char* const MqttNames[] = {"UNKNOWN", "CONNECT", "CONNACK", "PUBLISH", "PU
                                 };
 const char* const QosNames[] = {"QOS0", "QOS1", "QOS2"};
 MqttIn::MqttIn( int size ) :
-    Bytes( size ) {
+    Bytes( size ),_topic(30),_message(100) {
     _remainingLength = 0;
     reset();
     }
 
-MqttIn::MqttIn( MqttIn& src ) {
+MqttIn::MqttIn( MqttIn& src ) : Bytes(src.capacity()),_topic(30) ,_message(100) {
     memcpy( this, &src, sizeof( MqttIn ) );
     this->_start = new uint8_t[src._capacity];
     memcpy( _start, src._start, src._limit );
+    _topic = src._topic;
     }
 
 MqttIn::~MqttIn() {
@@ -182,6 +183,8 @@ void MqttIn::parse() {
             readUint16( &_messageId );
             break;
             }
+        case MQTT_MSG_PINGREQ :
+        case MQTT_MSG_SUBSCRIBE :
         case MQTT_MSG_PINGRESP: {
             break;
             }
@@ -190,3 +193,4 @@ void MqttIn::parse() {
             }
         }
     }
+

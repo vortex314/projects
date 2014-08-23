@@ -44,24 +44,34 @@ class Mqtt {
 
 const int Mqtt::RXD=Event::nextEventId("Mqtt::RXD");
 
+class EventLogger : public Sequence {
+    public:
+        EventLogger() {
+            }
+        int handler ( Event* event ) {
+            if ( event->id() != Timer::TICK ) {
+                Log::log() << " EVENT : " ;
+                event->toString(Log::log());
+                Log::log().flush();
+                }
+            return 0;
+            };
+
+    };
+
 void eventPump() {
     Event event;
-    if ( Sequence::get ( event ) == E_LACK_RESOURCE ) return ; // dispatch eventually IDLE message
-    if ( event.id() != Timer::TICK ) {
-        Log::log() << " EVENT : " ;
-        event.toString(Log::log());
-        Log::log().flush();
+    while ( Sequence::get ( event ) == E_OK ) {
+        int i;
+        for ( i = 0; i < MAX_SEQ; i++ )
+            if ( Sequence::activeSequence[i] ) {
+                if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
+                    Sequence* seq = Sequence::activeSequence[i];
+                    seq->unreg();
+                    delete seq;
+                    };
+                }
         }
-
-    int i;
-    for ( i = 0; i < MAX_SEQ; i++ )
-        if ( Sequence::activeSequence[i] ) {
-            if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED ) {
-                Sequence* seq = Sequence::activeSequence[i];
-                seq->unreg();
-                delete seq;
-                };
-            }
 
     };
 
@@ -100,7 +110,7 @@ class PollerThread : public Thread , public Sequence {
 
             /* Wait up to five seconds. */
             tv.tv_sec = 0;
-            tv.tv_usec = 1000000;
+            tv.tv_usec = 10000;
             int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
             maxFd+=1;
 
@@ -147,19 +157,21 @@ class Gateway : public Sequence {
             while(true) {
                 PT_YIELD_UNTIL(&t,event->is(Tcp::MESSAGE) || event->is(Usb::MESSAGE));
                 if ( event->is(Tcp::MESSAGE))  {
-                    Bytes* msg = tcp.recv();
+                    MqttIn* msg = tcp.recv();
+                    assert(msg!=NULL);
                     usb.send(*msg);
                     }
                 else if ( event->is(Usb::MESSAGE))  {
-                    Bytes* msg = usb.recv();
+                    MqttIn* msg = usb.recv();
                     assert(msg!=NULL);
                     MqttIn* mqttIn=(MqttIn*)(msg);
                     if ( mqttIn->length() >1 ) { // sometimes bad message
                         mqttIn->parse();
                         if ( mqttIn->type() == MQTT_MSG_CONNECT )
-                            if ( !tcp.isConnected())
+                            if ( !tcp.isConnected()) { // ignore connect mqqt messages when already connected
                                 tcp.connect();
-                        tcp.send(*msg);
+                                tcp.send(*msg);
+                                }
                         }
                     }
                 PT_YIELD ( &t );
@@ -208,6 +220,7 @@ int main(int argc, char *argv[] ) {
     PollerThread poller("",0,1);
     poller.start();
     UsbConnection usbConnection;
+    EventLogger eventLogger;
     Gateway gtw;
     sleep(100000);
     }
