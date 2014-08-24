@@ -18,6 +18,11 @@ Usb::Usb(const char* device) : msg(100),inBuffer(256) {
     PT_INIT(&t);
     _isComplete = false;
     }
+
+void Usb::setDevice(const char* device){
+    _device =  device;
+}
+
 Erc Usb::connect() {
     struct termios options;
     Log::log() << " USB Connecting to " << _device  << " ...";
@@ -66,6 +71,7 @@ Erc Usb::send(Bytes& bytes) {
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
+//    Log::log().message("USB send full : ",bytes);
     int count = ::write(_fd,bytes.data(),bytes.length());
     if ( count != bytes.length()) {
         disconnect();
@@ -89,7 +95,7 @@ int Usb::handler ( Event* event ) {
         disconnect();
         connect();
         return 0;
-    }
+        }
     PT_BEGIN ( &t );
     while(true) {
         while( isConnected()) {
@@ -110,8 +116,8 @@ int Usb::handler ( Event* event ) {
                         msg.Decode();
                         if ( msg.isGoodCrc() ) {
                             msg.RemoveCrc();
-                         Log::log().message("USB recv clean: " ,msg);
-                           publish(MESSAGE);
+                            Log::log().message("USB recv clean: " ,msg);
+                            publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
                             _isComplete=true;
                             break;
