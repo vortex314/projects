@@ -167,11 +167,14 @@ class Gateway : public Sequence {
                     MqttIn* mqttIn=(MqttIn*)(msg);
                     if ( mqttIn->length() >1 ) { // sometimes bad message
                         mqttIn->parse();
-                        if ( mqttIn->type() == MQTT_MSG_CONNECT )
+                        if ( mqttIn->type() == MQTT_MSG_CONNECT ) {
                             if ( !tcp.isConnected()) { // ignore connect mqqt messages when already connected
                                 tcp.connect();
                                 tcp.send(*msg);
                                 }
+                            }
+                        else
+                            tcp.send(*msg);
                         }
                     }
                 PT_YIELD ( &t );
@@ -216,14 +219,17 @@ class UsbConnection : public Sequence {
 #include "Tcp.h"
 
 int main(int argc, char *argv[] ) {
+    if ( argc>1 ) usb.setDevice(argv[1]);
 
     PollerThread poller("",0,1);
     poller.start();
     UsbConnection usbConnection;
-    EventLogger eventLogger;
+//    EventLogger eventLogger;
     Gateway gtw;
     sleep(100000);
     }
+
+
 
 
 

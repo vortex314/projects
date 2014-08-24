@@ -21,7 +21,7 @@ class Usb :public Link,public Sequence  {
 
         int handler(Event* event);
 
-
+        void setDevice(const char* device) ;
         int fd();
     private :
     int32_t read() ;
