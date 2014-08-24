@@ -12,6 +12,7 @@
 
 #include "Erc.h"
 #include "Sys.h"
+#include <assert.h>
 
 #define MAX_BUFFER_SIZE 512
 #define SOF  0x7E

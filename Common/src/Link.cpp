@@ -6,7 +6,7 @@ const int Link::MESSAGE = Event::nextEventId("Link::MESSAGE");
 
 Link::Link()
 {
-    //ctor
+   _isConnected=false;
 }
 
 Link::~Link()

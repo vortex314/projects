@@ -2,6 +2,7 @@
 #define LINK_H
 
 #include "Event.h"
+#include "MqttIn.h"
 
 class Link
 {
@@ -11,9 +12,13 @@ class Link
         virtual ~Link();
         bool isConnected() { return _isConnected; }
         void isConnected(bool val) { _isConnected = val; }
-        virtual int32_t read()=0;
+
+        virtual uint8_t read()=0;
+        virtual uint32_t hasData()=0;
+        virtual MqttIn* recv()=0;
+
         virtual Erc send(Bytes& bytes)=0;
-        virtual Bytes* recv()=0;
+
         virtual Erc connect()=0;
         virtual Erc disconnect()=0;
     protected:
