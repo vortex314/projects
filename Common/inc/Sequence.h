@@ -3,6 +3,7 @@
 #include "Event.h"
 #include "Sys.h"
 #include "Queue.h"
+#include "pt.h"
 class Sequence;
 
 #define MAX_SEQ 10
