@@ -10,7 +10,6 @@
 #include "stdint.h"
 #include "Erc.h"
 
-#include <iostream>
 #define EVENT(cls,type) ((cls<<24)+(type<<16))
 
 class Str;
