@@ -26,6 +26,14 @@
 #define TIME_WAIT_REPLY 1000
 #define	TIME_PING 3000
 
+class MqttPing;
+class MqttPubQos0;
+class MqttPubQos1;
+class MqttPubQos2;
+class MqttSubQos0;
+class MqttSubQos1;
+class MqttSubQos2;
+
 class Mqtt: public Sequence {
 private:
 	struct pt t;
@@ -34,13 +42,13 @@ private:
 	Str str;
 	Str msg;
 	Link& _link;
-/*	MqttPing& mqttPing;
-	MqttPubQos0& mqttPubQos0;
-	MqttPubQos1& mqttPubQos1;
-	MqttPubQos2& mqttPubQos2;
-	MqttSubQos0& mqttSubQos0;
-	MqttSubQos1& mqttSubQos1;
-	MqttSubQos2& mqttSubQos2;*/
+	MqttPing* mqttPing;
+	MqttPubQos0* mqttPubQos0;
+	MqttPubQos1* mqttPubQos1;
+	MqttPubQos2* mqttPubQos2;
+	MqttSubQos0* mqttSubQos0;
+	MqttSubQos1* mqttSubQos1;
+	MqttSubQos2* mqttSubQos2;
 
 public:
 	const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE;

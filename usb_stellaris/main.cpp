@@ -60,7 +60,7 @@ int main(void) {
 	Usb::init();
 	Usb usb;		// usb active object
 	LedSeq ledSeq; 	// blinking led AO
-	Mqtt mqtt(usb);
+	Mqtt mqtt(usb);	// mqtt active object
 	PropertyListener propertyListener(mqtt);
 	uint64_t clock = Sys::upTime() + 100;
 	while (1) {
