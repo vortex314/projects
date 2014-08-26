@@ -18,7 +18,7 @@
 #endif
 //#include "system.h"
 #include "Sys.h"
-
+#include "stdlib.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,31 +26,84 @@ int errno;
 /**
  new operator. Redefined not to throw exceptions.
  */
-
+#include <unistd.h>
 /**
- delete operator. Redefined not to throw exceptions.
+ new operator. Redefined not to throw exceptions.
  */
+/*void *operator new(size_t size) {
+ //	return malloc(size);
+ return Sys::malloc(size);
+ }
+ */
+#define MY_MALLOC
 
-extern "C" void __cxa_pure_virtual() {while (1);};
+#ifdef MY_MALLOC
+#define HEAPSIZE 0x001 // was 0x800 //2K
+uint16_t __heapPtr = 0;
+uint8_t __customHeap[HEAPSIZE];
 
-int __register_exitproc( int type , void (*fn) (void) , void *arg , void *d) {
-	return 0;
+/*
+ sbrk
+ Increase program data space.
+ Malloc and related functions depend on this
+ */
+register char * stack_ptr asm ("sp");
+void* _sbrk_r (struct _reent *r, ptrdiff_t incr)
+{
+	extern char end asm ("end"); /* Defined by the linker.  */
+	static char * heap_end;
+	char * prev_heap_end;
+
+	if (heap_end == NULL)
+	heap_end = & end;
+
+	prev_heap_end = heap_end;
+
+	if (heap_end + incr > stack_ptr)
+	{
+		/* Some of the libstdc++-v3 tests rely upon detecting
+		 out of memory errors, so do not abort here.  */
+#if 0
+		extern void abort (void);
+
+		_write (1, "_sbrk: Heap and stack collision\n", 32);
+
+		abort ();
+#else
+		errno = ENOMEM;
+		return (caddr_t) -1;
+#endif
+	}
+
+	heap_end += incr;
+
+	return (caddr_t) prev_heap_end;
 }
+/*
+static char *heap_end;
+void *sbrk(ptrdiff_t incr) {
 
-/**
- Required by C++ standard library.
- See http://lists.debian.org/debian-gcc/2003/07/msg00057.html
- */
-// void *__dso_handle=(void*) &__dso_handle;
+	extern char _ebss; // Defined by the linker
+	char *prev_heap_end;
 
-#define STDIN_FILENO 0
-#define STDOUT_FILENO 1
-#define STDERR_FILENO 2
+	if (heap_end == 0) {
+		heap_end = &_ebss;
+	}
+	prev_heap_end = heap_end;
 
-/**
- _exit, restarts the system
- */
+	char * stack = (char*) __get_MSP();
+	if (heap_end + incr > stack)
+	{
+//         _write (STDERR_FILENO, "Heap and stack collision\n", 25);
+		errno = ENOMEM;
+		while(1);
+		return (caddr_t) -1;
+		//abort ();
+	}
 
+	heap_end += incr;
+	return (caddr_t) prev_heap_end;
+}*/
 /**
  __malloc_lock, no need to lock malloc
  */
@@ -64,6 +117,40 @@ void __malloc_lock() {
 void __malloc_unlock() {
 	//Do nothing
 }
+
+void *operator new[](unsigned int size) {
+	return malloc(size);
+}
+/**
+ delete operator. Redefined not to throw exceptions.
+ */
+void operator delete(void *p) {
+	free(p);
+}
+
+void operator delete[](void *p) {
+	free(p);
+}
+#endif
+extern "C" void __cxa_pure_virtual() {while (1);};
+extern "C" void _init() {};
+
+int __register_exitproc( int type , void (*fn) (void) , void *arg , void *d) {
+	return 0;
+}
+
+/**
+ Required by C++ standard library.
+ See http://lists.debian.org/debian-gcc/2003/07/msg00057.html
+ */
+// void *__dso_handle=(void*) &__dso_handle;
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+
+/**
+ _exit, restarts the system
+ */
 
 #undef errno
 extern int errno;
@@ -97,7 +184,7 @@ off_t _lseek_r(_reent* ree,int file, off_t ptr, int dir) {
  Read a character to a file. `libc' subroutines will use this system routine for input from all files, including stdin
  Returns -1 on error or blocks until the number of characters have been read.
  */
-#include <unistd.h>
+
 extern "C" int read(int file, void *ptr, size_t len) {
 
 	return 0;
@@ -114,12 +201,12 @@ int stat(const char *filepath, struct stat *st) {
 	return 0;
 }
 
-caddr_t _sbrk(int incr) {
-	static char *heap_end;
+caddr_t my_sbrk(int incr) {
+//	static char *heap_end;
 	char *prev_heap_end;
 //LMR
 	prev_heap_end=0;
-	heap_end=0;
+//	heap_end=0;
 //LMR
 	/*
 	 extern char _ebss; // Defined by the linker

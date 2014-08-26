@@ -91,7 +91,7 @@ Str& Str::operator<<(const char* s) {
     }
 
     Str& Str::operator<<( int i) {
-        append(i);
+        append((int32_t)i);
     return *this;
     }
 

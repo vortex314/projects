@@ -30,7 +30,7 @@ Bytes::Bytes(uint8_t *st, uint32_t length) {
 
 Bytes::Bytes(uint32_t size) {
     _start = new uint8_t[size]; // (uint8_t*) Sys::malloc(size);
-    assert(_start!=0);
+    ASSERT(_start!=0);
     _offset = 0;
     _limit = 0;
     _capacity = size;
@@ -90,7 +90,7 @@ int Bytes::capacity() {
 
 
 
-int Bytes::length () const {
+uint32_t Bytes::length () const {
     return _limit;
     }
 

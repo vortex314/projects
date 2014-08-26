@@ -1,5 +1,7 @@
 #include "Sequence.h"
 #include "QueueTemplate.h"
+#include "Timer.h"
+#include "pt.h"
 
 QueueTemplate<Event> defaultQueue(10);
 
@@ -30,7 +32,7 @@ void Sequence::unreg()
     for (i=0; i<MAX_SEQ; i++)
         if(activeSequence[i]==this)
             activeSequence[i]=0;
-};
+}
 
 
 void Sequence::publish(int id,uint16_t detail)
@@ -54,10 +56,7 @@ bool Sequence::timeout()
     return _timeout < Sys::upTime();
 }
 
-#include "Timer.h"
-#include "pt.h"
-#include "Log.h"
-extern Log log;
+
 
 
 Erc Sequence::get(Event& event){

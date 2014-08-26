@@ -10,8 +10,6 @@
 #include "stdint.h"
 #include "Erc.h"
 
-#define EVENT(cls,type) ((cls<<24)+(type<<16))
-
 class Str;
 class Sys;
 class Logger;

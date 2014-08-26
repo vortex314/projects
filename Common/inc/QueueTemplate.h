@@ -9,7 +9,7 @@
 #define	QUEUETEMPLATE_H
 #include "Erc.h"
 #include "Sys.h"
-#include "assert.h"
+
 
 template<class T>
 class QueueTemplate {
@@ -28,7 +28,7 @@ private:
 template<class T>
 QueueTemplate<T>::QueueTemplate(int size) {
 	_start = new T[size];//(T*) Sys::malloc(size * sizeof(T));
-	assert(_start!=0);
+	ASSERT(_start!=0);
 	_limit = size;
 	_readPos = 0;
 	_writePos = 1;
