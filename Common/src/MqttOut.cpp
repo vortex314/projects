@@ -6,6 +6,7 @@
  */
 
 #include "MqttOut.h"
+#include <string.h>
 
 // #define LOG(x) std::cout << Sys::upTime() << " | MQTT OUT " << x << std::endl
 #define LOG(x)

@@ -135,7 +135,7 @@ void MqttIn::toString( Str& str ) {
     }
 
 void MqttIn::parse() {
-    if ( length() < 2 ) assert(false);
+    if ( length() < 2 ) ASSERT(false);
     offset( 0 );
     _header = read();
     _remainingLength = 0;
@@ -189,7 +189,7 @@ void MqttIn::parse() {
             break;
             }
         default: {
-            assert( false ); // invalid message type, ignore noise
+            ASSERT( false ); // invalid message type, ignore noise
             }
         }
     }

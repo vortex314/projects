@@ -7,6 +7,8 @@
 
 #include "Str.h"
 
+#include <string.h>
+
 Str::Str(int size) : Bytes(size) {
     }
 
