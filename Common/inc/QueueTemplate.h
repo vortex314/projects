@@ -24,9 +24,10 @@ private:
 	uint16_t _writePos;
 	uint16_t _limit;
 };
-
+#include "malloc.h"
 template<class T>
 QueueTemplate<T>::QueueTemplate(int size) {
+//	_start = (T*) malloc(size * sizeof(T));
 	_start = new T[size];//(T*) Sys::malloc(size * sizeof(T));
 	ASSERT(_start!=0);
 	_limit = size;

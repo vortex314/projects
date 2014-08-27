@@ -2,6 +2,7 @@
 #include "Sys.h"
 Log::Log() : Str(100) {
     }
+#define isprint(c) (((c)>0x1F) && ((c)>0x7f))
 Log& Log::flush() {
 /*    cout << Sys::upTime()/1000<<"."<< Sys::upTime() %1000 << " | " ;
     offset(0);

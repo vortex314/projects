@@ -2,28 +2,41 @@
 //
 // startup_gcc.c - Startup code for use with GNU tools.
 //
-// Copyright (c) 2012 Texas Instruments Incorporated.  All rights reserved.
+// Copyright (c) 2009-2012 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
+//   Redistribution and use in source and binary forms, with or without
+//   modification, are permitted provided that the following conditions
+//   are met:
+//
+//   Redistributions of source code must retain the above copyright
+//   notice, this list of conditions and the following disclaimer.
+//
+//   Redistributions in binary form must reproduce the above copyright
+//   notice, this list of conditions and the following disclaimer in the
+//   documentation and/or other materials provided with the
+//   distribution.
 // 
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
+//   Neither the name of Texas Instruments Incorporated nor the names of
+//   its contributors may be used to endorse or promote products derived
+//   from this software without specific prior written permission.
 // 
-// This is part of revision 9453 of the EK-LM4F120XL Firmware Package.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //*****************************************************************************
 
-#include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
+#include "inc/hw_nvic.h"
 
 //*****************************************************************************
 //
@@ -35,12 +48,7 @@ static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
 
-//*****************************************************************************
-//
-// External declaration for the interrupt handler used by the application.
-//
-//*****************************************************************************
-extern void UARTIntHandler(void);
+#define NULL ((void*)0)
 
 //*****************************************************************************
 //
@@ -49,12 +57,15 @@ extern void UARTIntHandler(void);
 //*****************************************************************************
 extern int main(void);
 
+
+/*
+ * create some overridable default signal handlers
+ */
+
 //*****************************************************************************
-//
-// Reserve space for the system stack.
-//
+// System stack start determined by ldscript, normally highest ram address
 //*****************************************************************************
-static unsigned long pulStack[64];
+extern unsigned _estack;
 
 //*****************************************************************************
 //
@@ -62,11 +73,11 @@ static unsigned long pulStack[64];
 // ensure that it ends up at physical address 0x0000.0000.
 //
 //*****************************************************************************
+
 __attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
-    (void (*)(void))((unsigned long)pulStack + sizeof(pulStack)),
-                                            // The initial stack pointer
+   (void *)&_estack,                        // The initial stack pointer, 0x20008000 32K
     ResetISR,                               // The reset handler
     NmiSR,                                  // The NMI handler
     FaultISR,                               // The hard fault handler
@@ -82,15 +93,15 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     IntDefaultHandler,                      // The PendSV handler
     IntDefaultHandler,                      // The SysTick handler
-    IntDefaultHandler,                      // GPIO Port A
-    IntDefaultHandler,                      // GPIO Port B
-    IntDefaultHandler,                      // GPIO Port C
-    IntDefaultHandler,                      // GPIO Port D
-    IntDefaultHandler,                      // GPIO Port E
-    UARTIntHandler,                         // UART0 Rx and Tx
-    IntDefaultHandler,                      // UART1 Rx and Tx
+    IntDefaultHandler,                        // GPIO Port A
+    IntDefaultHandler,                        // GPIO Port B
+    IntDefaultHandler,                        // GPIO Port C
+    IntDefaultHandler,                        // GPIO Port D
+    IntDefaultHandler,                        // GPIO Port E
+    IntDefaultHandler,                         // UART0 Rx and Tx
+    IntDefaultHandler,                         // UART1 Rx and Tx
     IntDefaultHandler,                      // SSI0 Rx and Tx
-    IntDefaultHandler,                      // I2C0 Master and Slave
+    IntDefaultHandler,                          // I2C0 Master and Slave
     IntDefaultHandler,                      // PWM Fault
     IntDefaultHandler,                      // PWM Generator 0
     IntDefaultHandler,                      // PWM Generator 1
@@ -112,14 +123,14 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Analog Comparator 2
     IntDefaultHandler,                      // System Control (PLL, OSC, BO)
     IntDefaultHandler,                      // FLASH Control
-    IntDefaultHandler,                      // GPIO Port F
+    IntDefaultHandler,                        // GPIO Port F
     IntDefaultHandler,                      // GPIO Port G
     IntDefaultHandler,                      // GPIO Port H
-    IntDefaultHandler,                      // UART2 Rx and Tx
+    IntDefaultHandler,                         // UART2 Rx and Tx
     IntDefaultHandler,                      // SSI1 Rx and Tx
     IntDefaultHandler,                      // Timer 3 subtimer A
     IntDefaultHandler,                      // Timer 3 subtimer B
-    IntDefaultHandler,                      // I2C1 Master and Slave
+    IntDefaultHandler,                          // I2C1 Master and Slave
     IntDefaultHandler,                      // Quadrature Encoder 1
     IntDefaultHandler,                      // CAN0
     IntDefaultHandler,                      // CAN1
@@ -141,18 +152,18 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // GPIO Port L
     IntDefaultHandler,                      // SSI2 Rx and Tx
     IntDefaultHandler,                      // SSI3 Rx and Tx
-    IntDefaultHandler,                      // UART3 Rx and Tx
-    IntDefaultHandler,                      // UART4 Rx and Tx
-    IntDefaultHandler,                      // UART5 Rx and Tx
-    IntDefaultHandler,                      // UART6 Rx and Tx
-    IntDefaultHandler,                      // UART7 Rx and Tx
+    IntDefaultHandler,                         // UART3 Rx and Tx
+    IntDefaultHandler,                         // UART4 Rx and Tx
+    IntDefaultHandler,                         // UART5 Rx and Tx
+    IntDefaultHandler,                         // UART6 Rx and Tx
+    IntDefaultHandler,                         // UART7 Rx and Tx
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
-    IntDefaultHandler,                      // I2C2 Master and Slave
-    IntDefaultHandler,                      // I2C3 Master and Slave
-    IntDefaultHandler,                      // Timer 4 subtimer A
+    IntDefaultHandler,                          // I2C2 Master and Slave
+    IntDefaultHandler,                          // I2C3 Master and Slave
+    IntDefaultHandler,                         // Timer 4 subtimer A
     IntDefaultHandler,                      // Timer 4 subtimer B
     0,                                      // Reserved
     0,                                      // Reserved
@@ -191,8 +202,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // FPU
     IntDefaultHandler,                      // PECI 0
     IntDefaultHandler,                      // LPC 0
-    IntDefaultHandler,                      // I2C4 Master and Slave
-    IntDefaultHandler,                      // I2C5 Master and Slave
+    IntDefaultHandler,                          // I2C4 Master and Slave
+    IntDefaultHandler,                          // I2C5 Master and Slave
     IntDefaultHandler,                      // GPIO Port M
     IntDefaultHandler,                      // GPIO Port N
     IntDefaultHandler,                      // Quadrature Encoder 2
@@ -235,6 +246,11 @@ extern unsigned long _data;
 extern unsigned long _edata;
 extern unsigned long _bss;
 extern unsigned long _ebss;
+extern void (*__preinit_array_start[])(void);
+extern void (*__preinit_array_end[])(void);
+extern void (*__init_array_start[])(void);
+extern void (*__init_array_end[])(void);
+
 
 //*****************************************************************************
 //
@@ -246,51 +262,87 @@ extern unsigned long _ebss;
 // application.
 //
 //*****************************************************************************
-void
-ResetISR(void)
-{
+void ResetISR(void) {
     unsigned long *pulSrc, *pulDest;
+    unsigned i, cnt;
 
     //
     // Copy the data segment initializers from flash to SRAM.
     //
     pulSrc = &_etext;
-    for(pulDest = &_data; pulDest < &_edata; )
-    {
+    for (pulDest = &_data; pulDest < &_edata;) {
         *pulDest++ = *pulSrc++;
     }
 
     //
     // Zero fill the bss segment.
     //
-    __asm("    ldr     r0, =_bss\n"
-          "    ldr     r1, =_ebss\n"
-          "    mov     r2, #0\n"
-          "    .thumb_func\n"
-          "zero_loop:\n"
-          "        cmp     r0, r1\n"
-          "        it      lt\n"
-          "        strlt   r2, [r0], #4\n"
-          "        blt     zero_loop");
+    __asm(  "    ldr     r0, =_bss\n"
+            "    ldr     r1, =_ebss\n"
+            "    mov     r2, #0\n"
+            "    .thumb_func\n"
+            "1:\n"
+            "    cmp     r0, r1\n"
+            "    it      lt\n"
+            "    strlt   r2, [r0], #4\n"
+            "    blt     1b"
+    );
+    (void)_bss; (void)_ebss; // get rid of unused warnings
 
     //
-    // Enable the floating-point unit.  This must be done here to handle the
-    // case where main() uses floating-point and the function prologue saves
-    // floating-point registers (which will fault if floating-point is not
-    // enabled).  Any configuration of the floating-point unit using DriverLib
-    // APIs must be done here prior to the floating-point unit being enabled.
+    // Enable the floating-point unit before calling c++ ctors
     //
-    // Note that this does not use DriverLib since it might not be included in
-    // this project.
-    //
+
     HWREG(NVIC_CPAC) = ((HWREG(NVIC_CPAC) &
                          ~(NVIC_CPAC_CP10_M | NVIC_CPAC_CP11_M)) |
-                        NVIC_CPAC_CP10_FULL | NVIC_CPAC_CP11_FULL);
+                         NVIC_CPAC_CP10_FULL | NVIC_CPAC_CP11_FULL);
 
     //
-    // Call the application's entry point.
+    // call any global c++ ctors
+    //
+    cnt = __preinit_array_end - __preinit_array_start;
+    for (i = 0; i < cnt; i++)
+        __preinit_array_start[i]();
+
+    cnt = __init_array_end - __init_array_start;
+    for (i = 0; i < cnt; i++)
+        __init_array_start[i]();
+
+    //
+    // call 'C' entry point, Energia never returns from main
     //
     main();
+}
+
+void *__dso_handle = 0;
+
+/**
+ * _sbrk - newlib memory allocation routine
+ */
+typedef char *caddr_t;
+
+caddr_t _sbrk (int incr)
+{
+    double current_sp;
+    extern char end asm ("end"); /* Defined by linker */
+    static char * heap_end;
+    char * prev_heap_end;
+
+    if (heap_end == NULL) {
+        heap_end = &end; /* first ram address after bss and data */
+    }
+
+    prev_heap_end = heap_end;
+
+    // simplistic approach to prevent the heap from corrupting the stack
+    // TBD: review for alternatives
+    if ( heap_end + incr < (caddr_t)&current_sp ) {
+        heap_end += incr;
+        return (caddr_t) prev_heap_end;
+    }
+    else {
+        return NULL;
+    }
 }
 
 //*****************************************************************************
@@ -300,14 +352,12 @@ ResetISR(void)
 // by a debugger.
 //
 //*****************************************************************************
-static void
-NmiSR(void)
-{
+static void NmiSR(void) {
     //
     // Enter an infinite loop.
     //
-    while(1)
-    {
+    while (1) {
+        ; // trap NMI
     }
 }
 
@@ -318,14 +368,12 @@ NmiSR(void)
 // for examination by a debugger.
 //
 //*****************************************************************************
-static void
-FaultISR(void)
-{
+static void FaultISR(void) {
     //
     // Enter an infinite loop.
     //
-    while(1)
-    {
+    while (1) {
+        ; // trap FAULT
     }
 }
 
@@ -336,13 +384,11 @@ FaultISR(void)
 // for examination by a debugger.
 //
 //*****************************************************************************
-static void
-IntDefaultHandler(void)
-{
+static void IntDefaultHandler(void) {
     //
     // Go into an infinite loop.
     //
-    while(1)
-    {
+    while (1) {
+        ; // trap any handler not defined
     }
 }

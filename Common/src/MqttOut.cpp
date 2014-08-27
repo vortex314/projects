@@ -6,7 +6,7 @@
  */
 
 #include "MqttOut.h"
-#include <iostream>
+
 // #define LOG(x) std::cout << Sys::upTime() << " | MQTT OUT " << x << std::endl
 #define LOG(x)
 MqttOut::MqttOut(int size) : Bytes(size),_prefix(30)

@@ -1,57 +1,77 @@
-/******************************************************************************
+/**
  *
- * uart_echo.ld - Linker configuration file for uart_echo.
+ * lm4fcpp.ld - Linker configuration file for Energia c++ programs.
  *
- * Copyright (c) 2012 Texas Instruments Incorporated.  All rights reserved.
- * Software License Agreement
- * 
- * Texas Instruments (TI) is supplying this software for use solely and
- * exclusively on TI's microcontroller products. The software is owned by
- * TI and/or its suppliers, and is protected under applicable copyright
- * laws. You may not combine this software with "viral" open-source
- * software in order to form a larger program.
- * 
- * THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
- * NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
- * NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
- * CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
- * DAMAGES, FOR ANY REASON WHATSOEVER.
- * 
- * This is part of revision 9453 of the EK-LM4F120XL Firmware Package.
- *
- *****************************************************************************/
+ */ 
 
-MEMORY
+MEMORY 
 {
-    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 0x00040000
-    SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
+    flash (rx) : ORIGIN = 0x00000000, LENGTH = 0x00040000 
+    ram  (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000 
 }
 
-SECTIONS
+REGION_ALIAS("REGION_TEXT", flash);
+REGION_ALIAS("REGION_RAM", ram);
+
+SECTIONS 
 {
     .text :
     {
         _text = .;
         KEEP(*(.isr_vector))
-        *(.text*)
-        *(.rodata*)
-        _etext = .;
-    } > FLASH
-
-    .data : AT(ADDR(.text) + SIZEOF(.text))
+        *(.text .text* .gnu.linkonce.t.*)
+    } > REGION_TEXT
+    
+    .preinit_array : {
+    	. = ALIGN(4);
+        __preinit_array_start = .;
+        KEEP (*(SORT(.preinit_array*)))
+        KEEP (*(.preinit_array))
+        __preinit_array_end = .;
+    } > REGION_TEXT
+    
+    .init_array :
     {
+    	. = ALIGN(4);
+	    __init_array_start = .;
+	    KEEP (*(SORT(.init_array.*)))
+	    KEEP (*(.init_array))
+	    __init_array_end = .;
+    } > REGION_TEXT
+    
+    .rodata :
+    {
+        . = ALIGN(4);
+        *(.rodata .rodata* .gnu.linkonce.r.*)
+        . = ALIGN(4);
+    } > REGION_TEXT
+
+    _etext = .;
+
+    .data : 
+    {
+        . = ALIGN(4);
         _data = .;
         *(vtable)
-        *(.data*)
+        *(.data .data* .gnu.linkonce.d.*)
         _edata = .;
-    } > SRAM
+    } > REGION_RAM AT > REGION_TEXT
 
     .bss :
     {
-        _bss = .;
-        *(.bss*)
+        . = ALIGN(4);
+        _bss = .; 
+        *(.bss .bss*) 
         *(COMMON)
-        _ebss = .;
-    } > SRAM
+        . = ALIGN(4); 
+        _ebss = .; 
+        . = ALIGN(8);
+        _end = .;
+    } > REGION_RAM 
 }
+
+/* end of allocated ram is start of heap, heap grows up towards stack*/
+PROVIDE(end = _end);
+
+/* top of stack starts at end of ram, stack grows down towards heap */
+PROVIDE (_estack = ORIGIN(ram) + LENGTH(ram));

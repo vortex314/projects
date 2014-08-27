@@ -1,6 +1,5 @@
 #ifndef LOG_H
 #define LOG_H
-#include <iostream>
 
 using namespace std;
 #include <Str.h>
