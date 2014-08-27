@@ -67,6 +67,7 @@ SECTIONS
         _ebss = .; 
         . = ALIGN(8);
         _end = .;
+        __malloc_start = .;
     } > REGION_RAM 
 }
 
