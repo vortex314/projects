@@ -63,7 +63,7 @@ Prop::Prop(const char* name, void* instance, Xdr xdr, Flags flags) {
 
                             if ( p->_xdr ) {
                                 p->_flags.publishValue = false;
-                                _mqtt.launch(*p);
+                                _mqtt.send
 
 //                               p->_xdr( p->_instance, CMD_GET, message );
                                 if ( p->_flags.publishValue == false ) {

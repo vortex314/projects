@@ -29,9 +29,7 @@ class Prop;
 #define	TIME_PING 3000
 
 class MqttPing;
-class MqttPubQos0;
-class MqttPubQos1;
-class MqttPubQos2;
+class MqttPub;
 class MqttSubQos0;
 class MqttSubQos1;
 class MqttSubQos2;
@@ -45,9 +43,7 @@ private:
 	Str msg;
 	Link& _link;
 	MqttPing* mqttPing;
-	MqttPubQos0* mqttPubQos0;
-	MqttPubQos1* mqttPubQos1;
-	MqttPubQos2* mqttPubQos2;
+	MqttPub* _mqttPub;
 	MqttSubQos0* mqttSubQos0;
 	MqttSubQos1* mqttSubQos1;
 	MqttSubQos2* mqttSubQos2;
@@ -59,7 +55,7 @@ public:
 	int handler(Event* event);
 	Erc send(Bytes& pb);
 	bool isEvent(Event* event, uint8_t type, uint16_t messageId, uint8_t qos);
-	bool launch(Prop& prop);
+	bool Publish(Flags flags,uint16_t id,Str& topic,Strpack& strp);
 	MqttIn* recv();
 	bool isConnected();
 	Erc disconnect();
