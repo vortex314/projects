@@ -152,8 +152,16 @@ Str& Str::append(uint64_t val) {
     }
 
 Str& Str::append(uint32_t val) {
-    uint64_t v = val;
-    append(v);
+#define MAX_CHAR_INT32 10
+    char str[MAX_CHAR_INT32];
+    str[MAX_CHAR_INT32 - 1] = '\0';
+    register char *cp = str + MAX_CHAR_INT32 - 1;
+    do {
+        *--cp = to_char(val % 10);
+        val /= 10;
+        }
+    while (val != 0);
+    append(cp);
     return *this;
     }
 

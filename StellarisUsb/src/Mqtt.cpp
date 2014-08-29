@@ -174,8 +174,8 @@ bool Mqtt::isEvent(Event* event, uint8_t type, uint16_t messageId,
 }
 
 Mqtt::Mqtt(Link& link) :
-		str(30), msg(10), _link(link){
-	 mqttPing = new MqttPing(*this);
+		str(30), msg(10), _link(link) {
+	mqttPing = new MqttPing(*this);
 	mqttSubQos0 = new MqttSubQos0(*this);
 	mqttSubQos1 = new MqttSubQos1(*this);
 	mqttSubQos2 = new MqttSubQos2(*this);
@@ -189,61 +189,73 @@ Mqtt::Mqtt(Link& link) :
 	GlobalInit();
 }
 
+bool Mqtt::launch(Prop& p) {
+	if (p._flags.qos == QOS_0)
+		mqttPubQos0->send(&p);
+	else if ((p._flags.qos == QOS_1) && (mqttPubQos1->isReady()))
+		mqttPubQos1->send(&p);
+	else if ((p._flags.qos == QOS_2) && (mqttPubQos2->isReady()))
+		mqttPubQos2->send(&p);
+	else
+		p._flags.publishValue = true;
+return true;
+}
+
 int Mqtt::handler(Event* event) {
-	PT_BEGIN(&t)
-		;
-		while (1) {
-			_messageId = nextMessageId();
+PT_BEGIN(&t)
+	;
+	while (1) {
+		_messageId = nextMessageId();
 
-			PT_YIELD_UNTIL(&t, _link.isConnected());
-			mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
-					"system/online", "false", "", "", TIME_KEEP_ALIVE / 1000);
-			_link.send(mqttOut);
+		PT_YIELD_UNTIL(&t, _link.isConnected());
+		mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
+				"system/online", "false", "", "", TIME_KEEP_ALIVE / 1000);
+		_link.send(mqttOut);
 
-			timeout(5000);
-			PT_YIELD_UNTIL(&t,
-					event->is(Link::MESSAGE, MQTT_MSG_CONNACK) || timeout());
-			if (timeout()) {
-				publish(DISCONNECTED);
-				continue;
-			}
-
-			str.clear() << putPrefix << "#";
-			mqttOut.Subscribe(0, str, ++_messageId, MQTT_QOS1_FLAG);
-			_link.send(mqttOut);
-
-			str.clear() << getPrefix << "#";
-			mqttOut.Subscribe(0, str, ++_messageId, MQTT_QOS1_FLAG);
-			_link.send(mqttOut);
-
-			str = "system/online";
-			msg = "true";
-			mqttOut.Publish(MQTT_QOS1_FLAG, str, msg, ++_messageId);
-			_link.send(mqttOut);
-
-			timeout(TIME_WAIT_REPLY);
-			PT_YIELD_UNTIL(&t,
-					event->is(Link::MESSAGE, MQTT_MSG_PUBACK) || timeout());
-					// isEvent(event, MQTT_MSG_PUBACK, _messageId, 0) || timeout());
-			if (timeout()) {
-				publish(DISCONNECTED);
-				continue;
-			}
-			publish(CONNECTED);
-			_isConnected = true;
-			PT_YIELD_UNTIL(&t, event->is(Link::DISCONNECTED));
-
+		timeout(5000);
+		PT_YIELD_UNTIL(&t,
+				event->is(Link::MESSAGE, MQTT_MSG_CONNACK) || timeout());
+		if (timeout()) {
 			publish(DISCONNECTED);
-			_isConnected = false;
+			continue;
 		}
-	PT_END(&t);
+
+		str.clear() << putPrefix << "#";
+		mqttOut.Subscribe(0, str, ++_messageId, MQTT_QOS1_FLAG);
+		_link.send(mqttOut);
+
+		str.clear() << getPrefix << "#";
+		mqttOut.Subscribe(0, str, ++_messageId, MQTT_QOS1_FLAG);
+		_link.send(mqttOut);
+
+		str = "system/online";
+		msg = "true";
+		mqttOut.Publish(MQTT_QOS1_FLAG, str, msg, ++_messageId);
+		_link.send(mqttOut);
+
+		timeout(TIME_WAIT_REPLY);
+		PT_YIELD_UNTIL(&t,
+				event->is(Link::MESSAGE, MQTT_MSG_PUBACK) || timeout());
+		// isEvent(event, MQTT_MSG_PUBACK, _messageId, 0) || timeout());
+		if (timeout()) {
+			publish(DISCONNECTED);
+			continue;
+		}
+		publish(CONNECTED);
+		_isConnected = true;
+		PT_YIELD_UNTIL(&t, event->is(Link::DISCONNECTED));
+
+		publish(DISCONNECTED);
+		_isConnected = false;
+	}
+PT_END(&t);
 }
 
 Erc Mqtt::send(Bytes& pb) {
 if (_link.isConnected())
-	return _link.send(pb);
+return _link.send(pb);
 else
-	return E_AGAIN;
+return E_AGAIN;
 }
 
 MqttIn* Mqtt::recv() {
@@ -266,36 +278,36 @@ const int Mqtt::MESSAGE = Event::nextEventId("Mqtt::MESSAGE");
  ******************************************************************************/
 
 MqttPing::MqttPing(Mqtt& mqtt) :
-	_mqtt(mqtt) {
+_mqtt(mqtt) {
 PT_INIT(&t);
 }
 
 int MqttPing::handler(Event* event) {
 PT_BEGIN(&t)
-	;
-	while (true) {
-		_retryCount = 0;
-		while (_mqtt.isConnected()) {
-			mqttOut.PingReq();
-			_mqtt.send(mqttOut);
+;
+while (true) {
+	_retryCount = 0;
+	while (_mqtt.isConnected()) {
+		mqttOut.PingReq();
+		_mqtt.send(mqttOut);
 
-			timeout(TIME_WAIT_REPLY);
-			PT_YIELD_UNTIL(&t,
-					timeout() || _mqtt.isEvent(event, MQTT_MSG_PINGRESP, 0, 0));
-			if (timeout()) {
-				_retryCount++;
-				if (_retryCount >= 3) {
-					_mqtt.disconnect();
-					PT_RESTART(&t);
-				}
-			} else
-				_retryCount = 0;
-			timeout(TIME_PING);
-			PT_YIELD_UNTIL(&t, timeout());
-			// sleep between pings
-		}
-		PT_YIELD(&t);
+		timeout(TIME_WAIT_REPLY);
+		PT_YIELD_UNTIL(&t,
+				timeout() || _mqtt.isEvent(event, MQTT_MSG_PINGRESP, 0, 0));
+		if (timeout()) {
+			_retryCount++;
+			if (_retryCount >= 3) {
+				_mqtt.disconnect();
+				PT_RESTART(&t);
+			}
+		} else
+			_retryCount = 0;
+		timeout(TIME_PING);
+		PT_YIELD_UNTIL(&t, timeout());
+		// sleep between pings
 	}
+	PT_YIELD(&t);
+}
 PT_END(&t);
 }
 
@@ -341,29 +353,29 @@ uint8_t header = MQTT_QOS1_FLAG;
 PT_BEGIN(&t)
 ;
 while (true) {
-	PT_YIELD_UNTIL(&t, _isReady == false);
-	_retryCount = 0;
-	while (_retryCount < 3) {
-		header = MQTT_QOS1_FLAG;
-		if (prop->_flags.retained)
-			header += MQTT_RETAIN_FLAG;
-		if (_retryCount)
-			header += MQTT_DUP_FLAG;
+PT_YIELD_UNTIL(&t, _isReady == false);
+_retryCount = 0;
+while (_retryCount < 3) {
+	header = MQTT_QOS1_FLAG;
+	if (prop->_flags.retained)
+		header += MQTT_RETAIN_FLAG;
+	if (_retryCount)
+		header += MQTT_DUP_FLAG;
 
-		topic.set(prop->_name);
-		prop->_xdr(prop->_instance, CMD_GET, message);
-		mqttOut.Publish(header, topic, message, _messageId);
-		_mqtt.send(mqttOut);
+	topic.set(prop->_name);
+	prop->_xdr(prop->_instance, CMD_GET, message);
+	mqttOut.Publish(header, topic, message, _messageId);
+	_mqtt.send(mqttOut);
 
-		timeout(TIME_WAIT_REPLY);
-		PT_YIELD_UNTIL(&t,
-				timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBACK, _messageId, 0));
-		if (timeout())
-			_retryCount++;
-		else
-			break;
-	}
-	_isReady = true;
+	timeout(TIME_WAIT_REPLY);
+	PT_YIELD_UNTIL(&t,
+			timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBACK, _messageId, 0));
+	if (timeout())
+		_retryCount++;
+	else
+		break;
+}
+_isReady = true;
 }
 PT_END(&t);
 }
@@ -390,41 +402,41 @@ PT_BEGIN(&t)
 while (true) {
 PT_YIELD_UNTIL(&t, _isReady == false);
 while (!_isReady) {
-	_retryCount = 0;
-	while (_retryCount < 3) {
-		if (prop->_flags.retained)
-			header += MQTT_RETAIN_FLAG;
-		if (_retryCount)
-			header += MQTT_DUP_FLAG;
+_retryCount = 0;
+while (_retryCount < 3) {
+	if (prop->_flags.retained)
+		header += MQTT_RETAIN_FLAG;
+	if (_retryCount)
+		header += MQTT_DUP_FLAG;
 
-		topic.set(prop->_name);
-		prop->_xdr(prop->_instance, CMD_GET, message);
-		mqttOut.Publish(header, topic, message, _messageId);
-		_mqtt.send(mqttOut);
+	topic.set(prop->_name);
+	prop->_xdr(prop->_instance, CMD_GET, message);
+	mqttOut.Publish(header, topic, message, _messageId);
+	_mqtt.send(mqttOut);
 
-		timeout(TIME_WAIT_REPLY);
-		PT_YIELD_UNTIL(&t,
-				timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBREC, _messageId, 0));
-		if (timeout())
-			_retryCount++;
-		else
-			break;
-	};
-	if (_retryCount == 3)
+	timeout(TIME_WAIT_REPLY);
+	PT_YIELD_UNTIL(&t,
+			timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBREC, _messageId, 0));
+	if (timeout())
+		_retryCount++;
+	else
 		break;
-	_retryCount = 0;
-	while (_retryCount < 3) {
-		mqttOut.PubRel(_messageId);
-		_mqtt.send(mqttOut);
+};
+if (_retryCount == 3)
+	break;
+_retryCount = 0;
+while (_retryCount < 3) {
+	mqttOut.PubRel(_messageId);
+	_mqtt.send(mqttOut);
 
-		timeout(TIME_WAIT_REPLY);
-		PT_YIELD_UNTIL(&t,
-				timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0));
-		if (timeout())
-			_retryCount++;
-		else
-			break;
-	};
+	timeout(TIME_WAIT_REPLY);
+	PT_YIELD_UNTIL(&t,
+			timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0));
+	if (timeout())
+		_retryCount++;
+	else
+		break;
+};
 }
 _isReady = true;
 }

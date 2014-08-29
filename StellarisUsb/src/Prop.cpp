@@ -63,13 +63,8 @@ Prop::Prop(const char* name, void* instance, Xdr xdr, Flags flags) {
 
                             if ( p->_xdr ) {
                                 p->_flags.publishValue = false;
- /*                               if ( p->_flags.qos == QOS_0 )
-                                    mqttPubQos0.send( p );
-                                else if ( ( p->_flags.qos == QOS_1 )  && ( mqttPubQos1.isReady() ) )
-                                    mqttPubQos1.send( p );
-                                else if ( ( p->_flags.qos == QOS_2 ) && ( mqttPubQos2.isReady() ) )
-                                    mqttPubQos2.send( p );
-                                else  p->_flags.publishValue = true;*/
+                                _mqtt.launch(*p);
+
 //                               p->_xdr( p->_instance, CMD_GET, message );
                                 if ( p->_flags.publishValue == false ) {
                                     timeout ( 50 );

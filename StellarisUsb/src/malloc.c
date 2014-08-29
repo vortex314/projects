@@ -61,6 +61,7 @@
 
 #ifndef MALLOC_DIRECTION
 #define MALLOC_DIRECTION 1
+#define DEFINE_MALLINFO
 #endif
 
 #include <stddef.h>

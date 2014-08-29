@@ -19,6 +19,8 @@
 #include "Prop.h"
 #include "MqttOut.h"
 
+class Prop;
+
 //************************************** CONSTANTS ****************************
 
 #define MAX_MSG_SIZE 100
@@ -57,6 +59,7 @@ public:
 	int handler(Event* event);
 	Erc send(Bytes& pb);
 	bool isEvent(Event* event, uint8_t type, uint16_t messageId, uint8_t qos);
+	bool launch(Prop& prop);
 	MqttIn* recv();
 	bool isConnected();
 	Erc disconnect();
