@@ -36,6 +36,7 @@ class PropertyListener : public Sequence {
 private :
 	Mqtt& _mqtt;
 	struct pt t;
+	Str _topic;
 public :
 	PropertyListener( Mqtt& mqtt ) ;
 	int handler(Event* event);

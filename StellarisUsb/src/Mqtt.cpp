@@ -64,8 +64,8 @@ private:
 public:
   static const int PUBLISH_OK, PUBLISH_FAILED;
   MqttPub (Mqtt& mqtt);
-  void
-  send (Flags flags, uint16_t id, Str& topic, Str& message);
+  bool
+  send (Flags flags, uint16_t id, Str& topic, Strpack& message);
   void
   Publish ();
   bool
@@ -330,7 +330,9 @@ PT_END(&t);
 /*****************************************************************************
  *   HANDLE MQTT send publish message with qos=2 and 1
  ******************************************************************************/
-
+const int MqttPub::PUBLISH_FAILED = Event::nextEventId (
+"MqttPub::PUBLISH_FAILED");
+const int MqttPub::PUBLISH_OK = Event::nextEventId ("MqttPub::PUBLISH_OK");
 MqttPub::MqttPub (Mqtt& mqtt) :
 _topic (100), _message (100), _mqtt (mqtt)
 {
@@ -338,17 +340,21 @@ PT_INIT(&t);
 _messageId = 1000;
 _isReady = true;
 _retryCount = 0;
+_id = 0;
 }
 
-void
-MqttPub::send (Flags flags, uint16_t id, Str& topic, Str& message)
+bool
+MqttPub::send (Flags flags, uint16_t id, Str& topic, Strpack& message)
 {
+if (!_isReady)
+return false;
 _messageId = nextMessageId ();
 _topic = topic;
 _message = message;
 _flags = flags;
 _id = id;
 _isReady = false;
+return true;
 }
 
 void
@@ -405,6 +411,7 @@ while (true)
 		timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBACK, _messageId, 0));
 	    if (_mqtt.isEvent (event, MQTT_MSG_PUBACK, _messageId, 0))
 	      break;
+	    _retryCount++;
 	  }
 	if (_retryCount == 3)
 	  publish (PUBLISH_FAILED, _id);
@@ -429,29 +436,31 @@ while (true)
 	if (_retryCount == 3)
 	  {
 	    publish (PUBLISH_FAILED, _id);
-	    break;
 	  }
-	_retryCount = 0;
-	while (_retryCount < 3)
+	else
 	  {
-	    mqttOut.PubRel (_messageId);
-	    _mqtt.send (mqttOut);
+	    _retryCount = 0;
+	    while (_retryCount < 3)
+	      {
+		mqttOut.PubRel (_messageId);
+		_mqtt.send (mqttOut);
 
-	    timeout (TIME_WAIT_REPLY);
-	    PT_YIELD_UNTIL(
-		&t,
-		timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0));
-	    if (timeout ())
-	      _retryCount++;
-	    else
-	      break;
-	  };
-	if (_retryCount == 3)
-	  {
-	    publish (PUBLISH_FAILED, _id);
-	    break;
+		timeout (TIME_WAIT_REPLY);
+		PT_YIELD_UNTIL(
+		    &t,
+		    timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0));
+		if (timeout ())
+		  _retryCount++;
+		else
+		  break;
+	      };
 	  }
+	if (_retryCount == 3)
+	    publish (PUBLISH_FAILED, _id);
+	else
+	  publish (PUBLISH_OK, _id);
       }
+    _isReady = true;
 
   }
 PT_END(&t)
