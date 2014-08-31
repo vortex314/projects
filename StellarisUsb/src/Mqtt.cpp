@@ -395,14 +395,13 @@ PT_BEGIN(&t)
 while (true)
   {
     PT_YIELD_UNTIL(&t, _isReady == false);
+    _retryCount = 0;
     if (_flags.qos == QOS_0)
       {
-	_retryCount = 0;
 	Publish ();
       }
     else if (_flags.qos == QOS_1)
       {
-	_retryCount = 0;
 	while (_retryCount < 3)
 	  {
 	    Publish ();
@@ -417,11 +416,9 @@ while (true)
 	  publish (PUBLISH_FAILED, _id);
 	else
 	  publish (PUBLISH_OK, _id);
-
       }
     else if (_flags.qos == QOS_2)
       {
-	_retryCount = 0;
 	while (_retryCount < 3)
 	  {
 	    Publish ();
@@ -436,27 +433,27 @@ while (true)
 	if (_retryCount == 3)
 	  {
 	    publish (PUBLISH_FAILED, _id);
+	    _isReady = true;
+	    PT_RESTART(&t);
 	  }
-	else
-	  {
-	    _retryCount = 0;
-	    while (_retryCount < 3)
-	      {
-		mqttOut.PubRel (_messageId);
-		_mqtt.send (mqttOut);
 
-		timeout (TIME_WAIT_REPLY);
-		PT_YIELD_UNTIL(
-		    &t,
-		    timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0));
-		if (timeout ())
-		  _retryCount++;
-		else
-		  break;
-	      };
+	_retryCount = 0;
+	while (_retryCount < 3)
+	  {
+	    mqttOut.PubRel (_messageId);
+	    _mqtt.send (mqttOut);
+
+	    timeout (TIME_WAIT_REPLY);
+	    PT_YIELD_UNTIL(
+		&t,
+		timeout() || _mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0));
+	    if (timeout ())
+	      _retryCount++;
+	    else
+	      break;
 	  }
 	if (_retryCount == 3)
-	    publish (PUBLISH_FAILED, _id);
+	  publish (PUBLISH_FAILED, _id);
 	else
 	  publish (PUBLISH_OK, _id);
       }
