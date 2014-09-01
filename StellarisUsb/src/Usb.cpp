@@ -159,10 +159,12 @@ Usb::handler (Event* event)
     {
       reset ();
       isConnected (true);
+      publish(Link::CONNECTED);
     }
   else if (event->is (DISCONNECTED))
     {
       isConnected (false);
+      publish(Link::DISCONNECTED);
     }
   else if (event->is (RXD))
     {
@@ -283,7 +285,7 @@ SetControlLineState (unsigned short usState)
 static tBoolean
 SetLineCoding (tLineCoding *psLineCoding)
 {
-  Sequence::publish (Usb::CONNECTED);
+//  Sequence::publish (Usb::CONNECTED);
   return true;
 }
 
