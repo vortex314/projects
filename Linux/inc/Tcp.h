@@ -30,7 +30,8 @@ public:
     bool isConnected();
 
     MqttIn* recv();
-    int32_t read();
+    uint8_t read();
+    uint32_t hasData();
     Erc send(Bytes& pb);
 
 

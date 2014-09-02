@@ -79,8 +79,8 @@ MqttIn* Tcp::recv() {
     else return 0;
     }
 #include <cstdio>
-int32_t Tcp::read() {
-    int n;
+uint8_t Tcp::read() {
+    int32_t n;
     uint8_t b;
     n=::read(_sockfd,&b,1) ;
     if (n <= 0) {
@@ -104,6 +104,17 @@ Erc Tcp::send(Bytes& bytes) {
     return E_OK;
     }
 
+#include <sys/ioctl.h>
+uint32_t Tcp::hasData(){
+    int count;
+    int rc = ioctl(_sockfd, FIONREAD, (char *) &count);
+    if (rc < 0) {
+        perror("ioctl failed");
+        _connected=false;
+        return E_CONN_LOSS;
+        }
+        return count;
+}
 
 
 int Tcp::handler ( Event* event ) {
@@ -113,7 +124,8 @@ int Tcp::handler ( Event* event ) {
         while( isConnected()) {
             PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE));
             if ( event->is(RXD) && msg.complete() == false ) {
-                while( (b=read()) >=0 ) {
+                while( hasData() ) {
+                    b=read();
                     msg.add(b);
                     if (  msg.complete() ) {
                         Log::log().message("TCP recv : " ,msg);
