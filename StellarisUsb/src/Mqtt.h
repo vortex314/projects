@@ -49,7 +49,7 @@ private:
 	MqttSubQos2* mqttSubQos2;
 
 public:
-	const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE;
+  const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
 
 	Mqtt(Link& link);
 	int handler(Event* event);
