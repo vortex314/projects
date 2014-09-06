@@ -30,13 +30,16 @@ public:
 	Usb();
 	static void init();
 	void reset();
-	Erc connect() ;
-	Erc disconnect() ;
+	Erc connect();
+	Erc disconnect();
 	Erc send(Bytes& bytes);
-	MqttIn* recv() ;
-	uint8_t read() ;
+	MqttIn* recv();
+	uint8_t read();
 	uint32_t hasData();
 	int handler(Event* event);
+	void dispatch(Event& event) {
+		handler(&event);
+	}
 };
 
 #endif /* USB_H_ */
