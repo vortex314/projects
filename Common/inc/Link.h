@@ -7,7 +7,7 @@
 class Link
 {
     public:
-	static const int CONNECTED,DISCONNECTED,RXD,MESSAGE,ERROR;
+//	static const int CONNECTED,DISCONNECTED,RXD,MESSAGE,ERROR;
         Link();
         virtual ~Link();
         bool isConnected() { return _isConnected; }
