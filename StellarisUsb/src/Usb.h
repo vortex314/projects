@@ -13,18 +13,19 @@
 #include "Link.h"
 #include "MqttIn.h"
 #include "CircBuf.h"
-
+#include "main.h"
+#include "Fsm.h"
 
 #define MAX_BUFFER 2
 
-class Usb: public Sequence, public Link {
+class Usb: public Fsm, public Link {
 private:
 	MqttIn mqttIn;
 	bool _isComplete;
 
 public:
 	CircBuf in;
-	static const int CONNECTED, DISCONNECTED, RXD, MQTT_MESSAGE, FREE;
+//	static const int CONNECTED, DISCONNECTED, RXD, MQTT_MESSAGE, FREE;
 
 	Usb();
 	static void init();

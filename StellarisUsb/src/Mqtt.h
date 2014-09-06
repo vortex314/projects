@@ -18,6 +18,8 @@
 #include "Log.h"
 #include "Prop.h"
 #include "MqttOut.h"
+#include "Fsm.h"
+#include "main.h"
 
 class Prop;
 
@@ -34,7 +36,7 @@ class MqttSubQos0;
 class MqttSubQos1;
 class MqttSubQos2;
 
-class Mqtt: public Sequence {
+class Mqtt: public Fsm {
 private:
 	struct pt t;
 	uint16_t _messageId;
@@ -59,7 +61,42 @@ public:
 	MqttIn* recv();
 	bool isConnected();
 	Erc disconnect();
+	void waitConnect(Event& event);
+	void waitConnAck(Event& event);
+	void waitDisconnect(Event& event);
 };
+
+class MqttPub:public Fsm {
+private:
+	uint32_t _retryCount;
+	uint16_t _messageId;
+	Str _topic;
+	Str _message;
+	Flags _flags;
+	uint32_t _id;
+	Mqtt& _mqtt;
+public :
+	MqttPub(Mqtt& mqtt);
+	bool send(Flags flags, uint16_t id, Str& topic, Strpack& strp);
+	void Publish();
+	void sleep(Event& event);
+	void ready(Event& event);
+	void qos1Pub(Event& event);
+	void qos2Pub(Event& event);
+	void qos2Comp(Event& event);
+};
+
+class MqttPing :public Fsm {
+private:
+	uint32_t _retryCount;
+	Mqtt& _mqtt;
+public :
+	MqttPing(Mqtt& mqtt);
+	void sleep(Event& event);
+	void sleepBetweenPings(Event& event);
+	void waitPingResp(Event& event);
+};
+
 
 
 #endif /* MQTT_H_ */

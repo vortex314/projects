@@ -49,10 +49,9 @@ Prop::set (Str& topic, Strpack& message, uint8_t header)
 	p->_xdr (p->_instance, CMD_PUT, message);
       p->_flags.publishValue = true;
     }
-  Sequence::publish (Prop::CHANGED);
+  Fsm::publish (SIG_PROP_CHANGED);
 }
 
-const int Prop::CHANGED = Event::nextEventId ("Prop::CHANGED");
 
 PropertyListener::PropertyListener (Mqtt& mqtt) :
     _mqtt (mqtt),_topic(30)
@@ -100,7 +99,7 @@ PropertyListener::handler (Event* event)
 		}
 	    }
 	  timeout (5000); // sleep between scans
-	  PT_YIELD_UNTIL(&t, timeout () || event->is (Prop::CHANGED));
+	  PT_YIELD_UNTIL(&t, timeout () || event->is (SIG_PROP_CHANGED));
 	}
       PT_YIELD(&t); // yield during tcp disconnects
     }
