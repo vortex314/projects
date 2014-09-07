@@ -80,13 +80,13 @@ Erc Usb::send(Bytes& bytes) {
     return E_OK;
     }
 
-int32_t Usb::read() {
+uint8_t Usb::read() {
     uint8_t b;
     if (::read(_fd,&b,1)>0) {
         return b;
         }
-    return -1;
-    }
+    return SOF;
+        }
 
 int Usb::handler ( Event* event ) {
     int32_t b;
@@ -101,7 +101,7 @@ int Usb::handler ( Event* event ) {
         while( isConnected()) {
             PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
             if ( event->is(RXD) ) {
-                while( (b=read()) >=0 ) {
+                while( (b=read()) >=0 ) { // TODO adapt with hasData() check
                     inBuffer.write(b);
                     }
                 }
@@ -112,7 +112,7 @@ int Usb::handler ( Event* event ) {
             if ( inBuffer.hasData() && (_isComplete==false) ) {
                 while( inBuffer.hasData() ) {
                     if ( msg.Feed(inBuffer.read())) {
-                        Log::log().message("USB recv : " ,msg);
+ //                       Log::log().message("USB recv : " ,msg);
                         msg.Decode();
                         if ( msg.isGoodCrc() ) {
                             msg.RemoveCrc();
