@@ -22,33 +22,32 @@ class Sys;
 #define MAX_EVENT_ID    50
 typedef int EventId;
 /*class EventData {
-        virtual void toString(Str& str)=0;
-    };*/
-
+ virtual void toString(Str& str)=0;
+ };*/
+#include "main.h"
 class Event {
-    public:
-        Event();
-        Event(int id);
-        Event(int id,uint16_t w);
-        bool is(int id);
-        bool is(int id,uint16_t w);
-        int id();
-        uint16_t detail();
-        uint8_t byte(int i);
-        static EventId nextEventId(const char *s);
-        char *getEventIdName();
-        void toString(Str& line);
-    private:
-        struct {
-            uint8_t _id:8;
-            union {
-                uint8_t _b[3];
-                uint16_t _w;
-                };
-            };
-        static uint32_t eventIdCount;
-        static const char* eventNames[MAX_EVENT_ID];
-    };
+public:
+	Event();
+	Event(int id);
+	Event(int id, uint16_t w);
+	bool is(int id);
+	bool is(int id, uint16_t w);
+	int id();
+	uint16_t detail();
+	uint8_t byte(int i);
+	static EventId nextEventId(const char *s);
+	char *getEventIdName();
+	void toString(Str& line);
+public:
+
+	Signals _id :8;
+	uint16_t _w :16;
+
+	static uint32_t eventIdCount;
+	static const char* eventNames[MAX_EVENT_ID];
+	static Erc nextEvent(Event& event);
+	static Erc publish(Event& event);
+};
 
 #endif	/* EVENT_H */
 

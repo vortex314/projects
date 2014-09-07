@@ -25,6 +25,7 @@ class Usb :public Link,public Sequence  {
         int fd();
     private :
     uint8_t read() ;
+    uint32_t hasData();
         struct pt t;
         int _fd;
         const char* _device;

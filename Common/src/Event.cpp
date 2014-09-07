@@ -2,13 +2,14 @@
 #include "Sys.h"
 #include "Erc.h"
 
-uint32_t Event::eventIdCount=0;
-const char* Event::eventNames[MAX_EVENT_ID];
+QueueTemplate<Event> defaultQueue(10);
 
-EventId Event::nextEventId(const char *name)
-{
-    eventNames[eventIdCount]=name;
-    return eventIdCount++;
+Erc Event::nextEvent(Event& event) {
+	return defaultQueue.get(event);
+}
+
+Erc Event::publish(Event& event){
+	return defaultQueue.put(event);
 }
 
 char* Event::getEventIdName()
@@ -21,13 +22,13 @@ Event::Event()
 }
 
 	Event::Event(int id){
-	    _id=id;
+	    _id=(Signals)id;
 	    _w=0;
 	}
 
 Event::Event(int id,uint16_t w)
 {
-    _id=id;
+    _id=(Signals)id;
     _w=w;
 }
 

@@ -6,7 +6,7 @@
 #include "pt.h"
 class Sequence;
 
-#define MAX_SEQ 10
+#define MAX_SEQ 15
 
 class Sequence
 {
