@@ -10,36 +10,44 @@
 #include "Mqtt.h"
 #include "Timer.h"
 #include "Prop.h"
-/*
- #define LED_INTERVAL 100
- class LedSeq: public Sequence
- {
- private:
- struct pt t;
 
- public:
- LedSeq()
- {
- PT_INIT(&t);
- }
- int handler(Event* event)
- {
- PT_BEGIN ( &t )
- while (true)
- {
- timeout(250);
- PT_YIELD_UNTIL(&t, timeout());
- Board::setLedOn(Board::LED_GREEN, true);
- timeout(250);
- PT_YIELD_UNTIL(&t, timeout());
- Board::setLedOn(Board::LED_GREEN, false);
- }
- PT_END ( &t );
- }
- };*/
+
 #include <malloc.h>
 /*
 class MeasureSeq : public Fsm
+=======
+
+#define LED_INTERVAL 100
+class LedSeq : public Sequence
+{
+private:
+  struct pt t;
+
+public:
+  LedSeq ()
+  {
+    PT_INIT(&t);
+  }
+  int
+  handler (Event* event)
+  {
+    PT_BEGIN ( &t )
+      while (true)
+	{
+	  timeout (250);
+	  PT_YIELD_UNTIL(&t, timeout ());
+	  Board::setLedOn (Board::LED_GREEN, true);
+	  timeout (250);
+	  PT_YIELD_UNTIL(&t, timeout ());
+	  Board::setLedOn (Board::LED_GREEN, false);
+	}
+    PT_END ( &t );
+}
+};
+#include <malloc.h>
+
+class MeasureSeq : public Sequence
+>>>>>>> 709d62f69d76b208f0276c399a72d145b54fd6dd
 {
 private:
   struct pt t;
@@ -54,8 +62,12 @@ public:
   heapMemory (void* instance, Cmd cmd, Strpack& strp);
 };
 
+<<<<<<< HEAD
 MeasureSeq::MeasureSeq (Mqtt& mqtt) :
     _mqtt (mqtt)
+=======
+MeasureSeq::MeasureSeq (Mqtt& mqtt) : _mqtt(mqtt)
+>>>>>>> 709d62f69d76b208f0276c399a72d145b54fd6dd
 {
   PT_INIT(&t);
 }
@@ -77,6 +89,7 @@ MeasureSeq::handler (Event* event)
 	timeout (5000);
 	PT_YIELD_UNTIL(&t, timeout ());
 	Strpack strp (100);
+<<<<<<< HEAD
 	Str topic (10);
 	topic.set ("system/heapUsage");
 	Strpack value (10);
@@ -84,6 +97,16 @@ MeasureSeq::handler (Event* event)
 	Flags flags =
 	  { T_STR, M_WRITE, QOS_1, I_OBJECT, true };
 	_mqtt.Publish (flags, 1, topic, value);
+=======
+	Str  topic(10);
+	topic.set("system/heapUsage");
+	Strpack value(10);
+	value.append((uint32_t) m.uordblks);
+	Flags flags = {
+	    T_STR, M_WRITE, QOS_1, I_OBJECT, true
+	    };
+	_mqtt.Publish(flags,1,topic,value);
+>>>>>>> 709d62f69d76b208f0276c399a72d145b54fd6dd
       }
   PT_END ( &t );
 }
@@ -104,6 +127,7 @@ else if (cmd == CMD_DESC)
   {
     strp.append (desc);
   }
+<<<<<<< HEAD
 }*/
 
 #include "Fsm.h"
@@ -172,11 +196,8 @@ int
 main (void)
 {
 Board::init ();	// initialize usb
-
 Usb::init ();
 Usb usb;		// usb active object
-//LedSeq ledSeq; 	// blinking led AO
-
 Mqtt mqtt (usb);	// mqtt active object
 
 PropertyListener propertyListener (mqtt);
@@ -187,7 +208,9 @@ while (1)
     if (Sys::upTime () > clock)
       {
 	clock += 10;
+
 	Fsm::publish (SIG_TIMER_TICK);
+
       }
   }
 }

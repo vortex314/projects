@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <time.h>
 
 #define PQ ((mqd_t*)_ref)
 #define QUEUE_NAME "/MQ"

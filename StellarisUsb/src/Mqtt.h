@@ -18,8 +18,10 @@
 #include "Log.h"
 #include "Prop.h"
 #include "MqttOut.h"
+
 #include "Fsm.h"
 #include "main.h"
+
 
 class Prop;
 
@@ -36,7 +38,9 @@ class MqttSubQos0;
 class MqttSubQos1;
 class MqttSubQos2;
 
+
 class Mqtt: public Fsm {
+
 private:
 	struct pt t;
 	uint16_t _messageId;
@@ -51,7 +55,9 @@ private:
 	MqttSubQos2* mqttSubQos2;
 
 public:
+
   const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
+
 
 	Mqtt(Link& link);
 	int handler(Event* event);
@@ -61,6 +67,7 @@ public:
 	MqttIn* recv();
 	bool isConnected();
 	Erc disconnect();
+
 	void waitConnect(Event& event);
 	void waitConnAck(Event& event);
 	void waitDisconnect(Event& event);
@@ -96,6 +103,7 @@ public :
 	void sleepBetweenPings(Event& event);
 	void waitPingResp(Event& event);
 };
+
 
 
 

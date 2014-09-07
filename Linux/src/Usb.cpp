@@ -80,16 +80,31 @@ Erc Usb::send(Bytes& bytes) {
     return E_OK;
     }
 
-int32_t Usb::read() {
+uint8_t Usb::read() {
     uint8_t b;
-    if (::read(_fd,&b,1)>0) {
-        return b;
+    if (::read(_fd,&b,1)<0) {
+        perror(" Usb read failed");
+        return 0;
         }
-    return -1;
+    return b;
     }
 
+    #include <sys/ioctl.h>
+uint32_t Usb::hasData(){
+    int count;
+    int rc = ioctl(_fd, FIONREAD, (char *) &count);
+    if (rc < 0) {
+        perror("ioctl failed");
+        isConnected(false);
+        return 0;
+        }
+        return count;
+}
+
 int Usb::handler ( Event* event ) {
-    int32_t b;
+    uint8_t b;
+    uint32_t i;
+    uint32_t count;
 
     if ( event->is(Usb::ERROR )) {
         disconnect();
@@ -100,8 +115,10 @@ int Usb::handler ( Event* event ) {
     while(true) {
         while( isConnected()) {
             PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
-            if ( event->is(RXD) ) {
-                while( (b=read()) >=0 ) {
+            if ( event->is(RXD) &&  hasData()) {
+                count =hasData();
+                for(i=0;i<count;i++){
+                    b=read();
                     inBuffer.write(b);
                     }
                 }

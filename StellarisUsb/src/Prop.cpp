@@ -49,8 +49,10 @@ Prop::set (Str& topic, Strpack& message, uint8_t header)
 	p->_xdr (p->_instance, CMD_PUT, message);
       p->_flags.publishValue = true;
     }
+
   Fsm::publish (SIG_PROP_CHANGED);
 }
+
 
 
 PropertyListener::PropertyListener (Mqtt& mqtt) :
@@ -99,7 +101,9 @@ PropertyListener::handler (Event* event)
 		}
 	    }
 	  timeout (5000); // sleep between scans
+
 	  PT_YIELD_UNTIL(&t, timeout () || event->is (SIG_PROP_CHANGED));
+
 	}
       PT_YIELD(&t); // yield during tcp disconnects
     }

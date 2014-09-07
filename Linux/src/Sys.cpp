@@ -1,6 +1,7 @@
 #include "Sys.h"
 
 #include <malloc.h>
+#include <time.h>
 
 uint64_t Sys::_upTime=0;
 

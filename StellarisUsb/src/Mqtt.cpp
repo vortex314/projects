@@ -10,11 +10,13 @@
 //*************************************************** GLOBAL VARS *************
 
 Log log;
+
 MqttIn mqttIn(MAX_MSG_SIZE);
 MqttOut mqttOut(MAX_MSG_SIZE);
 Str putPrefix(20);
 Str getPrefix(20);
 Str prefix(20);
+
 uint16_t gMessageId = 1;
 
 /*
@@ -32,9 +34,11 @@ uint16_t gMessageId = 1;
  *   HANDLE PING keep alive
  ******************************************************************************/
 
+
 /*****************************************************************************
  *   HANDLE MQTT send publish message with qos=2 and 1
  ******************************************************************************/
+
 
 /*****************************************************************************
  *   HANDLE Property scan for changes
@@ -43,6 +47,7 @@ uint16_t gMessageId = 1;
 /*****************************************************************************
  *   HANDLE MQTT received publish message with qos=2
  ******************************************************************************/
+
 class MqttSub: public Fsm {
 private:
 	Mqtt& _mqtt;
@@ -56,6 +61,7 @@ public:
 	void qos1Sub(Event& event);
 	void qos2Sub(Event& event);
 	void qos2Rel(Event& event);
+
 };
 
 /*****************************************************************************
@@ -67,6 +73,7 @@ public:
  *   Generate next message id
  ******************************************************************************/
 
+
 uint16_t nextMessageId() {
 	return gMessageId++;
 }
@@ -77,11 +84,13 @@ void GlobalInit() {
 	mqttOut.prefix(prefix);
 	getPrefix << "GET/" << prefix;
 	putPrefix << "PUT/" << prefix;
+
 }
 ;
 /*****************************************************************************
  *   MQTT EVENT filter
  ******************************************************************************/
+
 
 bool Mqtt::isEvent(Event* event, uint8_t type, uint16_t messageId,
 		uint8_t qos) {
@@ -186,9 +195,11 @@ Erc Mqtt::disconnect() {
 	return E_OK;
 }
 
+
 /*****************************************************************************
  *   HANDLE PING keep alive
  ******************************************************************************/
+
 
 MqttPing::MqttPing(Mqtt & mqtt) :
 		_mqtt(mqtt) {
@@ -240,11 +251,13 @@ void MqttPing::waitPingResp(Event& event) {
 		break;
 	}
 	}
+
 }
 
 /*****************************************************************************
  *   HANDLE MQTT send publish message with qos=2 and 1
  ******************************************************************************/
+
 
 MqttPub::MqttPub(Mqtt & mqtt) :
 		_topic(100), _message(100), _mqtt(mqtt) {
@@ -410,6 +423,7 @@ void MqttPub::Publish() {
 		header += MQTT_DUP_FLAG;
 	mqttOut.Publish(header, _topic, _message, _messageId);
 	_mqtt.send(mqttOut);
+
 }
 
 /*****************************************************************************
@@ -419,6 +433,7 @@ void MqttPub::Publish() {
 /*****************************************************************************
  *   HANDLE MQTT received publish message with qos=2
  ******************************************************************************/
+
 
 /*
  int MqttSubQos0::handler(Event* event) {
@@ -537,3 +552,4 @@ void MqttPub::Publish() {
  return 0;
  }
  */
+

@@ -150,11 +150,13 @@ Usb::hasData ()
 int
 Usb::handler (Event* event)
 {
+
   if (event->is (SIG_USB_FREE))
     {
       mqttIn.clear ();
       _isComplete = false;
     }
+
   else if (event->is (SIG_USB_CONNECTED))
     {
       reset ();
@@ -167,6 +169,7 @@ Usb::handler (Event* event)
 //      publish(Link::DISCONNECTED);
     }
   else if (event->is (SIG_USB_RXD))
+
     {
       uint8_t b;
       while (hasData () && !_isComplete)
@@ -180,8 +183,10 @@ Usb::handler (Event* event)
 		  mqttIn.RemoveCrc ();
 		  mqttIn.parse ();
 		  _isComplete = true;
+
 		  publish (SIG_MQTT_MESSAGE, mqttIn.type ());
 		  publish (SIG_USB_FREE);
+
 		}
 	      else
 		mqttIn.clear ();
@@ -228,6 +233,7 @@ Usb::init ()
 }
 
 
+
 //*****************************************************************************
 //
 // Internal function prototypes.
@@ -266,10 +272,12 @@ SetControlLineState (unsigned short usState)
 {
   if (usState & USB_CDC_ACTIVATE_CARRIER)
     {
+
       Fsm::publish (SIG_USB_CONNECTED);
     }
   else
     Fsm::publish (SIG_USB_DISCONNECTED);
+
 }
 
 //*****************************************************************************
@@ -499,7 +507,9 @@ RxHandler (void *pvCBData, unsigned long ulEvent, unsigned long ulMsgValue,
 	/*		uint8_t b;
 	 while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
 	 usb.in.write(b);*/
+
 	Fsm::publish (SIG_USB_RXD);
+
 	break;
       }
 
