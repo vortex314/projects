@@ -3,7 +3,7 @@
 #include "Timer.h"
 #include "pt.h"
 
-QueueTemplate<Event> defaultQueue(10);
+ QueueTemplate<Event> sequenceQueue(10);
 
 uint32_t Sequence::activeSequenceCount=0;
 Sequence* Sequence::activeSequence[MAX_SEQ];
@@ -38,13 +38,13 @@ void Sequence::unreg()
 void Sequence::publish(int id,uint16_t detail)
 {
     Event ev(id,detail);
-    defaultQueue.put(ev);
+    sequenceQueue.put(ev);
 }
 
 void Sequence::publish(int id)
 {
     Event ev(id);
-    defaultQueue.put(ev);
+    sequenceQueue.put(ev);
 }
 
 void Sequence::timeout(uint32_t msec)
@@ -60,7 +60,7 @@ bool Sequence::timeout()
 
 
 Erc Sequence::get(Event& event){
-	return defaultQueue.get ( event );
+	return sequenceQueue.get ( event );
 }
 
 

@@ -12,10 +12,15 @@ Erc Event::publish(Event& event){
 	return defaultQueue.put(event);
 }
 
-char* Event::getEventIdName()
+int Event::nextEventId(const char *s){
+    static int _id=0;
+    return _id++;
+}
+
+/*char* Event::getEventIdName()
 {
     return (char*)eventNames[_id];
-}
+}*/
 
 Event::Event()
 {
@@ -62,7 +67,7 @@ uint16_t Event::detail()
 void Event::toString(Str& out)
 {
     out.append("{ id : ");
-    if (eventNames[_id]) out.append(eventNames[_id]);
+//    if (eventNames[_id]) out.append(eventNames[_id]);
 
 /*    if ( data() )
     {
