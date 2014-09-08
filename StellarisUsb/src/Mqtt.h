@@ -50,9 +50,7 @@ private:
 	Link& _link;
 	MqttPing* mqttPing;
 	MqttPub* _mqttPub;
-	MqttSubQos0* mqttSubQos0;
-	MqttSubQos1* mqttSubQos1;
-	MqttSubQos2* mqttSubQos2;
+
 
 public:
 
@@ -64,7 +62,7 @@ public:
 	Erc send(Bytes& pb);
 	bool isEvent(Event* event, uint8_t type, uint16_t messageId, uint8_t qos);
 	bool Publish(Flags flags,uint16_t id,Str& topic,Strpack& strp);
-	MqttIn* recv();
+	MqttIn* getBuffer(uint32_t idx);
 	bool isConnected();
 	Erc disconnect();
 

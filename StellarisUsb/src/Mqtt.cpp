@@ -34,11 +34,9 @@ uint16_t gMessageId = 1;
  *   HANDLE PING keep alive
  ******************************************************************************/
 
-
 /*****************************************************************************
  *   HANDLE MQTT send publish message with qos=2 and 1
  ******************************************************************************/
-
 
 /*****************************************************************************
  *   HANDLE Property scan for changes
@@ -73,7 +71,6 @@ public:
  *   Generate next message id
  ******************************************************************************/
 
-
 uint16_t nextMessageId() {
 	return gMessageId++;
 }
@@ -90,14 +87,13 @@ void GlobalInit() {
 /*****************************************************************************
  *   MQTT EVENT filter
  ******************************************************************************/
-
+#include "Pool.h"
 
 bool Mqtt::isEvent(Event* event, uint8_t type, uint16_t messageId,
 		uint8_t qos) {
 	if (event->id() != SIG_MQTT_MESSAGE)
 		return false;
-	MqttIn* mqttIn;
-	mqttIn = recv();
+	MqttIn* mqttIn = getBuffer(event->detail());
 	if (mqttIn == 0)
 		return false;
 	mqttIn->parse();
@@ -168,10 +164,10 @@ Mqtt::Mqtt(Link & link) :
 	_mqttPub = new MqttPub(*this);
 	init(static_cast<SF>(&Mqtt::waitConnect));
 
-	PT_INIT(&t);
+//	PT_INIT(&t);
 	_messageId = 2000;
 	_isConnected = false;
-	new MqttPing(*this);
+//	new MqttPing(*this);
 	GlobalInit();
 }
 
@@ -182,9 +178,9 @@ Erc Mqtt::send(Bytes & pb) {
 		return E_AGAIN;
 }
 
-MqttIn *
-Mqtt::recv() {
-	return _link.recv();
+MqttIn*
+Mqtt::getBuffer(uint32_t idx) {
+	return _link.getBuffer(idx);
 }
 
 bool Mqtt::isConnected() {
@@ -195,15 +191,14 @@ Erc Mqtt::disconnect() {
 	return E_OK;
 }
 
-
 /*****************************************************************************
  *   HANDLE PING keep alive
  ******************************************************************************/
 
-
 MqttPing::MqttPing(Mqtt & mqtt) :
 		_mqtt(mqtt) {
 	_retryCount = 0;
+	init(static_cast<SF>(&MqttPing::sleep));
 }
 
 void MqttPing::sleep(Event& event) {
@@ -212,8 +207,21 @@ void MqttPing::sleep(Event& event) {
 }
 
 void MqttPing::sleepBetweenPings(Event& event) {
-	if (event.is(SIG_TIMER_TICK) && timeout())
-		TRAN(MqttPing::waitPingResp);
+	switch (event.id()) {
+	case SIG_ENTRY: {
+		timeout(TIME_PING);
+		break;
+	}
+	case SIG_TIMER_TICK: {
+		if (timeout())
+			TRAN(MqttPing::waitPingResp);
+		break;
+	}
+	case SIG_MQTT_DISCONNECTED: {
+		TRAN(MqttPub::sleep);
+		break;
+	}
+	}
 }
 
 void MqttPing::waitPingResp(Event& event) {
@@ -246,6 +254,7 @@ void MqttPing::waitPingResp(Event& event) {
 				timeout(TIME_WAIT_REPLY);
 			} else { //TODO disconnect
 				TRAN(MqttPing::sleep);
+				_mqtt.disconnect();
 			}
 		}
 		break;
@@ -257,7 +266,6 @@ void MqttPing::waitPingResp(Event& event) {
 /*****************************************************************************
  *   HANDLE MQTT send publish message with qos=2 and 1
  ******************************************************************************/
-
 
 MqttPub::MqttPub(Mqtt & mqtt) :
 		_topic(100), _message(100), _mqtt(mqtt) {
@@ -433,7 +441,6 @@ void MqttPub::Publish() {
 /*****************************************************************************
  *   HANDLE MQTT received publish message with qos=2
  ******************************************************************************/
-
 
 /*
  int MqttSubQos0::handler(Event* event) {
