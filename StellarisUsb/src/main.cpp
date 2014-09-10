@@ -178,8 +178,19 @@ void eventPump() {
 // This is the main application entry function.
 //
 //*****************************************************************************
+#include "BipBuffer.h"
+BipBuffer bb;
 
 int main(void) {
+
+	bb.AllocateBuffer(1024);
+	int size;
+	bb.Reserve(10,size);
+	bb.Commit(size);
+	bb.GetContiguousBlock(size);
+
+	bb.FreeBuffer();
+
 	Board::init();	// initialize usb
 	Usb::init();
 	Usb usb;		// usb active object
