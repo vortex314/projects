@@ -17,7 +17,7 @@ public:
     virtual ~Pool();
     static uint16_t put(void *pv);
     static void* get(uint16_t handle);
-    static void* alloc();
+    static void* alloc(uint32_t size);
     static void free(void *pv);
 private:
     static void* _busy[POOL_SIZE];
