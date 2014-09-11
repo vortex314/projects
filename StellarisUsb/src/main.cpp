@@ -183,11 +183,8 @@ BipBuffer bb;
 
 int main(void) {
 
-	bb.AllocateBuffer(1024);
-	int size;
-	bb.Reserve(10,size);
-	bb.Commit(size);
-	bb.GetContiguousBlock(size);
+	Msg msg;
+	msg.create(1).add((uint8_t)13).send();
 
 	bb.FreeBuffer();
 

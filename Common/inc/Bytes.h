@@ -22,6 +22,7 @@ class Bytes {
 public:
     Bytes(uint32_t size);
     Bytes(uint8_t* start, uint32_t size);
+    void map(uint8_t* start, uint32_t size);
     Bytes(Bytes& in);
     ~Bytes();
     void clone(Bytes& src);

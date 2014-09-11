@@ -1,9 +1,11 @@
 #include <stdint.h>
 #include <malloc.h>
+#include <string.h>
 #pragma once
 #define NULL 0
 /*
  Copyright (c) 2003 Simon Cooke, All Rights Reserved
+
 
  Licensed royalty-free for commercial and non-commercial
  use. All that I ask is that you send me an email
@@ -11,6 +13,15 @@
  feel warm and fuzzy inside. simoncooke@earthlink.net
 
  */
+
+void *memcpy(void *dest, const void *src, size_t n)
+{
+    uint8_t* dp = (uint8_t*)dest;
+    const uint8_t* sp = (uint8_t*)src;
+    while (n--)
+        *dp++ = *sp++;
+    return dest;
+}
 
 class BipBuffer {
 private:
@@ -331,33 +342,59 @@ private:
 class Msg: public Bytes {
 private:
 	static BipBuffer bb;
-	uint32_t _idx;
+	static Msg msg;
 	uint8_t* _start;
 public:
-	Msg(uint8_t* pb, uint32_t size) :
-			Bytes(pb, size) {
+	Msg() :
+			Bytes(0) {
+		_start = 0;
 
 	}
 
-	Msg& open(int size) {
+	Msg& create(int size) {
+		if (!bb.IsInitialized())
+			bb.AllocateBuffer(1024);
 		int reserved;
-		_start = bb.Reserve(size, reserved);
+		_start = bb.Reserve(size + 2, reserved);
+		map(_start + 2, reserved);
 		return *this;
 	}
 
-	void close(){
-
+	 Msg& recv() {
+		map(0,0);
+		uint16_t l;
+		// read length
+		int size = 2;
+		_start = bb.GetContiguousBlock(size);
+		if (size == 2) { 		// map to these bytes
+			memcpy(&l,_start,2);
+			map(_start+2,l);
+		}
+		// read signal
+		return msg;
 	}
 
+	void send() {
+		uint16_t l = length();
+		::memcpy(_start, &l, 2);
+		bb.Commit(length());
+	}
+
+	Msg& add(uint8_t v) {
+			uint8_t* pb = (uint8_t*) &v;
+			write(pb, 0, sizeof(v));
+			return *this;
+		}
+
 	Msg& add(int v) {
-		uint8_t* pb = &v;
+		uint8_t* pb = (uint8_t*) &v;
 		write(pb, 0, sizeof(v));
 		return *this;
 	}
 
 	Msg& get(int& v) {
-		uint8_t* pb = &v;
-		for (int i = 0; i < sizeof(v); i++)
+		uint8_t* pb = (uint8_t*) &v;
+		for (uint32_t i = 0; i < sizeof(v); i++)
 			*pb++ = read();
 		return *this;
 	}
