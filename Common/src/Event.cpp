@@ -27,13 +27,13 @@ Event::Event()
 }
 
 	Event::Event(int id){
-	    _id=(Signals)id;
+	    _id=(Signal)id;
 	    _w=0;
 	}
 
 Event::Event(int id,uint16_t w)
 {
-    _id=(Signals)id;
+    _id=(Signal)id;
     _w=w;
 }
 

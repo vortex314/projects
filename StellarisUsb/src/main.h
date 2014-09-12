@@ -8,7 +8,7 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-enum Signals {
+enum Signal {
 	SIG_IDLE,
 	SIG_ENTRY,
 	SIG_EXIT,

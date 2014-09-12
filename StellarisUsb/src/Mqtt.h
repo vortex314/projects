@@ -58,17 +58,17 @@ public:
 
 
 	Mqtt(Link& link);
-	int handler(Event* event);
+	int handler(Msg* event);
 	Erc send(Bytes& pb);
-	bool isEvent(Event* event, uint8_t type, uint16_t messageId, uint8_t qos);
+	bool isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos);
 	bool Publish(Flags flags,uint16_t id,Str& topic,Strpack& strp);
 	MqttIn* getBuffer(uint32_t idx);
 	bool isConnected();
 	Erc disconnect();
 
-	void waitConnect(Event& event);
-	void waitConnAck(Event& event);
-	void waitDisconnect(Event& event);
+	void waitConnect(Msg& event);
+	void waitConnAck(Msg& event);
+	void waitDisconnect(Msg& event);
 };
 
 class MqttPub:public Fsm {
@@ -84,11 +84,11 @@ public :
 	MqttPub(Mqtt& mqtt);
 	bool send(Flags flags, uint16_t id, Str& topic, Strpack& strp);
 	void Publish();
-	void sleep(Event& event);
-	void ready(Event& event);
-	void qos1Pub(Event& event);
-	void qos2Pub(Event& event);
-	void qos2Comp(Event& event);
+	void sleep(Msg& event);
+	void ready(Msg& event);
+	void qos1Pub(Msg& event);
+	void qos2Pub(Msg& event);
+	void qos2Comp(Msg& event);
 };
 
 class MqttPing :public Fsm {
@@ -97,9 +97,9 @@ private:
 	Mqtt& _mqtt;
 public :
 	MqttPing(Mqtt& mqtt);
-	void sleep(Event& event);
-	void sleepBetweenPings(Event& event);
-	void waitPingResp(Event& event);
+	void sleep(Msg& event);
+	void sleepBetweenPings(Msg& event);
+	void waitPingResp(Msg& event);
 };
 
 

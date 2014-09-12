@@ -38,9 +38,10 @@ void Bytes::map(uint8_t* st, uint32_t length) {
 
 Bytes::Bytes(uint32_t size) {
 	_start = 0;
-	if (size > 0)
+	if (size > 0) {
 		_start = new uint8_t[size]; // (uint8_t*) Sys::malloc(size);
-	ASSERT(_start != 0);
+		ASSERT(_start != 0);
+	}
 	_offset = 0;
 	_limit = 0;
 	_capacity = size;

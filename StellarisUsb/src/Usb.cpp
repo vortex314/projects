@@ -138,21 +138,18 @@ uint32_t Usb::hasData() {
 	return USBBufferDataAvailable((tUSBBuffer *) &g_sRxBuffer);
 }
 
-int Usb::handler(Event* event) {
+int Usb::handler(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
 
-	if (event->is(SIG_USB_FREE)) {
-		// free the bus buffer, shouldn't happen
-		ASSERT(event->detail() != _currentBuffer);
-	}
-
-	else if (event->is(SIG_USB_CONNECTED)) {
+	if (sig == (SIG_USB_CONNECTED)) {
 		reset();
 		isConnected(true);
 //      publish(Link::CONNECTED);
-	} else if (event->is(SIG_USB_DISCONNECTED)) {
+	} else if (sig == (SIG_USB_DISCONNECTED)) {
 		isConnected(false);
 //      publish(Link::DISCONNECTED);
-	} else if (event->is(SIG_USB_RXD))
+	} else if (sig == (SIG_USB_RXD))
 
 	{
 		uint8_t b;
@@ -164,8 +161,10 @@ int Usb::handler(Event* event) {
 				if (msg->isGoodCrc()) {
 					msg->RemoveCrc();
 					msg->parse();
-					publish(SIG_MQTT_MESSAGE, _currentBuffer);
-					publish(SIG_USB_FREE, _currentBuffer);
+					Msg m;
+					m.create(100).add((uint8_t) SIG_MQTT_MESSAGE).add(
+							msg->_header).add(msg->_messageId).add(msg->_topic).add(
+							msg->_message).send();
 					_currentBuffer++;
 					_currentBuffer %= MAX_BUFFER;
 
@@ -247,9 +246,9 @@ __error__(char *pcFilename, unsigned long ulLine)
 static void SetControlLineState(unsigned short usState) {
 	if (usState & USB_CDC_ACTIVATE_CARRIER) {
 
-		Fsm::publish(SIG_USB_CONNECTED);
+		Msg::publish(SIG_USB_CONNECTED);
 	} else
-		Fsm::publish(SIG_USB_DISCONNECTED);
+		Msg::publish(SIG_USB_DISCONNECTED);
 
 }
 
@@ -465,7 +464,7 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 		 while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
 		 usb.in.write(b);*/
 
-		Fsm::publish(SIG_USB_RXD);
+		Msg::publish(SIG_USB_RXD);
 
 		break;
 	}

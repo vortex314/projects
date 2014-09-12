@@ -1,12 +1,13 @@
 #include "Event.h"
 #include "Board.h"
 #include "Queue.h"
+#include "Msg.h"
 
 #ifndef FSM_H
 #define FSM_H
 class Fsm;
 
-typedef void (Fsm::*SF)(Event& e);
+typedef void (Fsm::*SF)(Msg& e);
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 #define TRAN(__x) tran(static_cast<SF>(&__x))
 
@@ -21,20 +22,20 @@ private:
 public:
 	Fsm();
 
-	virtual void dispatch(Event& event);
+	virtual void dispatch(Msg& msg);
 
 	void tran(SF f);
 	void init(SF f);
 	bool isInState(SF f);
 
-	void null(Event& ev);
+	void null(Msg& ev);
 
 	void timeout(uint32_t msec);
 	bool timeout();
 	static void publish(int sig);
 	static void publish(int sig,int detail);
-	static void dispatchToAll(Event& event);
-	static Erc nextEvent(Event& event);
+	static void dispatchToAll(Msg& event);
+	static Erc nextEvent(Msg& event);
 	void reg();
 
 };

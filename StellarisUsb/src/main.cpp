@@ -141,10 +141,14 @@ public:
 		_isOn = false;
 		_msecInterval = 500;
 	}
-	virtual ~LedBlink(){};
+	virtual ~LedBlink() {
+	}
+	;
 
-	void blink(Event& event) {
-		switch (event.id()) {
+	void blink(Msg& event) {
+		Signal sig;
+		event.get((uint8_t&) sig);
+		switch (sig) {
 		case SIG_TIMER_TICK: {
 			if (timeout()) {
 				Board::setLedOn(Board::LED_GREEN, _isOn);
@@ -161,15 +165,20 @@ public:
 			_msecInterval = 500;
 			break;
 		}
+		default: {
+			break;
+		}
 		}
 	}
 };
 LedBlink ledBlink;
 
 void eventPump() {
-	Event event;
-	while (Event::nextEvent(event) == E_OK) {
-		Fsm::dispatchToAll(event);
+	Msg msg;
+	while (true) {
+		msg.open();
+		if (!msg.isEmpty())
+			Fsm::dispatchToAll(msg);
 	}
 }
 
@@ -179,14 +188,9 @@ void eventPump() {
 //
 //*****************************************************************************
 #include "BipBuffer.h"
-BipBuffer bb;
+#include "Msg.h"
 
 int main(void) {
-
-	Msg msg;
-	msg.create(1).add((uint8_t)13).send();
-
-	bb.FreeBuffer();
 
 	Board::init();	// initialize usb
 	Usb::init();
@@ -199,7 +203,7 @@ int main(void) {
 		eventPump();
 		if (Sys::upTime() > clock) {
 			clock += 10;
-			Fsm::publish(SIG_TIMER_TICK);
+			Msg::publish(SIG_TIMER_TICK);
 		}
 	}
 }

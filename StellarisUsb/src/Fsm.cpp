@@ -1,14 +1,15 @@
 #include "Event.h"
 #include "Board.h"
 #include "Fsm.h"
+#include "Msg.h"
 
 
 
-typedef void (Fsm::*SF)(Event& e);
+typedef void (Fsm::*SF)(Msg& e);
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
-Event EV_ENTRY(SIG_ENTRY);
-Event EV_EXIT(SIG_EXIT);
+Msg EV_ENTRY(SIG_ENTRY);
+Msg EV_EXIT(SIG_EXIT);
 
 Fsm* Fsm::_first = 0;
 
@@ -19,10 +20,10 @@ Fsm::Fsm() {
 	reg();
 }
 
-void Fsm::dispatch(Event& event) {
+void Fsm::dispatch(Msg& msg) {
 	SF f;
 	f = _f;
-	CALL_MEMBER_FN(*this,_f)(event);
+	CALL_MEMBER_FN(*this,_f)(msg);
 	if (f != _f)	// if state changed
 			{
 		CALL_MEMBER_FN(*this,f)(EV_EXIT);
@@ -38,7 +39,7 @@ void Fsm::init(SF f) {
 	return CALL_MEMBER_FN(*this,_f)(EV_ENTRY);
 }
 
-void Fsm::null(Event& ev) {
+void Fsm::null(Msg& ev) {
 
 }
 
@@ -67,22 +68,23 @@ void Fsm::reg() {
 	}
 }
 
-void Fsm::dispatchToAll(Event& event) {
+void Fsm::dispatchToAll(Msg& msg) {
 	Fsm* cursor = _first;
 	while (cursor != 0) {
-		cursor->dispatch(event);
+		cursor->dispatch(msg);
 		cursor = cursor->_next;
 	}
 }
-
+/*
 void Fsm::publish(int sig) {
-	Event ev(sig);
-	ASSERT(Event::publish(ev)==E_OK);
-}
+	Msg ev((Signal)sig);
+//	ASSERT(Msg::publish(ev)==E_OK);
+}*/
 
 void Fsm::publish(int sig, int detail) {
-	Event ev(sig, detail);
-	ASSERT(Event::publish(ev)==E_OK);
+	while(1);
+//	Msg ev(sig, detail);
+//	ASSERT(Msg::publish(ev)==E_OK);
 }
 
 

@@ -54,11 +54,11 @@ public:
 
 	bool send(Flags flags, uint16_t id, Str& topic, Strpack& strp);
 	void Publish();
-	void sleep(Event& event);
-	void ready(Event& event);
-	void qos1Sub(Event& event);
-	void qos2Sub(Event& event);
-	void qos2Rel(Event& event);
+	void sleep(Msg& event);
+	void ready(Msg& event);
+	void qos1Sub(Msg& event);
+	void qos2Sub(Msg& event);
+	void qos2Rel(Msg& event);
 
 };
 
@@ -89,22 +89,27 @@ void GlobalInit() {
  ******************************************************************************/
 #include "Pool.h"
 
-bool Mqtt::isEvent(Event* event, uint8_t type, uint16_t messageId,
-		uint8_t qos) {
-	if (event->id() != SIG_MQTT_MESSAGE)
+bool Mqtt::isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos) {
+	event.rewind();
+	Signal sig;
+	event.get((uint8_t&) sig);
+	if (sig != SIG_MQTT_MESSAGE)
 		return false;
-	MqttIn* mqttIn = getBuffer(event->detail());
-	if (mqttIn == 0)
+	/*
+	 * m.create(100).add((uint8_t) SIG_MQTT_MESSAGE).add(
+	 msg->_header).add(msg->_messageId).add(msg->_topic).add(
+	 msg->_message).send();
+	 */
+	uint8_t header;
+	uint16_t mId;
+	Str topic(0);
+	Str message(0);
+	event.get(header).get(mId).get(topic).get(message);
+
+	if (type != (header & MQTT_TYPE_MASK))
 		return false;
-	mqttIn->parse();
-	if (type)
-		if (mqttIn->type() != type)
-			return false;
 	if (messageId)
-		if (mqttIn->messageId() != messageId)
-			return false;
-	if (qos)
-		if (mqttIn->qos() != qos)
+		if (mId != messageId)
 			return false;
 	return true;
 }
@@ -113,8 +118,10 @@ bool Mqtt::Publish(Flags flags, uint16_t id, Str& topic, Strpack& strp) {
 	return _mqttPub->send(flags, id, topic, strp);
 }
 
-void Mqtt::waitConnect(Event& event) {
-	switch (event.id()) {
+void Mqtt::waitConnect(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_USB_CONNECTED: {
 		timeout(TIME_WAIT_REPLY);
 		mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
@@ -124,11 +131,16 @@ void Mqtt::waitConnect(Event& event) {
 		TRAN(Mqtt::waitConnAck);
 		break;
 	}
+	default: {
+
+	}
 	}
 }
 
-void Mqtt::waitConnAck(Event& event) {
-	switch (event.id()) {
+void Mqtt::waitConnAck(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_TIMER_TICK: {
 		if (timeout())
 			TRAN(Mqtt::waitConnect);
@@ -139,21 +151,29 @@ void Mqtt::waitConnAck(Event& event) {
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (isEvent(&event, MQTT_MSG_CONNACK, 0, 0)) {
-			publish(SIG_MQTT_CONNECTED);
+		if (isEvent(event, MQTT_MSG_CONNACK, 0, 0)) {
+			Msg::publish(SIG_MQTT_CONNECTED);
 			TRAN(Mqtt::waitDisconnect);
 		}
 		break;
 	}
+	default: {
+
+	}
 	}
 }
 
-void Mqtt::waitDisconnect(Event& event) {
-	switch (event.id()) {
+void Mqtt::waitDisconnect(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_USB_DISCONNECTED: {
-		publish(SIG_MQTT_DISCONNECTED);
+		Msg::publish(SIG_MQTT_DISCONNECTED);
 		TRAN(Mqtt::waitConnect);
 		break;
+	}
+	default: {
+
 	}
 	}
 }
@@ -201,13 +221,17 @@ MqttPing::MqttPing(Mqtt & mqtt) :
 	init(static_cast<SF>(&MqttPing::sleep));
 }
 
-void MqttPing::sleep(Event& event) {
-	if (event.is(SIG_MQTT_CONNECTED))
+void MqttPing::sleep(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	if (sig == (SIG_MQTT_CONNECTED))
 		TRAN(MqttPing::waitPingResp);
 }
 
-void MqttPing::sleepBetweenPings(Event& event) {
-	switch (event.id()) {
+void MqttPing::sleepBetweenPings(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_ENTRY: {
 		timeout(TIME_PING);
 		break;
@@ -221,11 +245,16 @@ void MqttPing::sleepBetweenPings(Event& event) {
 		TRAN(MqttPub::sleep);
 		break;
 	}
+	default: {
+
+	}
 	}
 }
 
-void MqttPing::waitPingResp(Event& event) {
-	switch (event.id()) {
+void MqttPing::waitPingResp(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_MQTT_DISCONNECTED: {
 		TRAN(MqttPub::sleep);
 		break;
@@ -241,7 +270,7 @@ void MqttPing::waitPingResp(Event& event) {
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (_mqtt.isEvent(&event, MQTT_MSG_PINGRESP, 0, 0)) {
+		if (_mqtt.isEvent(event, MQTT_MSG_PINGRESP, 0, 0)) {
 			TRAN(MqttPing::sleepBetweenPings);
 		}
 		break;
@@ -252,12 +281,14 @@ void MqttPing::waitPingResp(Event& event) {
 				mqttOut.PingReq();
 				_mqtt.send(mqttOut);
 				timeout(TIME_WAIT_REPLY);
-			} else { //TODO disconnect
+			} else {
 				TRAN(MqttPing::sleep);
 				_mqtt.disconnect();
 			}
 		}
 		break;
+	}
+	default: {
 	}
 	}
 
@@ -284,17 +315,23 @@ bool MqttPub::send(Flags flags, uint16_t id, Str& topic, Strpack& message) {
 	_message = message;
 	_flags = flags;
 	_id = id;
-	publish(SIG_MQTT_DO_PUBLISH);
+	Msg::publish(SIG_MQTT_DO_PUBLISH);
 	return true;
 }
 
-void MqttPub::sleep(Event& event) {
-	if (event.is(SIG_MQTT_CONNECTED))
+void MqttPub::sleep(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+
+	if (sig == (SIG_MQTT_CONNECTED))
 		TRAN(MqttPub::ready);
 }
 
-void MqttPub::ready(Event& event) {
-	switch (event.id()) {
+void MqttPub::ready(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
+
 	case SIG_MQTT_DISCONNECTED: {
 		TRAN(MqttPub::sleep);
 		break;
@@ -310,11 +347,17 @@ void MqttPub::ready(Event& event) {
 		}
 		break;
 	}
+	default: {
+
+	}
 	}
 }
 
-void MqttPub::qos1Pub(Event& event) {
-	switch (event.id()) {
+void MqttPub::qos1Pub(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
+
 	case SIG_MQTT_DISCONNECTED: {
 		TRAN(MqttPub::sleep);
 		break;
@@ -326,7 +369,7 @@ void MqttPub::qos1Pub(Event& event) {
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (_mqtt.isEvent(&event, MQTT_MSG_PUBACK, _messageId, 0)) {
+		if (_mqtt.isEvent(event, MQTT_MSG_PUBACK, _messageId, 0)) {
 			TRAN(MqttPub::ready);
 		}
 		break;
@@ -338,18 +381,23 @@ void MqttPub::qos1Pub(Event& event) {
 				Publish();
 				_retryCount++;
 			} else {
-				publish(SIG_MQTT_PUBLISH_FAILED, _id);
+				Msg::publish(SIG_MQTT_PUBLISH_FAILED, _id);
 				TRAN(MqttPub::ready);
 			}
 		}
 		break;
 	}
+	default: {
+
+	}
 	}
 
 }
 
-void MqttPub::qos2Pub(Event& event) {
-	switch (event.id()) {
+void MqttPub::qos2Pub(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_MQTT_DISCONNECTED: {
 		TRAN(MqttPub::sleep);
 		break;
@@ -361,7 +409,7 @@ void MqttPub::qos2Pub(Event& event) {
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (_mqtt.isEvent(&event, MQTT_MSG_PUBREC, _messageId, 0)) {
+		if (_mqtt.isEvent(event, MQTT_MSG_PUBREC, _messageId, 0)) {
 			TRAN(MqttPub::qos2Comp);
 		} // else ignore
 		break;
@@ -373,17 +421,22 @@ void MqttPub::qos2Pub(Event& event) {
 				Publish();
 				_retryCount++;
 			} else {
-				publish(SIG_MQTT_PUBLISH_FAILED, _id);
+				Msg::publish(SIG_MQTT_PUBLISH_FAILED, _id);
 				TRAN(MqttPub::ready);
 			}
 		}
 		break;
 	}
+	default: {
+
+	}
 	}
 }
 
-void MqttPub::qos2Comp(Event& event) {
-	switch (event.id()) {
+void MqttPub::qos2Comp(Msg& event) {
+	Signal sig;
+	event.get((uint8_t&) sig);
+	switch (sig) {
 	case SIG_MQTT_DISCONNECTED: {
 		TRAN(MqttPub::sleep);
 		break;
@@ -396,7 +449,7 @@ void MqttPub::qos2Comp(Event& event) {
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (_mqtt.isEvent(&event, MQTT_MSG_PUBCOMP, _messageId, 0)) {
+		if (_mqtt.isEvent(event, MQTT_MSG_PUBCOMP, _messageId, 0)) {
 			TRAN(MqttPub::qos2Comp);
 		} // else ignore
 		break;
@@ -409,11 +462,14 @@ void MqttPub::qos2Comp(Event& event) {
 				_mqtt.send(mqttOut);
 				_retryCount++;
 			} else {
-				publish(SIG_MQTT_PUBLISH_FAILED, _id);
+				Msg::publish(SIG_MQTT_PUBLISH_FAILED, _id);
 				TRAN(MqttPub::ready);
 			}
 		}
 		break;
+	}
+	default: {
+
 	}
 	}
 }
@@ -443,7 +499,7 @@ void MqttPub::Publish() {
  ******************************************************************************/
 
 /*
- int MqttSubQos0::handler(Event* event) {
+ int MqttSubQos0::handler(Msg* event) {
  PT_BEGIN(&t)
  ;
  while (true) {
@@ -459,7 +515,7 @@ void MqttPub::Publish() {
  _mqtt(mqtt) {
  PT_INIT(&t);
  }
- int MqttSubQos1::handler(Event* event) {
+ int MqttSubQos1::handler(Msg* event) {
  PT_BEGIN(&t)
  ;
  while (true) {
@@ -480,7 +536,7 @@ void MqttPub::Publish() {
  _isReady = true;
  PT_INIT(&t);
  }
- int MqttSubQos2::handler(Event* event) {
+ int MqttSubQos2::handler(Msg* event) {
  MqttIn* mqttIn;
  PT_BEGIN(&t)
  ;
@@ -512,7 +568,7 @@ void MqttPub::Publish() {
  }
  */
 /*
- int Mqtt::handler(Event* event) {
+ int Mqtt::handler(Msg* event) {
  _mqttPub->dispatch(*event);
  PT_BEGIN(&t)
  ;

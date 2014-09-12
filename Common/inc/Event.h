@@ -40,7 +40,7 @@ public:
 	void toString(Str& line);
 public:
 
-	Signals _id :8;
+	Signal _id :8;
 	uint16_t _w :16;
 
 	static uint32_t eventIdCount;

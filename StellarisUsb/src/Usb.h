@@ -37,9 +37,9 @@ public:
 	MqttIn* getBuffer(uint32_t idx);
 	uint8_t read();
 	uint32_t hasData();
-	int handler(Event* event);
-	void dispatch(Event& event) {
-		handler(&event);
+	int handler(Msg& event);
+	void dispatch(Msg& event) {
+		handler(event);
 	}
 };
 
