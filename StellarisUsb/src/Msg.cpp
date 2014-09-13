@@ -5,29 +5,25 @@
 #include "BipBuffer.h"
 #include "Msg.h"
 
-typedef union {
-	struct {
-		uint16_t length;
-		uint8_t id;
-	};
-	uint8_t b[3];
+typedef struct {
+	uint16_t length :16;
+	Signal signal :8;
 } Envelope;
 
 Msg::Msg() :
 		Bytes(0) {
 	_start = 0;
-
+	_signal = SIG_IDLE;
 }
 
-#define ENVELOPE_SIZE	2
+#define ENVELOPE_SIZE	sizeof(Envelope)
 
 Msg::Msg(Signal sig) :
 		Bytes(1) {
-	Envelope env;
-	env.id = sig;
-	env.length = 1;
-	map(&env.id, 1);
-	_start = &env.id;
+	_start = 0;
+	_signal = sig;
+	map(0, 0);
+//	_start = (uint)&env.signal;
 }
 
 Msg& Msg::create(int size) {
@@ -40,28 +36,32 @@ Msg& Msg::create(int size) {
 }
 
 Msg& Msg::open() {
+	Envelope env;
 	map(0, 0);
 	uint16_t l;
 	// read length
 	int size = 2;
 	_start = bb.GetContiguousBlock(size);
 
-	if (size > 2) { 		// map to these bytes
-		memcpy(&l, _start, 2);
-		map(_start + 2, size - 2);
+	if (size >= 3) { 		// map to these bytes
+		memcpy(&env, _start, ENVELOPE_SIZE);
+		_signal = env.signal;
+		map(_start + ENVELOPE_SIZE, env.length - ENVELOPE_SIZE);
+	} else {
+		_signal = SIG_IDLE;
 	}
 	// read signal
 	return *this;
 }
 
 void Msg::recv() {
-	bb.DecommitBlock(length() + 2);
+	bb.DecommitBlock(length() + ENVELOPE_SIZE);
 }
 
 void Msg::send() {
-	uint16_t l = length();
-	::memcpy(_start, &l, 2);
-	bb.Commit(length() + 2);
+	Envelope env = { length() + ENVELOPE_SIZE, _signal };
+	::memcpy(_start, &env, ENVELOPE_SIZE);
+	bb.Commit(length() + +ENVELOPE_SIZE);
 }
 
 Msg& Msg::add(uint8_t v) {
@@ -131,17 +131,26 @@ Msg& Msg::rewind() {
 }
 
 bool Msg::isEmpty() {
-	return length() == 0;
+	return _signal == SIG_IDLE;
 }
 
-void Msg::publish(Signal sig){
+void Msg::publish(Signal sig) {
 	Msg msg;
-	msg.create(1).add((uint8_t)sig).send();
+	msg.create(0).sig(sig).send();
 }
 
-void Msg::publish(Signal sig,uint16_t detail){
+void Msg::publish(Signal sig, uint16_t detail) {
 	Msg msg;
-	msg.create(1).add((uint8_t)sig).add(detail).send();
+	msg.create(2).sig(sig).add(detail).send();
+}
+
+Msg& Msg::sig(Signal sig) {
+	_signal = sig;
+	return *this;
+}
+
+Signal Msg::sig() {
+	return _signal;
 }
 
 BipBuffer Msg::bb;

@@ -83,14 +83,11 @@ static volatile tBoolean g_bUSBConfigured = false;
 #define MAX_MSG_SIZE 100
 
 Usb::Usb() :
-		in(256) {
-	for (int i = 0; i < MAX_BUFFER; i++)
-		_mqttIn[i] = new MqttIn(MAX_MSG_SIZE);
-	_currentBuffer = 0;
+		_mqttIn(100) {
 }
 
 void Usb::reset() {
-	in.clear();
+	_mqttIn.clear();
 }
 
 Erc Usb::connect() {
@@ -116,13 +113,7 @@ Erc Usb::send(Bytes& bytes) {
 	return EAGAIN;
 }
 
-MqttIn*
-Usb::getBuffer(uint32_t idx) {
-	if (idx < MAX_BUFFER)
-		return _mqttIn[idx];
-	else
-		return 0;
-}
+
 
 Erc Usb::recv(Bytes& bytes) {
 	return E_AGAIN;
@@ -139,40 +130,40 @@ uint32_t Usb::hasData() {
 }
 
 int Usb::handler(Msg& event) {
-	Signal sig;
-	event.get((uint8_t&) sig);
+	switch (event.sig()) {
 
-	if (sig == (SIG_USB_CONNECTED)) {
+	case SIG_USB_CONNECTED: {
 		reset();
 		isConnected(true);
 //      publish(Link::CONNECTED);
-	} else if (sig == (SIG_USB_DISCONNECTED)) {
+		break;
+	}
+	case SIG_USB_DISCONNECTED: {
 		isConnected(false);
 //      publish(Link::DISCONNECTED);
-	} else if (sig == (SIG_USB_RXD))
+		break;
+	}
+	case (SIG_USB_RXD):
 
 	{
 		uint8_t b;
-		MqttIn* msg = _mqttIn[_currentBuffer];
 		while (hasData()) {
 			b = read();
-			if (msg->Feed(b)) {
-				msg->Decode();
-				if (msg->isGoodCrc()) {
-					msg->RemoveCrc();
-					msg->parse();
+			if (_mqttIn.Feed(b)) {
+				_mqttIn.Decode();
+				if (_mqttIn.isGoodCrc()) {
+					_mqttIn.RemoveCrc();
+					_mqttIn.parse();
 					Msg m;
-					m.create(100).add((uint8_t) SIG_MQTT_MESSAGE).add(
-							msg->_header).add(msg->_messageId).add(msg->_topic).add(
-							msg->_message).send();
-					_currentBuffer++;
-					_currentBuffer %= MAX_BUFFER;
+					m.create(100).sig(SIG_MQTT_MESSAGE).add(_mqttIn).send();
 
 				} else
-					msg->clear();
+					_mqttIn.clear();
 			}
 		}
-
+		break;
+	}
+	default:{};
 	}
 	return 0;
 }
@@ -207,7 +198,7 @@ void Usb::init() {
 	// on the bus.
 	//
 	USBDCDCInit(0, (tUSBDCDCDevice *) &g_sCDCDevice);
-	//
+//
 }
 
 //*****************************************************************************
@@ -314,69 +305,69 @@ extern "C" unsigned long ControlHandler(void *pvCBData, unsigned long ulEvent,
 	case USB_EVENT_CONNECTED:
 		g_bUSBConfigured = true;
 
-		//
-		// Flush our buffers.
-		//
+//
+// Flush our buffers.
+//
 		USBBufferFlush(&g_sTxBuffer);
 		USBBufferFlush(&g_sRxBuffer);
 //		Sequence::publish(Usb::CONNECTED);
 //		usb.reset();
 		break;
 
-		//
-		// The host has disconnected.
-		//
+//
+// The host has disconnected.
+//
 	case USB_EVENT_DISCONNECTED:
 		g_bUSBConfigured = false;
 //		Sequence::publish(Usb::DISCONNECTED);
 		break;
 
-		//
-		// Return the current serial communication parameters.
-		//
+//
+// Return the current serial communication parameters.
+//
 	case USBD_CDC_EVENT_GET_LINE_CODING:
 		GetLineCoding((tLineCoding*) pvMsgData);
 		break;
 
-		//
-		// Set the current serial communication parameters.
-		//
+//
+// Set the current serial communication parameters.
+//
 	case USBD_CDC_EVENT_SET_LINE_CODING:
 		SetLineCoding((tLineCoding*) pvMsgData);
 		break;
 
-		//
-		// Set the current serial communication parameters.
-		//
+//
+// Set the current serial communication parameters.
+//
 	case USBD_CDC_EVENT_SET_CONTROL_LINE_STATE:
 		SetControlLineState((unsigned short) ulMsgValue);
 		break;
 
-		//
-		// Send a break condition on the serial line.
-		//
+//
+// Send a break condition on the serial line.
+//
 	case USBD_CDC_EVENT_SEND_BREAK:
 		SendBreak(true);
 		break;
 
-		//
-		// Clear the break condition on the serial line.
-		//
+//
+// Clear the break condition on the serial line.
+//
 	case USBD_CDC_EVENT_CLEAR_BREAK:
 		SendBreak(false);
 		break;
 
-		//
-		// Ignore SUSPEND and RESUME for now.
-		//
+//
+// Ignore SUSPEND and RESUME for now.
+//
 	case USB_EVENT_SUSPEND:
 	case USB_EVENT_RESUME:
 		break;
 
-		//
-		// We don't expect to receive any other events.  Ignore any that show
-		// up in a release build or hang in a debug build.
-		//
+//
+// We don't expect to receive any other events.  Ignore any that show
+// up in a release build or hang in a debug build.
+//
 	default:
 #ifdef DEBUG
 		while(1);
@@ -413,15 +404,15 @@ extern "C" unsigned long TxHandler(void *pvCBData, unsigned long ulEvent,
 	//
 	switch (ulEvent) {
 	case USB_EVENT_TX_COMPLETE:
-		//
-		// Since we are using the USBBuffer, we don't need to do anything
-		// here.
-		//
+//
+// Since we are using the USBBuffer, we don't need to do anything
+// here.
+//
 		break;
-		//
-		// We don't expect to receive any other events.  Ignore any that show
-		// up in a release build or hang in a debug build.
-		//
+//
+// We don't expect to receive any other events.  Ignore any that show
+// up in a release build or hang in a debug build.
+//
 	default:
 #ifdef DEBUG
 		while(1);
@@ -469,36 +460,36 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 		break;
 	}
 
-		//
-		// We are being asked how much unprocessed data we have still to
-		// process. We return 0 if the UART is currently idle or 1 if it is
-		// in the process of transmitting something. The actual number of
-		// bytes in the UART FIFO is not important here, merely whether or
-		// not everything previously sent to us has been transmitted.
-		//
+//
+// We are being asked how much unprocessed data we have still to
+// process. We return 0 if the UART is currently idle or 1 if it is
+// in the process of transmitting something. The actual number of
+// bytes in the UART FIFO is not important here, merely whether or
+// not everything previously sent to us has been transmitted.
+//
 	case USB_EVENT_DATA_REMAINING: {
-		//
-		// Get the number of bytes in the buffer and add 1 if some data
-		// still has to clear the transmitter.
-		//
+//
+// Get the number of bytes in the buffer and add 1 if some data
+// still has to clear the transmitter.
+//
 		return (0);
 	}
 
-		//
-		// We are being asked to provide a buffer into which the next packet
-		// can be read. We do not support this mode of receiving data so let
-		// the driver know by returning 0. The CDC driver should not be sending
-		// this message but this is included just for illustration and
-		// completeness.
-		//
+//
+// We are being asked to provide a buffer into which the next packet
+// can be read. We do not support this mode of receiving data so let
+// the driver know by returning 0. The CDC driver should not be sending
+// this message but this is included just for illustration and
+// completeness.
+//
 	case USB_EVENT_REQUEST_BUFFER: {
 		return (0);
 	}
 
-		//
-		// We don't expect to receive any other events.  Ignore any that show
-		// up in a release build or hang in a debug build.
-		//
+//
+// We don't expect to receive any other events.  Ignore any that show
+// up in a release build or hang in a debug build.
+//
 	default:
 #ifdef DEBUG
 		while(1);

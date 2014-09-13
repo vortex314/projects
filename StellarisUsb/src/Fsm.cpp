@@ -36,7 +36,7 @@ void Fsm::tran(SF f) {
 }
 void Fsm::init(SF f) {
 	_f = f;
-	return CALL_MEMBER_FN(*this,_f)(EV_ENTRY);
+//	return CALL_MEMBER_FN(*this,_f)(EV_ENTRY);
 }
 
 void Fsm::null(Msg& ev) {

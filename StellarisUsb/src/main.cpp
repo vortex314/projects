@@ -146,9 +146,7 @@ public:
 	;
 
 	void blink(Msg& event) {
-		Signal sig;
-		event.get((uint8_t&) sig);
-		switch (sig) {
+		switch (event.sig()) {
 		case SIG_TIMER_TICK: {
 			if (timeout()) {
 				Board::setLedOn(Board::LED_GREEN, _isOn);
@@ -177,8 +175,10 @@ void eventPump() {
 	Msg msg;
 	while (true) {
 		msg.open();
-		if (!msg.isEmpty())
-			Fsm::dispatchToAll(msg);
+		if (msg.isEmpty())
+			break;
+		Fsm::dispatchToAll(msg);
+		msg.recv();
 	}
 }
 
@@ -192,18 +192,20 @@ void eventPump() {
 
 int main(void) {
 
-	Board::init();	// initialize usb
-	Usb::init();
-	Usb usb;		// usb active object
-	Mqtt mqtt(usb);	// mqtt active object
+Board::init();	// initialize usb
+Usb::init();
+Usb usb;		// usb active object
+Mqtt mqtt(usb);	// mqtt active object
 
-	PropertyListener propertyListener(mqtt);
-	uint64_t clock = Sys::upTime() + 100;
-	while (1) {
-		eventPump();
-		if (Sys::upTime() > clock) {
-			clock += 10;
-			Msg::publish(SIG_TIMER_TICK);
-		}
+PropertyListener propertyListener(mqtt);
+uint64_t clock = Sys::upTime() + 100;
+Msg::publish(SIG_INIT);
+Msg::publish(SIG_ENTRY);
+while (1) {
+	eventPump();
+	if (Sys::upTime() > clock) {
+		clock += 10;
+		Msg::publish(SIG_TIMER_TICK);
 	}
+}
 }

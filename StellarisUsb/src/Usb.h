@@ -20,11 +20,9 @@
 
 class Usb: public Fsm, public Link {
 private:
-	MqttIn* _mqttIn[MAX_BUFFER];
-	uint32_t _currentBuffer;
+	MqttIn _mqttIn;
 
 public:
-	CircBuf in;
 //	static const int CONNECTED, DISCONNECTED, RXD, MQTT_MESSAGE, FREE;
 
 	Usb();
@@ -34,7 +32,6 @@ public:
 	Erc disconnect();
 	Erc send(Bytes& bytes);
 	Erc recv(Bytes& bytes);
-	MqttIn* getBuffer(uint32_t idx);
 	uint8_t read();
 	uint32_t hasData();
 	int handler(Msg& event);
