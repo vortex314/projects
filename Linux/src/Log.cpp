@@ -23,7 +23,7 @@ const char* logTime() {
     struct tm *tm;
     gettimeofday(&tv,&tz);
     tm=localtime(&tv.tv_sec);
-    sprintf(line,"%d/%02d/%02d %02d:%02d:%02d.%03d"
+    sprintf(line,"%d/%02d/%02d %02d:%02d:%02d.%03ld"
             ,tm->tm_year+1900
             ,tm->tm_mon+1
             ,tm->tm_mday
@@ -35,6 +35,8 @@ const char* logTime() {
 //   strftime (line, sizeof(line), "%Y-%m-%d %H:%M:%S.mmm", sTm);
     return line;
     }
+
+
 
 Log& Log::flush() {
     _lastLogLine.clear() << logTime() << " | " ;
@@ -72,4 +74,5 @@ Log& Log::message(const char *header , Bytes& bytes) {
     append(header);
     dump(bytes);
     flush();
+    return *this;
     }
