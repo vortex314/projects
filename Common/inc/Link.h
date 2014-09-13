@@ -15,10 +15,8 @@ class Link
 
         virtual uint8_t read()=0;
         virtual uint32_t hasData()=0;
-        virtual Erc recv(Bytes& bytes)=0;
+//        virtual Erc recv(Bytes& bytes)=0;
         virtual Erc send(Bytes& bytes)=0;
-        virtual MqttIn* getBuffer(uint32_t idx)=0;
-
         virtual Erc connect()=0;
         virtual Erc disconnect()=0;
     protected:
