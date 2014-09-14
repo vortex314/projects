@@ -326,7 +326,7 @@ void Property::set( Str* name, Strpack* message)
     else if ( name->endsWith(".meta"))
     {
     }
-    /*    char localName[30];
+        char localName[30];
         int i=0;
         name->offset(strlen(prefix));
         while(name->hasData() && i<30 )
