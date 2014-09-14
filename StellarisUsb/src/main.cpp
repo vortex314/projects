@@ -192,20 +192,27 @@ void eventPump() {
 
 int main(void) {
 
-Board::init();	// initialize usb
-Usb::init();
-Usb usb;		// usb active object
-Mqtt mqtt(usb);	// mqtt active object
+	Board::init();	// initialize usb
+	Usb::init();
+	Usb usb;		// usb active object
+	Mqtt mqtt(usb);	// mqtt active object
 
-PropertyListener propertyListener(mqtt);
-uint64_t clock = Sys::upTime() + 100;
-Msg::publish(SIG_INIT);
-Msg::publish(SIG_ENTRY);
-while (1) {
-	eventPump();
-	if (Sys::upTime() > clock) {
-		clock += 10;
-		Msg::publish(SIG_TIMER_TICK);
+	PropertyListener propertyListener(mqtt);
+	uint64_t clock = Sys::upTime() + 100;
+	Msg::publish(SIG_INIT);
+	Msg::publish(SIG_ENTRY);
+	Msg msg;
+	while (1) {
+		while (true) {
+			msg.open();
+			if (msg.isEmpty())
+				break;
+			Fsm::dispatchToAll(msg);
+			msg.recv();
+		}
+		if (Sys::upTime() > clock) {
+			clock += 10;
+			Msg::publish(SIG_TIMER_TICK);
+		}
 	}
-}
 }

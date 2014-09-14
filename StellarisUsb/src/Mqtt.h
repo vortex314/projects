@@ -66,9 +66,12 @@ public:
 	bool isConnected();
 	Erc disconnect();
 
-	void waitConnect(Msg& event);
-	void waitConnAck(Msg& event);
+	void connecting(Msg& event);
+	void sleep(Msg& event);
+	void subscribing(Msg& event);
 	void waitDisconnect(Msg& event);
+private:
+	void sendSubscribe(uint8_t flags);
 };
 
 class MqttPub:public Fsm {

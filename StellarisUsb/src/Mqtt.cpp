@@ -91,7 +91,7 @@ void GlobalInit() {
 
 bool Mqtt::isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos) {
 
-	Signal sig=event.sig();
+	Signal sig = event.sig();
 
 	if (sig != SIG_MQTT_MESSAGE)
 		return false;
@@ -117,43 +117,114 @@ bool Mqtt::Publish(Flags flags, uint16_t id, Str& topic, Strpack& strp) {
 	return _mqttPub->send(flags, id, topic, strp);
 }
 
-void Mqtt::waitConnect(Msg& event) {
+void Mqtt::sleep(Msg& event) {
 	switch (event.sig()) {
+	case SIG_ENTRY: {
+		Msg::publish(SIG_MQTT_DISCONNECTED);
+		break;
+	}
 	case SIG_USB_CONNECTED: {
+		TRAN(Mqtt::connecting);
+		break;
+	}
+	default: {
+	}
+	}
+}
+
+void Mqtt::connecting(Msg& event) {
+
+	switch (event.sig()) {
+	case SIG_ENTRY: {
 		timeout(TIME_WAIT_REPLY);
 		mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
 				"system/online", "false", "", "",
 				TIME_KEEP_ALIVE / 1000);
 		_link.send(mqttOut);
-		TRAN(Mqtt::waitConnAck);
 		break;
 	}
+	case SIG_MQTT_MESSAGE: {
+		if (isEvent(event, MQTT_MSG_CONNACK, 0, 0)) {
+			Msg::publish(SIG_MQTT_CONNECTED);
+			TRAN(Mqtt::subscribing);
+		}
+		break;
+	}
+	case SIG_TIMER_TICK: {
+		if (timeout()) {
+			if (_link.isConnected()) {
+				timeout(TIME_WAIT_REPLY);
+				mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
+						"system/online", "false", "", "",
+						TIME_KEEP_ALIVE / 1000);
+				_link.send(mqttOut);
+			}
+		}
+		break;
+	}
+	case SIG_USB_DISCONNECTED: {
+		TRAN(Mqtt::sleep);
+		break;
+	}
+	case SIG_EXIT: {
+		timeout(UINT32_MAX);
+		break;
+	}
+
 	default: {
 
 	}
 	}
 }
 
-void Mqtt::waitConnAck(Msg& event) {
+void Mqtt::sendSubscribe(uint8_t flags) {
+	Str str(100);
+	str.clear() << putPrefix << "#";
+	mqttOut.Subscribe(flags, str, ++_messageId, MQTT_QOS1_FLAG);
+	_link.send(mqttOut);
+
+	str.clear() << getPrefix << "#";
+	mqttOut.Subscribe(flags, str, ++_messageId, MQTT_QOS1_FLAG);
+	_link.send(mqttOut);
+
+	str = "system/online";
+	msg = "true";
+	mqttOut.Publish(MQTT_QOS1_FLAG + flags, str, msg, ++_messageId);
+	_link.send(mqttOut);
+}
+
+void Mqtt::subscribing(Msg& event) {
 	switch (event.sig()) {
-	case SIG_TIMER_TICK: {
-		if (timeout())
-			TRAN(Mqtt::waitConnect);
-		break;
-	}
-	case SIG_USB_DISCONNECTED: {
-		TRAN(Mqtt::waitConnect);
+	case SIG_ENTRY: {
+		sendSubscribe(0);
+		timeout(TIME_WAIT_REPLY);
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (isEvent(event, MQTT_MSG_CONNACK, 0, 0)) {
-			Msg::publish(SIG_MQTT_CONNECTED);
+		if (isEvent(event, MQTT_MSG_PUBACK, 0, 0)) {
 			TRAN(Mqtt::waitDisconnect);
 		}
 		break;
 	}
+	case SIG_TIMER_TICK: {
+		if (timeout()) {
+			if (_link.isConnected()) {
+				timeout(TIME_WAIT_REPLY);
+				sendSubscribe(MQTT_DUP_FLAG);
+			}
+		}
+		break;
+	}
+	case SIG_USB_DISCONNECTED: {
+		TRAN(Mqtt::sleep);
+		break;
+	}
+	case SIG_EXIT: {
+		Msg::publish(SIG_MQTT_CONNECTED);
+		timeout(UINT32_MAX);
+		break;
+	}
 	default: {
-
 	}
 	}
 }
@@ -162,11 +233,10 @@ void Mqtt::waitDisconnect(Msg& event) {
 	switch (event.sig()) {
 	case SIG_USB_DISCONNECTED: {
 		Msg::publish(SIG_MQTT_DISCONNECTED);
-		TRAN(Mqtt::waitConnect);
+		TRAN(Mqtt::connecting);
 		break;
 	}
 	default: {
-
 	}
 	}
 }
@@ -175,7 +245,7 @@ Mqtt::Mqtt(Link & link) :
 		str(30), msg(10), _link(link) {
 	mqttPing = new MqttPing(*this);
 	_mqttPub = new MqttPub(*this);
-	init(static_cast<SF>(&Mqtt::waitConnect));
+	init(static_cast<SF>(&Mqtt::connecting));
 
 //	PT_INIT(&t);
 	_messageId = 2000;
@@ -190,7 +260,6 @@ Erc Mqtt::send(Bytes & pb) {
 	else
 		return E_AGAIN;
 }
-
 
 bool Mqtt::isConnected() {
 	return _isConnected;
@@ -211,9 +280,14 @@ MqttPing::MqttPing(Mqtt & mqtt) :
 }
 
 void MqttPing::sleep(Msg& event) {
-
-	if (event.sig() == (SIG_MQTT_CONNECTED))
+	switch (event.sig()) {
+	case SIG_MQTT_CONNECTED: {
 		TRAN(MqttPing::waitPingResp);
+		break;
+	}
+	default: {
+	}
+	}
 }
 
 void MqttPing::sleepBetweenPings(Msg& event) {
@@ -223,16 +297,16 @@ void MqttPing::sleepBetweenPings(Msg& event) {
 		break;
 	}
 	case SIG_EXIT: {
-			timeout(INT32_MAX);
-			break;
-		}
+		timeout(INT32_MAX);
+		break;
+	}
 	case SIG_TIMER_TICK: {
 		if (timeout())
 			TRAN(MqttPing::waitPingResp);
 		break;
 	}
 	case SIG_MQTT_DISCONNECTED: {
-		TRAN(MqttPub::sleep);
+		TRAN(MqttPing::sleep);
 		break;
 	}
 	default: {
@@ -243,19 +317,11 @@ void MqttPing::sleepBetweenPings(Msg& event) {
 
 void MqttPing::waitPingResp(Msg& event) {
 	switch (event.sig()) {
-	case SIG_MQTT_DISCONNECTED: {
-		TRAN(MqttPub::sleep);
-		break;
-	}
 	case SIG_ENTRY: {
 		mqttOut.PingReq();
 		_mqtt.send(mqttOut);
 		timeout(TIME_WAIT_REPLY);
-		_retryCount=0;
-		break;
-	}
-	case SIG_EXIT: {
-		timeout(INT32_MAX);
+		_retryCount = 0;
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
@@ -267,6 +333,7 @@ void MqttPing::waitPingResp(Msg& event) {
 	case SIG_TIMER_TICK: {
 		if (timeout()) {
 			if (_retryCount < 3) {
+				_retryCount++;
 				mqttOut.PingReq();
 				_mqtt.send(mqttOut);
 				timeout(TIME_WAIT_REPLY);
@@ -275,6 +342,14 @@ void MqttPing::waitPingResp(Msg& event) {
 				_mqtt.disconnect();
 			}
 		}
+		break;
+	}
+	case SIG_EXIT: {
+		timeout(INT32_MAX);
+		break;
+	}
+	case SIG_MQTT_DISCONNECTED: {
+		TRAN(MqttPing::sleep);
 		break;
 	}
 	default: {
