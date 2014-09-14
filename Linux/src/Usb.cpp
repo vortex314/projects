@@ -67,7 +67,7 @@ Erc Usb::disconnect() {
     }
 
 Erc Usb::send(Bytes& bytes) {
-    Log::log().message("USB send : ",bytes);
+ //   Log::log().message("USB send : ",bytes);
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
@@ -133,7 +133,7 @@ int Usb::handler ( Event* event ) {
                         msg.Decode();
                         if ( msg.isGoodCrc() ) {
                             msg.RemoveCrc();
-                            Log::log().message("USB recv clean: " ,msg);
+                            Log::log().message("USB -> TCP : " ,msg);
                             publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
                             _isComplete=true;

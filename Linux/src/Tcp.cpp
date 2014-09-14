@@ -94,7 +94,7 @@ uint8_t Tcp::read() {
 Erc Tcp::send(Bytes& bytes) {
     int n;
 //   signal(SIGPIPE, SIG_IGN);
-    Log::log().message("TCP send : " ,bytes);
+ //   Log::log().message("TCP send : " ,bytes);
     n=write(_sockfd,bytes.data(),bytes.length()) ;
     if (n < 0) {
         perror("write failed");
@@ -128,7 +128,7 @@ int Tcp::handler ( Event* event ) {
                     b=read();
                     msg.add(b);
                     if (  msg.complete() ) {
-                        Log::log().message("TCP recv : " ,msg);
+                        Log::log().message("TCP -> USB : " ,msg);
                         msg.parse();
                         publish(MESSAGE);
                         publish(FREE);
