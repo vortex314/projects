@@ -222,6 +222,10 @@ void MqttPing::sleepBetweenPings(Msg& event) {
 		timeout(TIME_PING);
 		break;
 	}
+	case SIG_EXIT: {
+			timeout(INT32_MAX);
+			break;
+		}
 	case SIG_TIMER_TICK: {
 		if (timeout())
 			TRAN(MqttPing::waitPingResp);
@@ -247,6 +251,7 @@ void MqttPing::waitPingResp(Msg& event) {
 		mqttOut.PingReq();
 		_mqtt.send(mqttOut);
 		timeout(TIME_WAIT_REPLY);
+		_retryCount=0;
 		break;
 	}
 	case SIG_EXIT: {
