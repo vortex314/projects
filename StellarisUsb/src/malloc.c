@@ -516,6 +516,7 @@ pvalloc (size_t sz)
 
 #ifdef DEFINE_MALLINFO
 #include "malloc.h"
+#include <string.h>
 
 struct mallinfo
 mallinfo (void)
