@@ -178,7 +178,7 @@ void Mqtt::connecting(Msg& event) {
 }
 
 void Mqtt::sendSubscribe(uint8_t flags) {
-	Str str(100);
+
 	str.clear() << putPrefix << "#";
 	mqttOut.Subscribe(flags, str, ++_messageId, MQTT_QOS1_FLAG);
 	_link.send(mqttOut);

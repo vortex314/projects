@@ -7,7 +7,7 @@
 
 #ifndef MQTT_H_
 #define MQTT_H_
-
+#include "Prop.h"
 #include "Event.h"
 #include "Sequence.h"
 #include "Link.h"
@@ -16,7 +16,7 @@
 #include "pt.h"
 #include "MqttConstants.h"
 #include "Log.h"
-#include "Prop.h"
+
 #include "MqttOut.h"
 
 #include "Fsm.h"
