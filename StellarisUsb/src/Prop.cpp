@@ -7,28 +7,33 @@
 
 #include "Prop.h"
 
-#define PROPS_MAX   20
-Prop* propList[PROPS_MAX];
-uint32_t propListCount = 0;
+Prop* Prop::_first;
 
 Prop::Prop(const char* name, void* instance, Xdr xdr, Flags flags) {
 	_name = name;
 	_instance = instance;
 	_xdr = xdr;
 	_flags = flags;
-	propList[propListCount++] = this;
 	_flags.publishValue = true;
 	_flags.publishMeta = true;
+	if (_first == 0)
+		_first = this;
+	else {
+		Prop* cursor = _first;
+		while (cursor->_next != 0) {
+			cursor = cursor->_next;
+		}
+		cursor->_next = this;
+	}
 }
 
 Prop*
 Prop::findProp(Str& name) {
-	uint32_t i;
-	for (i = 0; i < propListCount; i++) {
-		if (propList[i])
-			if (name.equals(propList[i]->_name)) {
-				return propList[i];
-			}
+	Prop* cursor = _first;
+	while (cursor != 0) {
+		if (name.equals(cursor->_name))
+			return cursor;
+		cursor = cursor->_next;
 	}
 	return 0;
 }
@@ -46,47 +51,87 @@ void Prop::set(Str& topic, Strpack& message, uint8_t header) {
 	Fsm::publish(SIG_PROP_CHANGED);
 }
 
-PropertyListener::PropertyListener(Mqtt& mqtt) :
-		_mqtt(mqtt), _topic(30) {
+PropMgr::PropMgr(Mqtt& mqtt) :
+		_mqtt(mqtt), _topic(30), _message(100) {
+	_cursor = Prop::_first;
 	PT_INIT(&t);
+	init(static_cast<SF>(&PropMgr::sleep));
 }
 
-int PropertyListener::handler(Event* event) {
-	Prop *p;
-	Strpack strp(40);
-	uint32_t i;
-	PT_BEGIN ( &t )
-		;
-		while (true) {
-			while (_mqtt.isConnected()) { // new things to publish found
-				for (i = 0; i < propListCount; i++) {
-					p = propList[i];
-					if (p->_flags.publishValue) {
+void PropMgr::sleep(Msg& event) {
+	switch (event.sig()) {
+	case SIG_MQTT_CONNECTED: {
+		TRAN(PropMgr::publishing);
+		break;
+	}
+	default: {
+	}
+	}
+}
 
-						if (p->_xdr) {
-							p->_flags.publishValue = false;
-							_topic.set(p->_name);
+typedef void (*Xdr)(void*, Cmd, Strpack&);
 
-							p->_xdr(p->_instance, CMD_GET, strp);
-							_mqtt.Publish(p->_flags, i, _topic, strp);
-							if (p->_flags.publishValue == false) {
-								timeout(50);
-								PT_YIELD_UNTIL(&t, timeout());
-							}
-						}
-					} else if (p->_flags.publishMeta) {
-						// convert flags to string
-						// add desc
-						p->_flags.publishMeta = false;
-					}
-				}
-				timeout(5000); // sleep between scans
+void strXdr(void* addr, Cmd cmd, Strpack& strp) {
+	if (cmd == CMD_GET)
+		strp << (const char*) addr;
+}
 
-				PT_YIELD_UNTIL(&t, timeout() || event->is(SIG_PROP_CHANGED));
+Prop cpu("system/cpu", (void*) "lm4f120h5qr", strXdr, (Flags ) { T_STR, M_READ,
+				QOS_0, I_ADDRESS, false, true, true });
+Prop board("system/board", (void*) "Stellaris LaunchPad", strXdr, (Flags ) {
+				T_STR, M_READ, QOS_0, I_ADDRESS, false, true, true });
 
-			}
-			PT_YIELD(&t); // yield during tcp disconnects
+void PropMgr::nextProp() {
+	_cursor = _cursor->_next;
+	if (_cursor == 0)
+		_cursor = Prop::_first;
+}
+
+void PropMgr::publishing(Msg& event) {
+	switch (event.sig()) {
+	case SIG_MQTT_DO_PUBLISH: { //TODO
+		break;
+	}
+	case SIG_ENTRY: {
+		_cursor = Prop::_first;
+		timeout(100);
+		break;
+	}
+	case SIG_MQTT_PUBLISH_FAILED: {
+		nextProp();
+		timeout(100);
+		break;
+	}
+	case SIG_MQTT_PUBLISH_OK: {
+//		_cursor->_flags.publishValue = false;
+		nextProp();
+		timeout(100);
+		break;
+	}
+	case SIG_TIMER_TICK: {
+		if (timeout() && _cursor->_flags.publishValue) {
+			_topic = _cursor->_name;
+			_message.clear();
+			_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
+			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+			timeout(UINT32_MAX);
+		} else {
+			nextProp();
+			timeout(1000);
 		}
-	PT_END ( &t );
+		break;
+	}
+	case SIG_EXIT: {
+		timeout(UINT32_MAX);
+		break;
+	}
+	case SIG_MQTT_DISCONNECTED: {
+		TRAN(PropMgr::sleep);
+		break;
+	}
+	default: {
+	}
+	}
+
 }
 

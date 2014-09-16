@@ -14,10 +14,11 @@
 #include "Str.h"
 #include "Erc.h"
 #include "Strpack.h"
+#include "Prop.h"
 extern const char *PREFIX;
 typedef Erc (*Setter)(const char* topic,Strpack& str);
 typedef Erc (*Getter)(const char* topic,Strpack& str);
-
+/*
 enum Type
 {
     T_UINT8,
@@ -64,8 +65,7 @@ typedef struct
     bool retained:1;
     bool publishValue:1;
     bool publishMeta:1;
-} Flags;
-
+} Flags*/
 class PackerInterface
 {
 public:

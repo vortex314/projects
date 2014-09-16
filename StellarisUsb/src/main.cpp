@@ -197,7 +197,7 @@ int main(void) {
 	Usb usb;		// usb active object
 	Mqtt mqtt(usb);	// mqtt active object
 
-	PropertyListener propertyListener(mqtt);
+	PropMgr propertyListener(mqtt);
 	uint64_t clock = Sys::upTime() + 100;
 	Msg::publish(SIG_INIT);
 	Msg::publish(SIG_ENTRY);
