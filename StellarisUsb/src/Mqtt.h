@@ -54,7 +54,7 @@ private:
 
 public:
 
-  const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
+ // const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
 
 
 	Mqtt(Link& link);

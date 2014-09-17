@@ -86,7 +86,7 @@ typedef struct freelist_entry {
   struct freelist_entry *next;
 } *fle;
 
-extern void * __malloc_end;
+extern volatile void * __malloc_end;
 extern fle __malloc_freelist;
 
 /* Return the number of bytes that need to be added to X to make it
@@ -98,6 +98,7 @@ extern fle __malloc_freelist;
 #define M_ALIGN_SUB(x, align) ((size_t)(x) & ((align) - 1))
 
 extern void __malloc_start;
+extern void _end;
 
 /* This is the minimum gap allowed between __malloc_end and the top of
    the stack.  This is only checked for when __malloc_end is
@@ -131,7 +132,9 @@ register void * stack_pointer asm ("r15");
 
 #ifdef DEFINE_MALLOC
 
-void * __malloc_end = &__malloc_start;
+volatile void * __malloc_end = (void*)(&__malloc_start);
+ int i128=128;
+// void * __malloc_end = &_end;
 fle __malloc_freelist;
 
 void *

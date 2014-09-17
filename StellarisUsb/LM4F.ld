@@ -69,7 +69,7 @@ SECTIONS
         _end = .;
         __malloc_start = .;
     } > REGION_RAM 
-}
+} 
 
 /* end of allocated ram is start of heap, heap grows up towards stack*/
 PROVIDE(end = _end);

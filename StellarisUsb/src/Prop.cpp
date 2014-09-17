@@ -93,7 +93,13 @@ void PropMgr::publishing(Msg& event) {
 		break;
 	}
 	case SIG_ENTRY: {
-		_cursor = Prop::_first;
+		Prop* cursor = _cursor = Prop::_first;
+		while (cursor->_next != 0) {
+			cursor->_flags.publishValue = true;
+			cursor->_flags.publishMeta = true;
+			cursor = cursor->_next;
+		}
+
 		timeout(100);
 		break;
 	}
@@ -109,15 +115,25 @@ void PropMgr::publishing(Msg& event) {
 		break;
 	}
 	case SIG_TIMER_TICK: {
-		if (timeout() && _cursor->_flags.publishValue) {
-			_topic = _cursor->_name;
-			_message.clear();
-			_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
-			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
-			timeout(UINT32_MAX);
-		} else {
-			nextProp();
-			timeout(1000);
+		if (timeout()) {
+			if (_cursor->_flags.publishValue) {
+				_topic = _cursor->_name;
+				_message.clear();
+				_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
+				_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+				timeout(UINT32_MAX);
+			} else if (_cursor->_flags.publishMeta) {
+				_topic = _cursor->_name;
+				_topic << ".META";
+				_message.clear();
+				_message << "{ 'flags' : " << _cursor->_flags.type <<  "}";
+				_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+				timeout(UINT32_MAX);
+
+			} else {
+				nextProp();
+				timeout(1000);
+			}
 		}
 		break;
 	}
