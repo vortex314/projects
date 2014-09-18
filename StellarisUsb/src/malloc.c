@@ -65,6 +65,7 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 void* malloc(size_t);
 void    free(void*);
@@ -132,6 +133,7 @@ register void * stack_pointer asm ("r15");
 
 #ifdef DEFINE_MALLOC
 
+volatile uint64_t filler=01245;
 volatile void * __malloc_end = (void*)(&__malloc_start);
  int i128=128;
 // void * __malloc_end = &_end;
