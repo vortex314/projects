@@ -20,6 +20,8 @@ SECTIONS
         _text = .;
         KEEP(*(.isr_vector))
         *(.text .text* .gnu.linkonce.t.*)
+        *(.rel.*)
+        *(.rodata .rodata* .gnu.linkonce.r.*) 
     } > REGION_TEXT
     
     .preinit_array : {
@@ -38,24 +40,28 @@ SECTIONS
 	    KEEP (*(.init_array))
 	    __init_array_end = .;
     } > REGION_TEXT
-    
-    .rodata :
-    {
-        . = ALIGN(4);
-        *(.rodata .rodata* .gnu.linkonce.r.*)
-        . = ALIGN(4);
-    } > REGION_TEXT
+   
 
-    _etext = .;
+     .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >REGION_TEXT
+    .ARM : {
+    __exidx_start = .;
+      *(.ARM.exidx*)
+      __exidx_end = .;
+      . = ALIGN(4); 
+    } >REGION_TEXT
 
-    .data : 
+ _etext = .;
+ 
+    .data :  AT ( _etext )
     {
-        . = ALIGN(4);
+        . = ALIGN(4); 
         _data = .;
+        *(.data )
+        *(.data* .gnu.linkonce.d.*)
         *(vtable)
-        *(.data .data* .gnu.linkonce.d.*)
         _edata = .;
-    } > REGION_RAM AT > REGION_TEXT
+    } > REGION_RAM 
+
 
     .bss :
     {
