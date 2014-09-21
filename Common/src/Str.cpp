@@ -106,6 +106,17 @@ Str& Str::operator+(Str& s) {
     append(s);
     return *this;
     }
+#include <stdlib.h>
+Str& Str::operator<<(float f) {
+	char sFloat[20];
+	int decimals=3;
+	int decpt;
+	int sgn;
+ gcvtf( f, decimals,sFloat);
+
+    append(sFloat);
+    return *this;
+    }
 
 
 bool Str::operator==(Str& str) {

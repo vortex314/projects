@@ -43,6 +43,7 @@ enum Interface {
 	I_ADDRESS, I_INTERFACE, I_SETTER, I_OBJECT
 };
 
+
 typedef struct {
 	enum Type type :5;
 	enum Mode mode :2;
@@ -77,7 +78,7 @@ public:
 	Prop();
 	Prop(const char* name, void* instance, Xdr xdr, Flags flags);
 	static Prop* findProp(Str& name);
-	static void set(Str& topic, Strpack& message, uint8_t header);
+	static void set(Str& topic, Strpack& message);
 };
 
 class PropMgr: public Fsm {
@@ -88,6 +89,7 @@ private:
 	Str _topic;
 	Strpack _message;
 	Prop* _cursor;
+	bool _publishMeta;
 
 public:
 	PropMgr(Mqtt& mqtt);

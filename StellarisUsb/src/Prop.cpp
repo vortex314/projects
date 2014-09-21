@@ -6,8 +6,17 @@
  */
 
 #include "Prop.h"
+#include "Fsm.h"
 
 Prop* Prop::_first;
+
+const char* sType[] = { "UINT8", "UINT16", "UINT32", "UINT64", "INT8", "INT16",
+		"INT32", "INT64", "BOOL", "FLOAT", "DOUBLE", "BYTES", "ARRAY", "MAP",
+		"STR", "OBJECT" };
+
+const char* sMode[] = { "READ", "WRITE" };
+
+const char* sQos[] = { "0", "1", "2" };
 
 Prop::Prop(const char* name, void* instance, Xdr xdr, Flags flags) {
 	_name = name;
@@ -38,17 +47,31 @@ Prop::findProp(Str& name) {
 	return 0;
 }
 
-void Prop::set(Str& topic, Strpack& message, uint8_t header) {
+extern Str putPrefix;
+extern Str getPrefix;
+
+void Prop::set(Str& topic, Strpack& message) {
 	Str str(30);
-//	str.substr(topic, getPrefix.length());
-	Prop* p = findProp(str);
-	if (p) {
-		if (p->_xdr)
-			p->_xdr(p->_instance, CMD_PUT, message);
-		p->_flags.publishValue = true;
+
+	if (topic.startsWith(putPrefix)) {
+		str.substr(topic, putPrefix.length());
+		Prop* p = findProp(str);
+		if (p) {
+			if (p->_xdr)
+				p->_xdr(p->_instance, CMD_PUT, message);
+			p->_flags.publishValue = true;
+		}
+		Msg::publish(SIG_PROP_CHANGED);
+	} else if (topic.startsWith(getPrefix)) {
+		str.substr(topic, getPrefix.length());
+		Prop* p = findProp(str);
+		if (p) {
+			p->_flags.publishValue=true;
+			Msg::publish(SIG_PROP_CHANGED);
+		}
+
 	}
 
-	Fsm::publish(SIG_PROP_CHANGED);
 }
 
 PropMgr::PropMgr(Mqtt& mqtt) :
@@ -76,10 +99,28 @@ void strXdr(void* addr, Cmd cmd, Strpack& strp) {
 		strp << (const char*) addr;
 }
 
+void uint64Xdr(void* addr, Cmd cmd, Strpack& strp) {
+	if (cmd == CMD_GET)
+		strp << *((uint64_t*) addr);
+}
+
+void ftoa(float n, char *res, int afterpoint);
+
+void getTemp(void* addr, Cmd cmd, Strpack& strp) {
+	char buffer[20];
+	ftoa(Board::getTemp(),buffer,2);
+	if (cmd == CMD_GET)
+		strp << buffer;
+}
+
 Prop cpu("system/cpu", (void*) "lm4f120h5qr", strXdr, (Flags ) { T_STR, M_READ,
 				QOS_0, I_ADDRESS, false, true, true });
 Prop board("system/board", (void*) "Stellaris LaunchPad", strXdr, (Flags ) {
 				T_STR, M_READ, QOS_0, I_ADDRESS, false, true, true });
+Prop uptime("system/uptime", (void*) &Sys::_upTime, uint64Xdr, (Flags ) {
+				T_UINT64, M_READ, QOS_0, I_ADDRESS, false, true, true });
+Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) {
+				T_FLOAT, M_READ, QOS_0, I_OBJECT, false, true, true });
 
 void PropMgr::nextProp() {
 	_cursor = _cursor->_next;
@@ -89,7 +130,8 @@ void PropMgr::nextProp() {
 
 void PropMgr::publishing(Msg& event) {
 	switch (event.sig()) {
-	case SIG_MQTT_DO_PUBLISH: { //TODO
+	case SIG_PROP_CHANGED: { //TODO
+		timeout(10);
 		break;
 	}
 	case SIG_ENTRY: {
@@ -100,7 +142,7 @@ void PropMgr::publishing(Msg& event) {
 			cursor = cursor->_next;
 		}
 
-		timeout(100);
+		timeout(10);
 		break;
 	}
 	case SIG_MQTT_PUBLISH_FAILED: {
@@ -109,7 +151,10 @@ void PropMgr::publishing(Msg& event) {
 		break;
 	}
 	case SIG_MQTT_PUBLISH_OK: {
-//		_cursor->_flags.publishValue = false;
+		if (_publishMeta)
+			_cursor->_flags.publishMeta = false;
+		else
+			_cursor->_flags.publishValue = false;
 		nextProp();
 		timeout(100);
 		break;
@@ -117,22 +162,29 @@ void PropMgr::publishing(Msg& event) {
 	case SIG_TIMER_TICK: {
 		if (timeout()) {
 			if (_cursor->_flags.publishValue) {
+				_publishMeta = false;
 				_topic = _cursor->_name;
 				_message.clear();
 				_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
 				_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
 				timeout(UINT32_MAX);
 			} else if (_cursor->_flags.publishMeta) {
+				_publishMeta = true;
 				_topic = _cursor->_name;
 				_topic << ".META";
 				_message.clear();
-				_message << "{ 'flags' : " << _cursor->_flags.type <<  "}";
+				_message << "{ 'type' : '" << sType[_cursor->_flags.type]
+						<< "'";
+				_message << ",'mode' : '" << sMode[_cursor->_flags.mode] << "'";
+				_message << ",'qos' : " << sQos[_cursor->_flags.qos] << "";
+				_message << "}";
 				_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
 				timeout(UINT32_MAX);
 
 			} else {
 				nextProp();
 				timeout(1000);
+				temp._flags.publishValue=true;
 			}
 		}
 		break;

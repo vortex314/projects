@@ -25,6 +25,7 @@
 #include "driverlib/adc.h"
 #include "Board.h"
 
+
 char *Board::processor() {
 	return (char *) "LM4F120H5QR";
 }
@@ -106,7 +107,7 @@ void ButtonsInit(void) {
 	//
 	GPIODirModeSet(BUTTONS_GPIO_BASE, ALL_BUTTONS, GPIO_DIR_MODE_IN);
 	GPIOPadConfigSet(BUTTONS_GPIO_BASE, ALL_BUTTONS, GPIO_STRENGTH_2MA,
-	GPIO_PIN_TYPE_STD_WPU);
+			GPIO_PIN_TYPE_STD_WPU);
 	//
 	// Initialize the debounced button state with the current state read from
 	// the GPIO bank.
@@ -208,116 +209,91 @@ bool Board::isButtonPressed(Button button) {
 	return false;
 }
 
-extern "C" void ADC0IntHandler(void) // NOT started yet !!!!
-{
-	//used for storing data from ADC FIFO, must be as large as the FIFO for sequencer in use. Sequencer 1 has FIFO depth of 4
-	uint32_t ui32ADC0Value[4];
-
-	//variables that cannot be optimized out by compiler
-	volatile uint32_t ui32TempAvg;
-	volatile uint32_t ui32TempValueC;
-	volatile uint32_t ui32TempValueF;
-	volatile uint32_t status;
-     //clear interrupt flag
-     ROM_ADCIntClear(ADC0_BASE, 1);
-
-     ROM_ADCSequenceDataGet(ADC0_BASE,1,ui32ADC0Value);
-     //calculate average
-     ui32TempAvg = (ui32ADC0Value[0] + ui32ADC0Value[1] + ui32ADC0Value[2] + ui32ADC0Value[3] + 2)/4;
-     //TEMP = 147.5 – ((75 * (VREFP – VREFN) * ADCVALUE) / 4096) multiply by 10 to keep precision and then div by 10 at end
-     ui32TempValueC = (1475 - ((2475 * ui32TempAvg)) / 4096)/10;
-     ui32TempValueF = ((ui32TempValueC * 9) + 160) / 5;
-}
 
 void ADCInit() {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-	SysCtlADCSpeedSet(SYSCTL_ADCSPEED_250KSPS);
-	ADCSequenceDisable(ADC0_BASE, 1);
-	ADCSequenceConfigure(ADC0_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
-	ADCSequenceStepConfigure(ADC0_BASE, 1, 0, ADC_CTL_TS);
-	ADCSequenceStepConfigure(ADC0_BASE, 1, 1, ADC_CTL_TS);
-	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
-	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
+
+	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
+
+	ADCSequenceStepConfigure(ADC0_BASE, 3, 0,
 			ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
-	ADCSequenceEnable(ADC0_BASE, 1);
+
+	ADCSequenceEnable(ADC0_BASE, 3);
 }
 
 void Board::init() // initialize the board specifics
 {
 	//
+		// Enable lazy stacking for interrupt handlers.  This allows floating-point
+		// instructions to be used within interrupt handlers, but at the expense of
+		// extra stack usage.
+		//
+		ROM_FPULazyStackingEnable();
+		//
+		// Set the clocking to run from the PLL at 50MHz
+		//
+		ROM_SysCtlClockSet(
+				SYSCTL_SYSDIV_1 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN
+						| SYSCTL_XTAL_16MHZ);
+		IntMasterEnable(); // Enable interrupts to the processor.
+		// Set up the period for the SysTick timer for 1 mS.
+		SysTickPeriodSet(SysCtlClockGet() / 1000);
+		SysTickIntEnable(); // Enable the SysTick Interrupt.
+		SysTickEnable(); // Enable SysTick.
+/*	//
 	// Enable lazy stacking for interrupt handlers.  This allows floating-point
 	// instructions to be used within interrupt handlers, but at the expense of
 	// extra stack usage.
-	//
 	FPUEnable();
 	FPULazyStackingEnable();
-	//
-	// Set the clocking to run from the PLL at 50MHz
-	//
-	ROM_SysCtlClockSet(
-	SYSCTL_SYSDIV_1 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-	IntMasterEnable(); // Enable interrupts to the processor.
-	// Set up the period for the SysTick timer for 1 mS.
-	SysTickPeriodSet(SysCtlClockGet() / 1000);
-	SysTickIntEnable(); // Enable the SysTick Interrupt.
-	SysTickEnable(); // Enable SysTick.
-	/*	//
-	 // Enable lazy stacking for interrupt handlers.  This allows floating-point
-	 // instructions to be used within interrupt handlers, but at the expense of
-	 // extra stack usage.
-	 FPUEnable();
-	 FPULazyStackingEnable();
-	 SysCtlClockSet(
-	 SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN
-	 | SYSCTL_XTAL_16MHZ); // Set the clocking to run directly from the crystal.
-	 IntMasterEnable(); // Enable interrupts to the processor.*/
+	SysCtlClockSet(
+			SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN
+					| SYSCTL_XTAL_16MHZ); // Set the clocking to run directly from the crystal.
+	IntMasterEnable(); // Enable interrupts to the processor.*/
 
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF); // Enable the GPIO port that is used for the on-board LED.
 	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_2); // Enable the GPIO pins for the LED (PF2).
 	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1);
 	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
 
-	/*	SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0); // Enable the peripherals used by this example.
-	 SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-	 IntMasterEnable(); // Enable processor interrupts.
-	 // Set up the period for the SysTick timer for 1 mS.
-	 SysTickPeriodSet(SysCtlClockGet() / 1000);
-	 SysTickIntEnable(); // Enable the SysTick Interrupt.
-	 SysTickEnable(); // Enable SysTick.
+/*	SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0); // Enable the peripherals used by this example.
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	IntMasterEnable(); // Enable processor interrupts.
+	// Set up the period for the SysTick timer for 1 mS.
+	SysTickPeriodSet(SysCtlClockGet() / 1000);
+	SysTickIntEnable(); // Enable the SysTick Interrupt.
+	SysTickEnable(); // Enable SysTick.
 
-	 GPIOPinConfigure(GPIO_PA0_U0RX); // Set GPIO A0 and A1 as UART pins.
-	 GPIOPinConfigure(GPIO_PA1_U0TX);
-	 GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+	GPIOPinConfigure(GPIO_PA0_U0RX); // Set GPIO A0 and A1 as UART pins.
+	GPIOPinConfigure(GPIO_PA1_U0TX);
+	GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-	 UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
-	 (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE)); // Configure the UART for 115,200, 8-N-1 operation.
-	 IntEnable(INT_UART0);
-	 UARTFIFODisable(UART0_BASE);
-	 //	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX1_8, UART_FIFO_RX1_8);
-	 UARTFlowControlSet(UART0_BASE, UART_FLOWCONTROL_NONE);
-	 UARTIntDisable(UART0_BASE, UART_INT_RT);
-	 UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX); // Enable the UART interrupt.*/
+	UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
+			(UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE | UART_CONFIG_PAR_NONE)); // Configure the UART for 115,200, 8-N-1 operation.
+	IntEnable(INT_UART0);
+	UARTFIFODisable(UART0_BASE);
+//	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX1_8, UART_FIFO_RX1_8);
+	UARTFlowControlSet(UART0_BASE, UART_FLOWCONTROL_NONE);
+	UARTIntDisable(UART0_BASE, UART_INT_RT);
+	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX); // Enable the UART interrupt.*/
 	Board::setLedOn(Board::LED_GREEN, false);
 	Board::setLedOn(Board::LED_RED, false);
 	Board::setLedOn(Board::LED_BLUE, false);
-	ADCInit();
+//	ADCInit();
 }
 
+
 float Board::getTemp() {
-	float ulTempValueC;
-	unsigned long ulADC0Value[4], ulTempAvg;
-	ADCIntClear(ADC0_BASE, 1);
-	ADCIntEnable(ADC0_BASE, 1);
-	ADCProcessorTrigger(ADC0_BASE, 1);
-	while (!ADCIntStatus(ADC0_BASE, 1, false)) {
-	}
-	SysCtlDelay(100000);
-	ADCSequenceDataGet(ADC0_BASE, 1, ulADC0Value);
-	if (ulADC0Value[0]==0 ) ADCInit();
-	ulTempAvg = (ulADC0Value[0] + ulADC0Value[1] + ulADC0Value[2]
-			+ ulADC0Value[3] + 2) / 4;
-	ulTempValueC = (1475.0 - ((2475.0 * ulTempAvg)) / 4096) / 10;
-	return ulTempValueC;
+	float ulTemp_ValueC;
+	unsigned long gt;
+	ADCProcessorTrigger(ADC0_BASE, 3);
+
+	ADCSequenceDataGet(ADC0_BASE, 3, &gt);
+
+	// Berechnung
+
+	ulTemp_ValueC = ((1475 * 1023) - (2250 * gt)) / 10230;
+	return ulTemp_ValueC/10000;
 }
 
 //*****************************************************************************
@@ -329,6 +305,7 @@ void Fatal(void) {
 	while (1)
 		;
 }
+
 
 void Board::setLedOn(int32_t led, bool on) // light one of the Led's
 		{
@@ -373,4 +350,5 @@ bool Board::getLed(int32_t led) {
 bool Board::getButton(Button button) {
 	return false;
 }
+
 

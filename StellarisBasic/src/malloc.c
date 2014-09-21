@@ -132,9 +132,9 @@ register void * stack_pointer asm ("r15");
 
 #ifdef DEFINE_MALLOC
 
- uint64_t m_count_called=0;
+ uint64_t filler=01245;
  void * __malloc_end = (void*)(&__malloc_start);
-
+ int i128=128;
 // void * __malloc_end = &_end;
 fle __malloc_freelist;
 
@@ -147,7 +147,6 @@ malloc (size_t sz)
   /* real_size is the size we actually have to allocate, allowing for
      overhead and alignment.  */
   size_t real_size = REAL_SIZE (sz);
-  m_count_called++;
 
   /* Look for the first block on the freelist that is large enough.  */
   for (nextfree = &__malloc_freelist;
@@ -227,7 +226,6 @@ void
 free (void *block_p)
 {
   fle *nextfree;
-  m_count_called--;
   fle block = (fle)((size_t) block_p - offsetof (struct freelist_entry, next));
 
   if (block_p == NULL)

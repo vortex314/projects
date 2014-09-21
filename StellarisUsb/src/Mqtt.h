@@ -34,9 +34,8 @@ class Prop;
 
 class MqttPing;
 class MqttPub;
-class MqttSubQos0;
-class MqttSubQos1;
-class MqttSubQos2;
+class MqttSub;
+
 
 
 class Mqtt: public Fsm {
@@ -50,7 +49,7 @@ private:
 	Link& _link;
 	MqttPing* mqttPing;
 	MqttPub* _mqttPub;
-
+	MqttSub* _mqttSub;
 
 public:
 
