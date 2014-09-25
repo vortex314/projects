@@ -66,7 +66,7 @@ void Prop::set(Str& topic, Strpack& message) {
 		str.substr(topic, getPrefix.length());
 		Prop* p = findProp(str);
 		if (p) {
-			p->_flags.publishValue=true;
+			p->_flags.publishValue = true;
 			Msg::publish(SIG_PROP_CHANGED);
 		}
 
@@ -108,7 +108,7 @@ void ftoa(float n, char *res, int afterpoint);
 
 void getTemp(void* addr, Cmd cmd, Strpack& strp) {
 	char buffer[20];
-	ftoa(Board::getTemp(),buffer,2);
+	ftoa(Board::getTemp(), buffer, 2);
 	if (cmd == CMD_GET)
 		strp << buffer;
 }
@@ -119,8 +119,8 @@ Prop board("system/board", (void*) "Stellaris LaunchPad", strXdr, (Flags ) {
 				T_STR, M_READ, QOS_0, I_ADDRESS, false, true, true });
 Prop uptime("system/uptime", (void*) &Sys::_upTime, uint64Xdr, (Flags ) {
 				T_UINT64, M_READ, QOS_0, I_ADDRESS, false, true, true });
-Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) {
-				T_FLOAT, M_READ, QOS_0, I_OBJECT, false, true, true });
+Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) { T_FLOAT, M_READ,
+				QOS_0, I_OBJECT, false, true, true });
 
 void PropMgr::nextProp() {
 	_cursor = _cursor->_next;
@@ -159,34 +159,32 @@ void PropMgr::publishing(Msg& event) {
 		timeout(100);
 		break;
 	}
-	case SIG_TIMER_TICK: {
-		if (timeout()) {
-			if (_cursor->_flags.publishValue) {
-				_publishMeta = false;
-				_topic = _cursor->_name;
-				_message.clear();
-				_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
-				_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
-				timeout(UINT32_MAX);
-			} else if (_cursor->_flags.publishMeta) {
-				_publishMeta = true;
-				_topic = _cursor->_name;
-				_topic << ".META";
-				_message.clear();
-				_message << "{ 'type' : '" << sType[_cursor->_flags.type]
-						<< "'";
-				_message << ",'mode' : '" << sMode[_cursor->_flags.mode] << "'";
-				_message << ",'qos' : " << sQos[_cursor->_flags.qos] << "";
-				_message << "}";
-				_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
-				timeout(UINT32_MAX);
+	case SIG_TIMEOUT: {
+		if (_cursor->_flags.publishValue) {
+			_publishMeta = false;
+			_topic = _cursor->_name;
+			_message.clear();
+			_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
+			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+			timeout(UINT32_MAX);
+		} else if (_cursor->_flags.publishMeta) {
+			_publishMeta = true;
+			_topic = _cursor->_name;
+			_topic << ".META";
+			_message.clear();
+			_message << "{ 'type' : '" << sType[_cursor->_flags.type] << "'";
+			_message << ",'mode' : '" << sMode[_cursor->_flags.mode] << "'";
+			_message << ",'qos' : " << sQos[_cursor->_flags.qos] << "";
+			_message << "}";
+			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+			timeout(UINT32_MAX);
 
-			} else {
-				nextProp();
-				timeout(1000);
-				temp._flags.publishValue=true;
-			}
+		} else {
+			nextProp();
+			timeout(1000);
+			temp._flags.publishValue = true;
 		}
+
 		break;
 	}
 	case SIG_EXIT: {

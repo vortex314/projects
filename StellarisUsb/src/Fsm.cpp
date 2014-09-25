@@ -39,7 +39,7 @@ void Fsm::init(SF f) {
 //	return CALL_MEMBER_FN(*this,_f)(EV_ENTRY);
 }
 
-void Fsm::null(Msg& ev) {
+void Fsm::null(Msg& ev) {	// do nothing
 
 }
 
