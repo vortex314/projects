@@ -109,9 +109,6 @@ Str& Str::operator+(Str& s) {
 #include <stdlib.h>
 Str& Str::operator<<(float f) {
 	char sFloat[20];
-	int decimals=3;
-	int decpt;
-	int sgn;
     append(sFloat);
     return *this;
     }
