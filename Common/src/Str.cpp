@@ -112,8 +112,6 @@ Str& Str::operator<<(float f) {
 	int decimals=3;
 	int decpt;
 	int sgn;
- gcvtf( f, decimals,sFloat);
-
     append(sFloat);
     return *this;
     }

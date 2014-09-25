@@ -6,7 +6,8 @@
  */
 
 #include "MqttIn.h"
-#include "Property.h"
+//#include "Property.h"
+#include <cstring>
 
 #define LOG(x) std::cout << Sys::upTime() << " | MQTT  IN " << x << std::endl
 const char* const MqttNames[] = { "UNKNOWN", "CONNECT", "CONNACK", "PUBLISH",
