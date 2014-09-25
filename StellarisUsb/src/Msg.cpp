@@ -38,7 +38,7 @@ Msg& Msg::create(int size) {
 Msg& Msg::open() {
 	Envelope env;
 	map(0, 0);
-	uint16_t l;
+
 	// read length
 	int size = 2;
 	_start = bb.GetContiguousBlock(size);

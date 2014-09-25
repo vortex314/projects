@@ -94,6 +94,8 @@ Erc Usb::connect() {
 	return E_OK;
 }
 Erc Usb::disconnect() {
+	USBDCDCTerm((tUSBDCDCDevice *) &g_sCDCDevice);
+	USBDCDCInit(0, (tUSBDCDCDevice *) &g_sCDCDevice);
 	return E_OK;
 }
 

@@ -22,6 +22,7 @@ class Str : public Bytes {
         Str& operator<<(char ch);
         Str& operator<<(int i);
         Str& operator<<(Str& s);
+        Str& operator<<(float f);
         Str& operator<<(uint64_t val) {
             return append(val);
             };

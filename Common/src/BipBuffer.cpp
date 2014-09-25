@@ -7,7 +7,7 @@
 
 #include <BipBuffer.h>
 
-#define NULL 0
+
 /*
  Copyright (c) 2003 Simon Cooke, All Rights Reserved
 

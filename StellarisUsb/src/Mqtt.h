@@ -7,7 +7,7 @@
 
 #ifndef MQTT_H_
 #define MQTT_H_
-
+#include "Prop.h"
 #include "Event.h"
 #include "Sequence.h"
 #include "Link.h"
@@ -16,7 +16,7 @@
 #include "pt.h"
 #include "MqttConstants.h"
 #include "Log.h"
-#include "Prop.h"
+
 #include "MqttOut.h"
 
 #include "Fsm.h"
@@ -34,9 +34,8 @@ class Prop;
 
 class MqttPing;
 class MqttPub;
-class MqttSubQos0;
-class MqttSubQos1;
-class MqttSubQos2;
+class MqttSub;
+
 
 
 class Mqtt: public Fsm {
@@ -50,11 +49,11 @@ private:
 	Link& _link;
 	MqttPing* mqttPing;
 	MqttPub* _mqttPub;
-
+	MqttSub* _mqttSub;
 
 public:
 
-  const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
+ // const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
 
 
 	Mqtt(Link& link);
@@ -66,9 +65,12 @@ public:
 	bool isConnected();
 	Erc disconnect();
 
-	void waitConnect(Msg& event);
-	void waitConnAck(Msg& event);
+	void connecting(Msg& event);
+	void sleep(Msg& event);
+	void subscribing(Msg& event);
 	void waitDisconnect(Msg& event);
+private:
+	void sendSubscribe(uint8_t flags);
 };
 
 class MqttPub:public Fsm {

@@ -24,6 +24,7 @@ public:
 	static void setLedOn(int32_t led, bool on);
 	static bool getButton(Button button);
 	static bool getLed(int32_t led);
+	static void startUsartTxd();
 	static char* processor();
 	static uint64_t processorRevision();
 	static float getTemp();

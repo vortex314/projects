@@ -219,6 +219,11 @@ class UsbConnection : public Sequence {
 #include "Tcp.h"
 
 int main(int argc, char *argv[] ) {
+
+{
+    Log::log() << "Start " << argv[0] << " version : " << __DATE__ << " " << __TIME__ ;
+    Log::log().flush();
+
     if ( argc>1 ) usb.setDevice(argv[1]);
 
     PollerThread poller("",0,1);

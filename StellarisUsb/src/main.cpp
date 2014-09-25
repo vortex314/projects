@@ -141,18 +141,16 @@ public:
 		_isOn = false;
 		_msecInterval = 500;
 	}
+
 	virtual ~LedBlink() {
 	}
-	;
 
 	void blink(Msg& event) {
 		switch (event.sig()) {
-		case SIG_TIMER_TICK: {
-			if (timeout()) {
-				Board::setLedOn(Board::LED_GREEN, _isOn);
-				_isOn = !_isOn;
-				timeout(_msecInterval);
-			}
+		case SIG_TIMEOUT: {
+			Board::setLedOn(Board::LED_GREEN, _isOn);
+			_isOn = !_isOn;
+			timeout(_msecInterval);
 			break;
 		}
 		case SIG_MQTT_CONNECTED: {
@@ -170,15 +168,24 @@ public:
 	}
 };
 LedBlink ledBlink;
+Msg msg;
+Fsm* fsm;
+static Msg timeout(SIG_TIMEOUT);
 
 void eventPump() {
-	Msg msg;
 	while (true) {
-		msg.open();
-		if (msg.isEmpty())
+		msg.open();	// get message from queue
+		if (msg.sig() == SIG_IDLE)
 			break;
-		Fsm::dispatchToAll(msg);
-		msg.recv();
+		for (fsm = Fsm::first(); fsm != 0; fsm = Fsm::next(fsm)) {
+			if ((msg.sig() == SIG_TIMER_TICK)) {
+				if (fsm->timeout())
+					fsm->dispatch(timeout);
+			} else
+				fsm->dispatch(msg);
+		}
+//		Fsm::dispatchToAll(msg);
+		msg.recv();	// confirm reception, remove from queue
 	}
 }
 
@@ -192,20 +199,21 @@ void eventPump() {
 
 int main(void) {
 
-Board::init();	// initialize usb
-Usb::init();
-Usb usb;		// usb active object
-Mqtt mqtt(usb);	// mqtt active object
+	Board::init();	// initialize usb
+	Usb::init();
+	Usb usb;		// usb active object
+	Mqtt mqtt(usb);	// mqtt active object
 
-PropertyListener propertyListener(mqtt);
-uint64_t clock = Sys::upTime() + 100;
-Msg::publish(SIG_INIT);
-Msg::publish(SIG_ENTRY);
-while (1) {
-	eventPump();
-	if (Sys::upTime() > clock) {
-		clock += 10;
-		Msg::publish(SIG_TIMER_TICK);
+	PropMgr propertyListener(mqtt);
+	uint64_t clock = Sys::upTime() + 100;
+	Msg::publish(SIG_INIT);
+	Msg::publish(SIG_ENTRY);
+	Msg msg;
+	while (1) {
+		eventPump();
+		if (Sys::upTime() > clock) {
+			clock += 10;
+			Msg::publish(SIG_TIMER_TICK);
+		}
 	}
-}
 }
