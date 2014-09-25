@@ -208,27 +208,25 @@ bool Board::isButtonPressed(Button button) {
 	return false;
 }
 
+float fTempValueC;
+uint32_t ui32TempAvg;
+
+
 extern "C" void ADC0IntHandler(void) // NOT started yet !!!!
-{
-/*	//used for storing data from ADC FIFO, must be as large as the FIFO for sequencer in use. Sequencer 1 has FIFO depth of 4
-	uint32_t ui32ADC0Value[4];
+		{
+	uint32_t ui32ADC0Value[4]; //used for storing data from ADC FIFO, must be as large as the FIFO for sequencer in use. Sequencer 1 has FIFO depth of 4
+	 //variables that cannot be optimized out by compiler
 
-	//variables that cannot be optimized out by compiler
-	volatile uint32_t ui32TempAvg;
-	volatile uint32_t ui32TempValueC;
-     //clear interrupt flag
-     ROM_ADCIntClear(ADC0_BASE, 1);
-
-     ROM_ADCSequenceDataGet(ADC0_BASE,1,ui32ADC0Value);
-     //calculate average
-     ui32TempAvg = (ui32ADC0Value[0] + ui32ADC0Value[1] + ui32ADC0Value[2] + ui32ADC0Value[3] + 2)/4;
-     //TEMP = 147.5 – ((75 * (VREFP – VREFN) * ADCVALUE) / 4096) multiply by 10 to keep precision and then div by 10 at end
-     ui32TempValueC = (1475 - ((2475 * ui32TempAvg)) / 4096)/10;*/
+	ADCIntClear(ADC0_BASE, 1); //clear interrupt flag
+	ADCSequenceDataGet(ADC0_BASE, 1, ui32ADC0Value);
+	ui32TempAvg = (ui32ADC0Value[0] + ui32ADC0Value[1] + ui32ADC0Value[2]
+			+ ui32ADC0Value[3] + 2) / 4; //calculate average
+	ADCProcessorTrigger(ADC0_BASE, 1);
 }
 
-void ADCInit() {
+void AdcInit() {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-	SysCtlADCSpeedSet(SYSCTL_ADCSPEED_250KSPS);
+	SysCtlADCSpeedSet(SYSCTL_ADCSPEED_125KSPS);
 	ADCSequenceDisable(ADC0_BASE, 1);
 	ADCSequenceConfigure(ADC0_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 0, ADC_CTL_TS);
@@ -236,7 +234,10 @@ void ADCInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
 			ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
+	ADCIntEnable(ADC0_BASE, 1);
+	IntEnable(INT_ADC0SS1);
 	ADCSequenceEnable(ADC0_BASE, 1);
+	ADCProcessorTrigger(ADC0_BASE, 1);
 }
 
 void Board::init() // initialize the board specifics
@@ -297,24 +298,28 @@ void Board::init() // initialize the board specifics
 	Board::setLedOn(Board::LED_GREEN, false);
 	Board::setLedOn(Board::LED_RED, false);
 	Board::setLedOn(Board::LED_BLUE, false);
-	ADCInit();
+	AdcInit();
 }
 
 float Board::getTemp() {
-	float ulTempValueC;
+/*	float ulTempValueC;
 	unsigned long ulADC0Value[4], ulTempAvg;
-	ADCIntClear(ADC0_BASE, 1);
-	ADCIntEnable(ADC0_BASE, 1);
+//	ADCIntClear(ADC0_BASE, 1);
+//	ADCIntEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 	while (!ADCIntStatus(ADC0_BASE, 1, false)) {
 	}
 	SysCtlDelay(100000);
 	ADCSequenceDataGet(ADC0_BASE, 1, ulADC0Value);
-	if (ulADC0Value[0]==0 ) ADCInit();
+	if (ulADC0Value[0] == 0)
+		ADCInit();
 	ulTempAvg = (ulADC0Value[0] + ulADC0Value[1] + ulADC0Value[2]
 			+ ulADC0Value[3] + 2) / 4;
-	ulTempValueC = (1475.0 - ((2475.0 * ulTempAvg)) / 4096) / 10;
-	return ulTempValueC;
+	ulTempValueC = (1475.0 - ((2475.0 * ulTempAvg)) / 4096) / 10;*/
+	if ( ui32TempAvg==0 )
+		AdcInit();
+	fTempValueC = (1475.0 - ((2475.0 * ui32TempAvg)) / 4096) / 10; 	//TEMP = 147.5 – ((75 * (VREFP – VREFN) * ADCVALUE) / 4096) multiply by 10 to keep precision and then div by 10 at end
+	return fTempValueC;
 }
 
 //*****************************************************************************

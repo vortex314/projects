@@ -12,122 +12,55 @@
 #include "Prop.h"
 
 #include <malloc.h>
-/*
- class MeasureSeq : public Fsm
- =======
 
- #define LED_INTERVAL 100
- class LedSeq : public Sequence
- {
- private:
- struct pt t;
+typedef void (*Xdr)(void*, Cmd, Strpack&);
 
- public:
- LedSeq ()
- {
- PT_INIT(&t);
- }
- int
- handler (Event* event)
- {
- PT_BEGIN ( &t )
- while (true)
- {
- timeout (250);
- PT_YIELD_UNTIL(&t, timeout ());
- Board::setLedOn (Board::LED_GREEN, true);
- timeout (250);
- PT_YIELD_UNTIL(&t, timeout ());
- Board::setLedOn (Board::LED_GREEN, false);
- }
- PT_END ( &t );
- }
- };
- #include <malloc.h>
+void strXdr(void* addr, Cmd cmd, Strpack& strp) {
+	if (cmd == CMD_GET)
+		strp << (const char*) addr;
+}
 
- class MeasureSeq : public Sequence
- >>>>>>> 709d62f69d76b208f0276c399a72d145b54fd6dd
- {
- private:
- struct pt t;
- Mqtt& _mqtt;
- public:
- MeasureSeq (Mqtt& mqtt);
- void
- measure ();
- int
- handler (Event* event);
- static void
- heapMemory (void* instance, Cmd cmd, Strpack& strp);
- };
+void uint64Xdr(void* addr, Cmd cmd, Strpack& strp) {
+	if (cmd == CMD_GET)
+		strp << *((uint64_t*) addr);
+}
 
- <<<<<<< HEAD
- MeasureSeq::MeasureSeq (Mqtt& mqtt) :
- _mqtt (mqtt)
- =======
- MeasureSeq::MeasureSeq (Mqtt& mqtt) : _mqtt(mqtt)
- >>>>>>> 709d62f69d76b208f0276c399a72d145b54fd6dd
- {
- PT_INIT(&t);
- }
- void
- MeasureSeq::measure ()
- {
- struct mallinfo m;
- m = mallinfo ();
- }
+void ftoa(float n, char *res, int afterpoint);
 
- int
- MeasureSeq::handler (Event* event)
- {
- struct mallinfo m;
- m = mallinfo ();
- PT_BEGIN ( &t )
- while (true)
- {
- timeout (5000);
- PT_YIELD_UNTIL(&t, timeout ());
- Strpack strp (100);
- <<<<<<< HEAD
- Str topic (10);
- topic.set ("system/heapUsage");
- Strpack value (10);
- value.append ((uint32_t) m.uordblks);
- Flags flags =
- { T_STR, M_WRITE, QOS_1, I_OBJECT, true };
- _mqtt.Publish (flags, 1, topic, value);
- =======
- Str  topic(10);
- topic.set("system/heapUsage");
- Strpack value(10);
- value.append((uint32_t) m.uordblks);
- Flags flags = {
- T_STR, M_WRITE, QOS_1, I_OBJECT, true
- };
- _mqtt.Publish(flags,1,topic,value);
- >>>>>>> 709d62f69d76b208f0276c399a72d145b54fd6dd
- }
- PT_END ( &t );
- }
- void
- MeasureSeq::heapMemory (void* instance, Cmd cmd, Strpack& strp)
- {
- struct mallinfo m;
- m = mallinfo ();
- static const char* const desc = " desc:'heapUsage'";
- if (cmd == CMD_PUT)
- {
- }
- else if (cmd == CMD_GET)
- {
- strp.append ((uint32_t) m.uordblks);
- }
- else if (cmd == CMD_DESC)
- {
- strp.append (desc);
- }
- <<<<<<< HEAD
- }*/
+void getTemp(void* addr, Cmd cmd, Strpack& strp) {
+	char buffer[20];
+	ftoa(Board::getTemp(), buffer, 2);
+	if (cmd == CMD_GET)
+		strp << buffer;
+}
+
+void getRev(void* addr, Cmd cmd, Strpack& strp) {
+	uint8_t b;
+	uint8_t buffer[8];
+	int i;
+	if (cmd == CMD_GET) {
+		uint64_t rev = Board::processorRevision();
+		for (i = 0; i < 8; i++) {
+			buffer[7 - i] = (rev & 0xFF);
+			rev = rev >> 8;
+
+		}
+		for (i = 0; i < 8; i++) {
+			strp.appendHex(buffer[i]);
+		}
+	}
+}
+
+Prop cpu("system/cpu", (void*) "lm4f120h5qr", strXdr, (Flags ) { T_STR, M_READ,
+				QOS_0, I_ADDRESS, false, true, true });
+Prop board("system/board", (void*) "Stellaris LaunchPad", strXdr, (Flags ) {
+				T_STR, M_READ, QOS_0, I_ADDRESS, false, true, true });
+Prop uptime("system/uptime", (void*) &Sys::_upTime, uint64Xdr, (Flags ) {
+				T_UINT64, M_READ, QOS_0, I_ADDRESS, false, true, true });
+Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) { T_FLOAT, M_READ,
+				QOS_0, I_OBJECT, false, true, true });
+Prop rev("system/cpu.revision", (void*) 0, getRev, (Flags ) { T_BYTES, M_READ,
+				QOS_0, I_OBJECT, false, true, true });
 
 #include "Fsm.h"
 
@@ -151,6 +84,8 @@ public:
 			Board::setLedOn(Board::LED_GREEN, _isOn);
 			_isOn = !_isOn;
 			timeout(_msecInterval);
+			temp._flags.publishValue = true;
+			uptime._flags.publishValue = true;
 			break;
 		}
 		case SIG_MQTT_CONNECTED: {
@@ -201,7 +136,7 @@ int main(void) {
 
 	Board::init();	// initialize usb
 	Usb::init();
-	Usb usb;		// usb active object
+	Usb usb;	// usb active object
 	Mqtt mqtt(usb);	// mqtt active object
 
 	PropMgr propertyListener(mqtt);

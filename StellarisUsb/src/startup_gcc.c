@@ -49,6 +49,7 @@ static void FaultISR(void);
 static void IntDefaultHandler(void);
 extern void SysTickIntHandler(void);
 extern void USB0DeviceIntHandler(void);
+extern void ADC0IntHandler(void);
 
 #define NULL ((void*)0)
 
@@ -110,7 +111,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // PWM Generator 2
     IntDefaultHandler,                      // Quadrature Encoder 0
     IntDefaultHandler,                      // ADC Sequence 0
-    IntDefaultHandler,                      // ADC Sequence 1
+    ADC0IntHandler,                      // ADC Sequence 1
     IntDefaultHandler,                      // ADC Sequence 2
     IntDefaultHandler,                      // ADC Sequence 3
     IntDefaultHandler,                      // Watchdog timer
