@@ -30,7 +30,7 @@ using namespace std;
 #include "Usb.h"
 
 
-Usb usb("/dev/ttyACM0");
+Usb usb("/dev/mqtt");
 Tcp tcp("localhost",1883);
 //_______________________________________________________________________________________
 //
