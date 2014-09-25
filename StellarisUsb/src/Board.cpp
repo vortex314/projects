@@ -210,14 +210,12 @@ bool Board::isButtonPressed(Button button) {
 
 extern "C" void ADC0IntHandler(void) // NOT started yet !!!!
 {
-	//used for storing data from ADC FIFO, must be as large as the FIFO for sequencer in use. Sequencer 1 has FIFO depth of 4
+/*	//used for storing data from ADC FIFO, must be as large as the FIFO for sequencer in use. Sequencer 1 has FIFO depth of 4
 	uint32_t ui32ADC0Value[4];
 
 	//variables that cannot be optimized out by compiler
 	volatile uint32_t ui32TempAvg;
 	volatile uint32_t ui32TempValueC;
-	volatile uint32_t ui32TempValueF;
-	volatile uint32_t status;
      //clear interrupt flag
      ROM_ADCIntClear(ADC0_BASE, 1);
 
@@ -225,8 +223,7 @@ extern "C" void ADC0IntHandler(void) // NOT started yet !!!!
      //calculate average
      ui32TempAvg = (ui32ADC0Value[0] + ui32ADC0Value[1] + ui32ADC0Value[2] + ui32ADC0Value[3] + 2)/4;
      //TEMP = 147.5 – ((75 * (VREFP – VREFN) * ADCVALUE) / 4096) multiply by 10 to keep precision and then div by 10 at end
-     ui32TempValueC = (1475 - ((2475 * ui32TempAvg)) / 4096)/10;
-     ui32TempValueF = ((ui32TempValueC * 9) + 160) / 5;
+     ui32TempValueC = (1475 - ((2475 * ui32TempAvg)) / 4096)/10;*/
 }
 
 void ADCInit() {
