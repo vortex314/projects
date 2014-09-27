@@ -15,16 +15,6 @@
 
 typedef void (*Xdr)(void*, Cmd, Strpack&);
 
-void strXdr(void* addr, Cmd cmd, Strpack& strp) {
-	if (cmd == CMD_GET)
-		strp << (const char*) addr;
-}
-
-void uint64Xdr(void* addr, Cmd cmd, Strpack& strp) {
-	if (cmd == CMD_GET)
-		strp << *((uint64_t*) addr);
-}
-
 void ftoa(float n, char *res, int afterpoint);
 
 void getTemp(void* addr, Cmd cmd, Strpack& strp) {
@@ -35,7 +25,6 @@ void getTemp(void* addr, Cmd cmd, Strpack& strp) {
 }
 
 void getRev(void* addr, Cmd cmd, Strpack& strp) {
-	uint8_t b;
 	uint8_t buffer[8];
 	int i;
 	if (cmd == CMD_GET) {
@@ -51,16 +40,14 @@ void getRev(void* addr, Cmd cmd, Strpack& strp) {
 	}
 }
 
-Prop cpu("system/cpu", (void*) "lm4f120h5qr", strXdr, (Flags ) { T_STR, M_READ,
-				QOS_0, I_ADDRESS, false, true, true });
-Prop board("system/board", (void*) "Stellaris LaunchPad", strXdr, (Flags ) {
-				T_STR, M_READ, QOS_0, I_ADDRESS, false, true, true });
-Prop uptime("system/uptime", (void*) &Sys::_upTime, uint64Xdr, (Flags ) {
-				T_UINT64, M_READ, QOS_0, I_ADDRESS, false, true, true });
+Prop cpu("system/CPU", "lm4f120h5qr");
+Prop board("system/board", "Stellaris LaunchPad");
+Prop uptime("system/uptime", Sys::_upTime);
 Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) { T_FLOAT, M_READ,
 				QOS_0, I_OBJECT, false, true, true });
 Prop rev("system/cpu.revision", (void*) 0, getRev, (Flags ) { T_BYTES, M_READ,
 				QOS_0, I_OBJECT, false, true, true });
+
 
 #include "Fsm.h"
 
@@ -84,8 +71,8 @@ public:
 			Board::setLedOn(Board::LED_GREEN, _isOn);
 			_isOn = !_isOn;
 			timeout(_msecInterval);
-			temp._flags.publishValue = true;
-			uptime._flags.publishValue = true;
+			temp.updated();
+			uptime.updated();
 			break;
 		}
 		case SIG_MQTT_CONNECTED: {

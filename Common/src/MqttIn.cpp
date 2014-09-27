@@ -151,17 +151,14 @@ void MqttIn::parse() {
 	case MQTT_MSG_PUBLISH: {
 		uint16_t length;
 		readUint16(&length);
-		_topic.map(data() + offset(),length); //+++
-				//      _topic.sub( this, length );
-		move(length);
+		_topic.map(data() + offset(), length); 	// map topic Str to this part of payload
+		move(length);							// skip topic length
 		int rest = _remainingLength - length - 2;
-		if (_header & MQTT_QOS_MASK) {
+		if (_header & MQTT_QOS_MASK) { 			// if QOS > 0 load messageID from payload
 			readUint16(&_messageId);
 			rest -= 2;
 		}
-		_message.map(data() + offset(), rest); //+++
-		//       _message.sub( this, rest );
-		//           ASSERT((_topic.length()+4+_message.length())==_remainingLength);
+		_message.map(data() + offset(), rest); 	// map message to rest of payload
 		break;
 	}
 	case MQTT_MSG_SUBACK: {
@@ -190,11 +187,11 @@ void MqttIn::parse() {
 		break;
 	}
 	default: {
-		ASSERT(false); // invalid message type, ignore noise
+//		ASSERT(false); // invalid message type, ignore noise
+		break;// ignore bad package
 	}
 	}
 }
-
 
 // put Active Objects global
 // check malloc used after init ?

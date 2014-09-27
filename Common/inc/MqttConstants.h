@@ -35,7 +35,7 @@
 #define MQTT_QOS_MASK			(3<<1)
 #define MQTT_QOS0_FLAG    		(0<<1)
 #define MQTT_QOS1_FLAG    		(1<<1)
-#define MQTT_QOS2_FLAG    		(2<<1)
+#define MQTT_QOS2_FLAG    		(1<<2)
 
 #define MQTT_RETAIN_FLAG  		1
 #define MQTT_RETAIN_MASK  		1
