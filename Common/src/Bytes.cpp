@@ -49,7 +49,6 @@ Bytes::Bytes(uint32_t size) {
 }
 
 Bytes::Bytes(Bytes& src) {
-
 	_start = new uint8_t[src._capacity];
 	_offset = 0;
 	_limit = src._limit;
@@ -74,6 +73,34 @@ void Bytes::sub(Bytes* parent, uint32_t length) {
 	_capacity = _limit;
 	isMemoryOwner = false;
 }
+
+Bytes& Bytes::operator<<(Bytes& b) {
+    b.offset(0);
+    while(b.hasData())
+        write(b.read());
+    return *this;
+    }
+
+Bytes& Bytes::operator<<(const char s[]) {
+    while (*s != '\0') {
+        write((uint8_t) (* s));
+        s++;
+        }
+    return *this;
+    }
+
+Bytes& Bytes::operator=(Bytes& s) {
+    clear();
+    *this << s ;
+    return *this;
+    }
+
+Bytes& Bytes::operator=(const char* s) {
+    clear();
+    *this << s;
+    return *this;
+    }
+
 
 Bytes::~Bytes() {
 	if (isMemoryOwner)

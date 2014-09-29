@@ -63,7 +63,8 @@ public:
 
 void GlobalInit() {
 
-	prefix << "Stellaris" << "/";
+	prefix << "Stellaris";
+	prefix << "/";
 	mqttOut.prefix(prefix);
 	getPrefix << "GET/" << prefix;
 	putPrefix << "PUT/" << prefix;
@@ -94,7 +95,7 @@ bool Mqtt::isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos) {
 	return true;
 }
 
-bool Mqtt::Publish(Flags flags, uint16_t id, Str& topic, Strpack& strp) {
+bool Mqtt::Publish(Flags flags, uint16_t id, Str& topic, Bytes& strp) {
 	return _mqttPub->send(flags, id, topic, strp);
 }
 
@@ -167,7 +168,8 @@ void Mqtt::sendSubscribe(uint8_t flags) {
 	_link.send(mqttOut);
 
 	str = "system/online";
-	msg = "true";
+	msg.clear();
+	msg << "true";
 	mqttOut.Publish(MQTT_QOS1_FLAG + flags, str, msg, _messageId =
 			nextMessageId());
 	_link.send(mqttOut);
@@ -348,7 +350,7 @@ MqttPub::MqttPub(Mqtt & mqtt) :
 	init(static_cast<SF>(&MqttPub::sleep));
 }
 
-bool MqttPub::send(Flags flags, uint16_t id, Str& topic, Strpack& message) {
+bool MqttPub::send(Flags flags, uint16_t id, Str& topic, Bytes& message) {
 	if (!Fsm::isInState(static_cast<SF>(&MqttPub::ready)))
 		return false;
 

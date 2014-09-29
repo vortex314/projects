@@ -18,7 +18,6 @@ class Str : public Bytes {
         const char* c_str();
         Str& clear();
         Str& set(const char* const s);
-        Str& operator<<(const char* const s);
         Str& operator<<(char ch);
         Str& operator<<(int i);
         Str& operator<<(Str& s);
@@ -37,7 +36,6 @@ class Str : public Bytes {
         Str& append(int32_t val);
         Str& append(bool b);
         Str& appendHex(uint8_t byte);
-        Str& append(Str& str);
         Str& substr(Str& master,uint32_t offset);
 
         bool operator==(Str& str);

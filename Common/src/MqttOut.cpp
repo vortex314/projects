@@ -16,7 +16,7 @@ MqttOut::MqttOut(int size) : Bytes(size),_prefix(30)
 
 void MqttOut::prefix(Str& prefix)  {
     _prefix.clear();
-    _prefix.append(prefix);
+    _prefix << prefix;
 }
 
 void MqttOut::add(uint8_t value) {

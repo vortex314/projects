@@ -45,7 +45,7 @@ private:
 	uint16_t _messageId;
 	bool _isConnected;
 	Str str;
-	Str msg;
+	Bytes msg;
 	Link& _link;
 	MqttPing* mqttPing;
 	MqttPub* _mqttPub;
@@ -60,7 +60,7 @@ public:
 	int handler(Msg* event);
 	Erc send(Bytes& pb);
 	bool isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos);
-	bool Publish(Flags flags,uint16_t id,Str& topic,Strpack& strp);
+	bool Publish(Flags flags,uint16_t id,Str& topic,Bytes& msg);
 	MqttIn* getBuffer(uint32_t idx);
 	bool isConnected();
 	Erc disconnect();
@@ -78,13 +78,13 @@ private:
 	uint32_t _retryCount;
 	uint16_t _messageId;
 	Str _topic;
-	Str _message;
+	Bytes _message;
 	Flags _flags;
 	uint32_t _id;
 	Mqtt& _mqtt;
 public :
 	MqttPub(Mqtt& mqtt);
-	bool send(Flags flags, uint16_t id, Str& topic, Strpack& strp);
+	bool send(Flags flags, uint16_t id, Str& topic, Bytes& msg);
 	void Publish();
 	void sleep(Msg& event);
 	void ready(Msg& event);

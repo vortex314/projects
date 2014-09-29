@@ -124,10 +124,12 @@ void MqttIn::toString(Str& str) {
 	str.append(", qos : ").append(QosNames[(_header & MQTT_QOS_MASK) >> 1]);
 	str.append(", retain : ").append((_header & 0x1) > 0);
 	if (type() == MQTT_MSG_PUBLISH) {
-		str.append(", topic : ").append(_topic);
-		str.append(", message : ").append(_message);
+		str << (const char*)", topic : ";
+		str << _topic;
+		str << ", message : ";
+		str << _message;
 	} else if (type() == MQTT_MSG_SUBSCRIBE) {
-		str.append(", topic : ").append(_topic);
+		str << ", topic : " << _topic;
 	}
 	str.append(" }");
 }
@@ -151,14 +153,14 @@ void MqttIn::parse() {
 	case MQTT_MSG_PUBLISH: {
 		uint16_t length;
 		readUint16(&length);
-		_topic.map(data() + offset(), length); 	// map topic Str to this part of payload
+		_topic.map(data() + offset(), length); // map topic Str to this part of payload
 		move(length);							// skip topic length
 		int rest = _remainingLength - length - 2;
-		if (_header & MQTT_QOS_MASK) { 			// if QOS > 0 load messageID from payload
+		if (_header & MQTT_QOS_MASK) { // if QOS > 0 load messageID from payload
 			readUint16(&_messageId);
 			rest -= 2;
 		}
-		_message.map(data() + offset(), rest); 	// map message to rest of payload
+		_message.map(data() + offset(), rest); // map message to rest of payload
 		break;
 	}
 	case MQTT_MSG_SUBACK: {

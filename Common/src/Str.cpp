@@ -67,25 +67,10 @@ bool Str::startsWith(const char* const s) {
        return true;*/
     }
 
-Str& Str::operator=(const char* s) {
-    clear();
-    append(s);
-    return *this;
-    }
 
-Str& Str::operator=(Str& s) {
-    clear();
-    append(s);
-    return *this;
-    }
 
-Str& Str::operator<<(const char* s) {
-    while (*s != '\0') {
-        write((uint8_t) (* s));
-        s++;
-        }
-    return *this;
-    }
+
+
 
     Str& Str::operator<<( char ch) {
         write(ch);
@@ -98,12 +83,12 @@ Str& Str::operator<<(const char* s) {
     }
 
 Str& Str::operator<<(Str& s) {
-    append(s);
+    *this << s;
     return *this;
     }
 
 Str& Str::operator+(Str& s) {
-    append(s);
+    *this << s ;
     return *this;
     }
 #include <stdlib.h>
@@ -187,14 +172,6 @@ Str& Str::append(bool b) {
     else append("false");
     return *this;
     }
-
-Str& Str::append(Str& b) {
-    b.offset(0);
-    while(b.hasData())
-        write(b.read());
-    return *this;
-    }
-
 
 const char *hexChar = "0123456789ABCDEF";
 

@@ -20,7 +20,9 @@ Log& Log::dump(Bytes& bytes) {
     for(i=0; i<bytes.length(); i++) {
         uint8_t b;
         b=bytes.read();
-        *this << (char)HEX[b>>4]<< (char)HEX[b&0x0F] << " ";
+        *this << (char)HEX[b>>4];
+        *this << (char)HEX[b&0x0F] ;
+        *this << " ";
         }
     bytes.offset(0);
     for(i=0; i<bytes.length(); i++) {

@@ -13,7 +13,7 @@
 
 #include <malloc.h>
 
-typedef void (*Xdr)(void*, Cmd, Strpack&);
+typedef void (*Xdr)(void*, Cmd, Bytes&);
 
 void ftoa(float n, char *res, int afterpoint);
 
@@ -24,7 +24,7 @@ void getTemp(void* addr, Cmd cmd, Strpack& strp) {
 		strp << buffer;
 }
 
-void getRev(void* addr, Cmd cmd, Strpack& strp) {
+void getRev(void* addr, Cmd cmd, Bytes& strp) {
 	uint8_t buffer[8];
 	int i;
 	if (cmd == CMD_GET) {
@@ -35,7 +35,9 @@ void getRev(void* addr, Cmd cmd, Strpack& strp) {
 
 		}
 		for (i = 0; i < 8; i++) {
-			strp.appendHex(buffer[i]);
+			strp << "0123456789ABCDEF"[buffer[i]>>4];
+			strp << "0123456789ABCDEF"[buffer[i] & 0x0F];
+//			strp.appendHex(buffer[i]);
 		}
 	}
 }
@@ -120,6 +122,9 @@ void eventPump() {
 #include "Msg.h"
 
 int main(void) {
+
+	Str s(10);
+	s << "eee";
 
 	Board::init();	// initialize usb
 	Usb::init();
