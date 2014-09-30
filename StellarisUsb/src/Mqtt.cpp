@@ -169,7 +169,7 @@ void Mqtt::sendSubscribe(uint8_t flags) {
 
 	str = "system/online";
 	msg.clear();
-	msg << "true";
+	msg.append("true");
 	mqttOut.Publish(MQTT_QOS1_FLAG + flags, str, msg, _messageId =
 			nextMessageId());
 	_link.send(mqttOut);

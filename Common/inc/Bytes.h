@@ -31,8 +31,8 @@ public:
 	void copy(Bytes* from);
 	Bytes& operator=(Bytes& src);
 	Bytes& operator=(const char* s);
-	Bytes& operator<<(Bytes& src);
-	Bytes& operator<<(const char s[]);
+	Bytes& append(Bytes& src);
+	Bytes& append(const char s[]);
 
 	int capacity();
 	uint32_t length() const;

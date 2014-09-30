@@ -18,6 +18,7 @@ class Str : public Bytes {
         const char* c_str();
         Str& clear();
         Str& set(const char* const s);
+        Str& operator<<(const char* s);
         Str& operator<<(char ch);
         Str& operator<<(int i);
         Str& operator<<(Str& s);

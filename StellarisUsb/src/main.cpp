@@ -35,8 +35,8 @@ void getRev(void* addr, Cmd cmd, Bytes& strp) {
 
 		}
 		for (i = 0; i < 8; i++) {
-			strp << "0123456789ABCDEF"[buffer[i]>>4];
-			strp << "0123456789ABCDEF"[buffer[i] & 0x0F];
+			strp.write("0123456789ABCDEF"[buffer[i]>>4]);
+			strp.write("0123456789ABCDEF"[buffer[i] & 0x0F]);
 //			strp.appendHex(buffer[i]);
 		}
 	}
