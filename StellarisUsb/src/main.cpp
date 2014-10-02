@@ -17,28 +17,16 @@ typedef void (*Xdr)(void*, Cmd, Bytes&);
 
 void ftoa(float n, char *res, int afterpoint);
 
-void getTemp(void* addr, Cmd cmd, Strpack& strp) {
-	char buffer[20];
-	ftoa(Board::getTemp(), buffer, 2);
+void getTemp(void* addr, Cmd cmd, Bytes& buffer) {
+	Msgpack msg(buffer);
 	if (cmd == CMD_GET)
-		strp << buffer;
+		msg.pack(Board::getTemp());
 }
 
-void getRev(void* addr, Cmd cmd, Bytes& strp) {
-	uint8_t buffer[8];
-	int i;
+void getRev(void* addr, Cmd cmd, Bytes& buffer) {
+	Msgpack msg(buffer);
 	if (cmd == CMD_GET) {
-		uint64_t rev = Board::processorRevision();
-		for (i = 0; i < 8; i++) {
-			buffer[7 - i] = (rev & 0xFF);
-			rev = rev >> 8;
-
-		}
-		for (i = 0; i < 8; i++) {
-			strp.write("0123456789ABCDEF"[buffer[i]>>4]);
-			strp.write("0123456789ABCDEF"[buffer[i] & 0x0F]);
-//			strp.appendHex(buffer[i]);
-		}
+			msg.pack(Board::processorRevision());
 	}
 }
 

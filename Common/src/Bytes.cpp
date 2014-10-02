@@ -74,14 +74,14 @@ void Bytes::sub(Bytes* parent, uint32_t length) {
 	isMemoryOwner = false;
 }
 
-Bytes& Bytes::operator<<(Bytes& b) {
+Bytes& Bytes::append(Bytes& b) {
     b.offset(0);
     while(b.hasData())
         write(b.read());
     return *this;
     }
 
-Bytes& Bytes::operator<<(const char s[]) {
+Bytes& Bytes::append(const char s[]) {
     while (*s != '\0') {
         write((uint8_t) (* s));
         s++;
@@ -91,14 +91,12 @@ Bytes& Bytes::operator<<(const char s[]) {
 
 Bytes& Bytes::operator=(Bytes& s) {
     clear();
-    *this << s ;
-    return *this;
+    return append(s);
     }
 
 Bytes& Bytes::operator=(const char* s) {
     clear();
-    *this << s;
-    return *this;
+    return append(s);
     }
 
 

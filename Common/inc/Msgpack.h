@@ -25,30 +25,42 @@
 #define TYPE_FIXMAP_MASK           (0xe0)
 #define TYPE_VALIABLE              (0xc0)
 #define TYPE_VALIABLE_MASK         (0xe0)
-#define TYPE_VALIABLE_NIL     (0xc0) ///< シリアライズデータヘッダ(NIL     )
-#define TYPE_VALIABLE_FALSE   (0xc2) ///< シリアライズデータヘッダ(FALSE   )
-#define TYPE_VALIABLE_TRUE    (0xc3) ///< シリアライズデータヘッダ(TRUE    )
-#define TYPE_VALIABLE_FLOAT   (0xca) ///< シリアライズデータヘッダ(FLOAT   )
-#define TYPE_VALIABLE_DOUBLE  (0xcb) ///< シリアライズデータヘッダ(DOUBLE  )
-#define TYPE_VALIABLE_UINT8   (0xcc) ///< シリアライズデータヘッダ(UINT8   )
-#define TYPE_VALIABLE_UINT16  (0xcd) ///< シリアライズデータヘッダ(UINT16  )
-#define TYPE_VALIABLE_UINT32  (0xce) ///< シリアライズデータヘッダ(UINT32  )
-#define TYPE_VALIABLE_UINT64  (0xcf) ///< シリアライズデータヘッダ(UINT64  )
-#define TYPE_VALIABLE_INT8    (0xd0) ///< シリアライズデータヘッダ(INT8    )
-#define TYPE_VALIABLE_INT16   (0xd1) ///< シリアライズデータヘッダ(INT16   )
-#define TYPE_VALIABLE_INT32   (0xd2) ///< シリアライズデータヘッダ(INT32   )
-#define TYPE_VALIABLE_INT64   (0xd3) ///< シリアライズデータヘッダ(INT64   )
-#define TYPE_VALIABLE_RAW16   (0xda) ///< シリアライズデータヘッダ(RAW16   )
-#define TYPE_VALIABLE_RAW32   (0xdb) ///< シリアライズデータヘッダ(RAW32   )
-#define TYPE_VALIABLE_ARRAY16 (0xdc) ///< シリアライズデータヘッダ(ARRAY16 )
-#define TYPE_VALIABLE_ARRAY32 (0xdd) ///< シリアライズデータヘッダ(ARRAY32 )
-#define TYPE_VALIABLE_MAP16   (0xde) ///< シリアライズデータヘッダ(MAP16   )
-#define TYPE_VALIABLE_MAP32   (0xdf) ///< シリアライズデータヘッダ(MAP32   )
+#define TYPE_VALIABLE_NIL     (0xc0) ///<(NIL     )
+#define TYPE_VALIABLE_FALSE   (0xc2) ///<(FALSE   )
+#define TYPE_VALIABLE_TRUE    (0xc3) ///<(TRUE    )
+#define TYPE_VALIABLE_BIN8	  (0xc4)
+#define TYPE_VALIABLE_BIN16	  (0xc5)
+#define TYPE_VALIABLE_BIN32	  (0xc6)
+#define TYPE_VALIABLE_EXT8	  (0xc7)
+#define TYPE_VALIABLE_EXT16	  (0xc8)
+#define TYPE_VALIABLE_EXT32	  (0xc9)
+#define TYPE_VALIABLE_FLOAT   (0xca) ///<(FLOAT   )
+#define TYPE_VALIABLE_DOUBLE  (0xcb) ///<(DOUBLE  )
+#define TYPE_VALIABLE_UINT8   (0xcc) ///<(UINT8   )
+#define TYPE_VALIABLE_UINT16  (0xcd) ///<(UINT16  )
+#define TYPE_VALIABLE_UINT32  (0xce) ///<(UINT32  )
+#define TYPE_VALIABLE_UINT64  (0xcf) ///<(UINT64  )
+#define TYPE_VALIABLE_INT8    (0xd0) ///<(INT8    )
+#define TYPE_VALIABLE_INT16   (0xd1) ///<(INT16   )
+#define TYPE_VALIABLE_INT32   (0xd2) ///<(INT32   )
+#define TYPE_VALIABLE_INT64   (0xd3) ///<(INT64   )
+#define TYPE_VALIABLE_STR8	  (0xd9)
+#define TYPE_VALIABLE_STR16	  (0xda)
+#define TYPE_VALIABLE_STR32	  (0xdb)
+#define TYPE_VALIABLE_RAW16   (0xda) ///<(RAW16   )
+#define TYPE_VALIABLE_RAW32   (0xdb) ///<(RAW32   )
+#define TYPE_VALIABLE_ARRAY16 (0xdc) ///<(ARRAY16 )
+#define TYPE_VALIABLE_ARRAY32 (0xdd) ///<(ARRAY32 )
+#define TYPE_VALIABLE_MAP16   (0xde) ///<(MAP16   )
+#define TYPE_VALIABLE_MAP32   (0xdf) ///<(MAP32   )
+
+
 
 class Msgpack : public Bytes {
 public:
     Msgpack(int size);
     Msgpack(uint8_t *pb,int size);
+    Msgpack(Bytes& b);
     ~Msgpack();
     void pack(uint8_t v);
     void pack(uint16_t v);
@@ -58,6 +70,7 @@ public:
     void pack(int16_t v);
     void pack(int32_t v);
     void pack(int64_t v);
+    void pack(const char* s);
     void packNil();
     void pack(bool v);
     void pack(float v);
@@ -68,6 +81,7 @@ public:
     void packRawHeader(uint32_t size);
     void packArrayHeader(uint32_t size);
     void packMapHeader(uint32_t size);
+    void packStrHeader(uint32_t size);
 };
 
 
@@ -128,8 +142,8 @@ typedef enum unpack_type_t {
 } unpack_type_t;
 
 typedef struct unpack_info_t {
-    unpack_type_t type; ///< データタイプ
-    unpack_value_t value; ///< 値
+    unpack_type_t type; ///<
+    unpack_value_t value; ///
 } unpack_info_t;
 
 int unpack(unpack_info_t *info, uint8_t* buf);
