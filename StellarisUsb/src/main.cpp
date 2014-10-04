@@ -13,18 +13,16 @@
 
 #include <malloc.h>
 
-typedef void (*Xdr)(void*, Cmd, Bytes&);
+//typedef void (*Xdr)(void*, Cmd, Bytes&);
 
 void ftoa(float n, char *res, int afterpoint);
 
-void getTemp(void* addr, Cmd cmd, Bytes& buffer) {
-	Msgpack msg(buffer);
+void getTemp(void* addr, Cmd cmd, Packer& msg) {
 	if (cmd == CMD_GET)
 		msg.pack(Board::getTemp());
 }
 
-void getRev(void* addr, Cmd cmd, Bytes& buffer) {
-	Msgpack msg(buffer);
+void getRev(void* addr, Cmd cmd, Packer& msg) {
 	if (cmd == CMD_GET) {
 			msg.pack(Board::processorRevision());
 	}

@@ -24,7 +24,28 @@ typedef int EventId;
 /*class EventData {
  virtual void toString(Str& str)=0;
  };*/
-#include "main.h"
+
+enum Signal {
+	SIG_IDLE,
+	SIG_ENTRY,
+	SIG_EXIT,
+	SIG_INIT,
+	SIG_TIMEOUT,
+	SIG_TIMER_TICK,
+	SIG_USER,
+	SIG_USB_CONNECTED = SIG_USER + 1,
+	SIG_USB_DISCONNECTED,
+	SIG_USB_RXD,
+	SIG_USB_FREE,
+	SIG_MQTT_CONNECTED,
+	SIG_MQTT_DISCONNECTED,
+	SIG_MQTT_MESSAGE,
+	SIG_MQTT_DO_PUBLISH,
+	SIG_MQTT_PUBLISH_FAILED,
+	SIG_MQTT_PUBLISH_OK,
+	SIG_PROP_CHANGED
+};
+
 class Event {
 public:
 	Event();

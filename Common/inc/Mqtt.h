@@ -20,7 +20,7 @@
 #include "MqttOut.h"
 
 #include "Fsm.h"
-#include "main.h"
+#include "Event.h"
 
 
 
@@ -57,6 +57,7 @@ public:
 
 
 	Mqtt(Link& link);
+	~Mqtt(){};
 	int handler(Msg* event);
 	Erc send(Bytes& pb);
 	bool isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos);
@@ -84,6 +85,7 @@ private:
 	Mqtt& _mqtt;
 public :
 	MqttPub(Mqtt& mqtt);
+	~MqttPub(){};
 	bool send(Flags flags, uint16_t id, Str& topic, Bytes& msg);
 	void Publish();
 	void sleep(Msg& event);
@@ -99,6 +101,7 @@ private:
 	Mqtt& _mqtt;
 public :
 	MqttPing(Mqtt& mqtt);
+	~MqttPing(){};
 	void sleep(Msg& event);
 	void sleepBetweenPings(Msg& event);
 	void waitPingResp(Msg& event);

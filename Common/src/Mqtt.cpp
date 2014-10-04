@@ -33,7 +33,7 @@ class MqttSub: public Fsm {
 private:
 	Mqtt& _mqtt;
 	Str _topic;
-	Strpack _message;
+	Packer _message;
 	uint16_t _messageId;
 	Flags _flags;
 	uint8_t _header;
@@ -42,7 +42,7 @@ private:
 public:
 	MqttSub(Mqtt& mqtt);
 
-	bool send(Flags flags, uint16_t id, Str& topic, Strpack& strp);
+	bool send(Flags flags, uint16_t id, Str& topic, Packer& msg);
 	void Publish();
 	void sleep(Msg& event);
 	void ready(Msg& event);
@@ -56,7 +56,7 @@ public:
  *   Scan for topic changes and publish with right qos and retain
  ******************************************************************************/
 
-#include "Usb.h"
+//#include "Usb.h"
 /*****************************************************************************
  *   Generate next message id
  ******************************************************************************/

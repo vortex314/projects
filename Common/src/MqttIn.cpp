@@ -47,7 +47,7 @@ Str* MqttIn::topic() {
 	return &_topic;
 }
 
-Strpack* MqttIn::message() {
+Packer* MqttIn::message() {
 	return &_message;
 }
 
@@ -127,7 +127,7 @@ void MqttIn::toString(Str& str) {
 		str << (const char*)", topic : ";
 		str << _topic;
 		str << ", message : ";
-		str << _message;
+//		str.append( _message);
 	} else if (type() == MQTT_MSG_SUBSCRIBE) {
 		str << ", topic : " << _topic;
 	}

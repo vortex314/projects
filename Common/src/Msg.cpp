@@ -4,6 +4,7 @@
 
 #include "BipBuffer.h"
 #include "Msg.h"
+#include "Event.h"
 
 typedef struct {
 	uint16_t length :16;

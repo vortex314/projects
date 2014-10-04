@@ -10,7 +10,7 @@
 
 #include "Bytes.h"
 #include "BipBuffer.h"
-#include "main.h"
+#include "Event.h"
 
 class Msg: public Bytes {
 private:

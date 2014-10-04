@@ -1,5 +1,4 @@
 #include "Event.h"
-#include "Board.h"
 #include "Queue.h"
 #include "Msg.h"
 
