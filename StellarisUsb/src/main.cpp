@@ -22,20 +22,23 @@ void getTemp(void* addr, Cmd cmd, Packer& msg) {
 		msg.pack(Board::getTemp());
 }
 
-void getRev(void* addr, Cmd cmd, Packer& msg) {
+void getHardware(void* addr, Cmd cmd, Packer& msg) {
 	if (cmd == CMD_GET) {
-			msg.pack(Board::processorRevision());
+		msg.packMapHeader(3);
+		msg.pack("cpuRevision");
+		msg.pack(Board::processorRevision());
+		msg.pack("cpu");
+		msg.pack("LM4F120H5QR");
+		msg.pack("board");
+		msg.pack("EK-LM4F120XL");
 	}
 }
 
-Prop cpu("system/CPU", "lm4f120h5qr");
-Prop board("system/board", "Stellaris LaunchPad");
 Prop uptime("system/uptime", Sys::_upTime);
 Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) { T_FLOAT, M_READ,
 				QOS_0, I_OBJECT, false, true, true });
-Prop rev("system/cpu.revision", (void*) 0, getRev, (Flags ) { T_BYTES, M_READ,
+Prop rev("system/hardware", (void*) 0, getHardware, (Flags ) { T_OBJECT, M_READ,
 				QOS_0, I_OBJECT, false, true, true });
-
 
 #include "Fsm.h"
 
@@ -107,7 +110,53 @@ void eventPump() {
 #include "BipBuffer.h"
 #include "Msg.h"
 
+#include "Cbor.h"
+
+class Listener: public CborListener {
+public:
+	void OnInteger(int value) {
+	}
+
+	void OnBytes(unsigned char *data, int size) {
+	}
+
+	void OnString(std::string &str) {
+	}
+
+	void OnArray(int size) {
+	}
+
+	void OnMap(int size) {
+	}
+
+	void OnTag(unsigned int tag) {
+	}
+
+	void OnSpecial(int code) {
+	}
+
+	void OnError(const char *error) {
+	}
+
+};
+
 int main(void) {
+
+	CborOutput output(100);
+	CborWriter writer(output);
+
+	writer.writeTag(123);
+	writer.writeArray(3);
+	writer.writeString("hello");
+	writer.writeString("world");
+	writer.writeInt(321);
+
+	CborInput input(output.getData(), output.getSize());
+	CborReader reader(input);
+	Listener listener;
+
+	reader.SetListener(listener);
+	reader.Run();
 
 	Str s(10);
 	s << "eee";

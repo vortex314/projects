@@ -131,7 +131,7 @@ uint32_t Usb::hasData() {
 	return USBBufferDataAvailable((tUSBBuffer *) &g_sRxBuffer);
 }
 
-int Usb::handler(Msg& event) {
+void Usb::dispatch(Msg& event) {
 	switch (event.sig()) {
 
 	case SIG_USB_CONNECTED: {
@@ -167,7 +167,6 @@ int Usb::handler(Msg& event) {
 	}
 	default:{};
 	}
-	return 0;
 }
 
 void Usb::init() {

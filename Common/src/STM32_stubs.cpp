@@ -141,8 +141,12 @@ void *sbrk(ptrdiff_t incr) {
 		heap_end = &_ebss;
 	}
 	prev_heap_end = heap_end;
-
+#ifdef __STM32
 	char * stack = (char*) __get_MSP();
+#else
+	extern char* _stack;
+	char *stack=_stack;
+#endif
 	if (heap_end + incr > stack)
 	{
 //         _write (STDERR_FILENO, "Heap and stack collision\n", 25);
