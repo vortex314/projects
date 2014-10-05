@@ -49,6 +49,7 @@ public:
 	int peek();
 
 	bool hasData();
+	bool hasData(int size);
 	bool hasSpace();
 
 	uint8_t read();
@@ -67,6 +68,8 @@ public:
 	bool isGoodCrc();
 	void Frame();
 	bool Feed(uint8_t b);
+
+	void toString(Str& str);
 public:
 	uint8_t *_start;
 	uint32_t _limit;

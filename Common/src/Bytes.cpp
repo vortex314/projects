@@ -351,4 +351,16 @@ bool Bytes::hasData() {
 bool Bytes::hasSpace() {
 	return _limit < _capacity;
 }
-
+const char *HEX="0123456789ABCDEF";
+#include "Str.h"
+void Bytes::toString(Str& str) {
+    uint32_t i;
+    uint8_t b;
+    for(i=0;i<_limit;i++)
+        {
+            b=*(_start+i);
+            str.append(HEX[b>>4]);
+            str.append(HEX[b&0xF]);
+            str.append(' ');
+        }
+}

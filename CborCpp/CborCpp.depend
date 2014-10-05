@@ -1,0 +1,51 @@
+# depslib dependency file v1.0
+1412514458 source:/home/lieven/projects/CborCpp/main.cpp
+	<iostream>
+	"Cbor.h"
+	"CborIn.h"
+	<stdio.h>
+
+1412514150 source:/home/lieven/projects/Common/src/Bytes.cpp
+	"Bytes.h"
+	"Str.h"
+
+1412513917 /home/lieven/projects/Common/inc/Bytes.h
+	<stdint.h>
+	"Erc.h"
+	"Sys.h"
+	<assert.h>
+
+1410702561 /home/lieven/projects/Common/inc/Erc.h
+	<stdint.h>
+
+1410702561 /home/lieven/projects/Common/inc/Sys.h
+	"stdint.h"
+	"Erc.h"
+
+1412510814 source:/home/lieven/projects/Common/src/Cbor.cpp
+	"Cbor.h"
+	<string.h>
+	<stdio.h>
+	<stdio.h>
+
+1412510525 /home/lieven/projects/Common/inc/Cbor.h
+	"Bytes.h"
+	"Str.h"
+
+1412506652 /home/lieven/projects/Common/inc/Str.h
+	"Bytes.h"
+	"Erc.h"
+
+1412506652 source:/home/lieven/projects/Common/src/Str.cpp
+	"Str.h"
+	<string.h>
+	<string.h>
+	<stdlib.h>
+
+1412515496 source:/home/lieven/projects/CborCpp/CborIn.cpp
+	"CborIn.h"
+
+1412514907 /home/lieven/projects/CborCpp/CborIn.h
+	"Bytes.h"
+	"errno.h"
+
