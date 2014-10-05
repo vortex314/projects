@@ -1,7 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="main.cpp" open="1" top="1" tabpos="0">
-		<Cursor position="43" topLine="0" />
+	<File name="CborIn.cpp" open="1" top="1" tabpos="2">
+		<Cursor position="2363" topLine="123" />
+	</File>
+	<File name="CborIn.h" open="1" top="0" tabpos="5">
+		<Cursor position="487" topLine="0" />
+	</File>
+	<File name="main.cpp" open="1" top="0" tabpos="1">
+		<Cursor position="1631" topLine="66" />
+	</File>
+	<File name="../Common/inc/Bytes.h" open="0" top="0" tabpos="0">
+		<Cursor position="1423" topLine="41" />
+	</File>
+	<File name="../Common/inc/Cbor.h" open="0" top="0" tabpos="4">
+		<Cursor position="1548" topLine="83" />
+	</File>
+	<File name="../Common/src/Bytes.cpp" open="1" top="0" tabpos="3">
+		<Cursor position="3744" topLine="207" />
+	</File>
+	<File name="../Common/src/Cbor.cpp" open="1" top="0" tabpos="4">
+		<Cursor position="11821" topLine="326" />
+	</File>
+	<File name="../Common/src/Str.cpp" open="1" top="0" tabpos="6">
+		<Cursor position="2238" topLine="122" />
 	</File>
 </CodeBlocks_layout_file>

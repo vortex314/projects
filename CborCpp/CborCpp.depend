@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1412514458 source:/home/lieven/projects/CborCpp/main.cpp
+1412531393 source:/home/lieven/projects/CborCpp/main.cpp
 	<iostream>
 	"Cbor.h"
 	"CborIn.h"
@@ -42,10 +42,11 @@
 	<string.h>
 	<stdlib.h>
 
-1412515496 source:/home/lieven/projects/CborCpp/CborIn.cpp
+1412531346 source:/home/lieven/projects/CborCpp/CborIn.cpp
 	"CborIn.h"
 
-1412514907 /home/lieven/projects/CborCpp/CborIn.h
+1412526805 /home/lieven/projects/CborCpp/CborIn.h
 	"Bytes.h"
+	"Str.h"
 	"errno.h"
 

@@ -1,5 +1,7 @@
 #include "CborIn.h"
 
+
+
 CborIn::CborIn(uint8_t* pb,uint32_t size) : Bytes(pb,size)
 {
     //ctor
@@ -14,53 +16,145 @@ CborIn::~CborIn()
 // if minor<24 => length=0
 uint8_t size[]= {1,2,4,8};
 
-int CborIn ::readToken(uint32_t& major,uint32_t& minor,uint32_t& length)
+int CborIn ::readToken(CborToken& token)
 {
     if ( !hasData() ) return E_NO_DATA;
     uint8_t hdr=read();
-    major = hdr>>5;
-    minor = hdr & 0x1F;
-    if(minor < 24)
+    token.major = hdr>>5;
+    token.minor = hdr & 0x1F;
+    if(token.minor < 24)
     {
-        length=0;
+        token.length=0;
     }
-    else if(minor == 24)
+    else if(token.minor == 24)
     {
-        length = 1;
+        token.length = 1;
     }
-    else if(minor == 25)     // 2 byte
+    else if(token.minor == 25)     // 2 byte
     {
-        length=2;
+        token.length=2;
     }
-    else if(minor == 26)     // 4 byte
+    else if(token.minor == 26)     // 4 byte
     {
-        length=4;
+        token.length=4;
     }
-    else if(minor == 27)     // 8 byte
+    else if(token.minor == 27)     // 8 byte
     {
-        length=8;
+        token.length=8;
     }
     else
     {
         return E_INVAL;
     }
-    if ( major == C_STRING || major==C_BYTES )
+    if ( token.major == C_STRING || token.major==C_BYTES )
     {
-        if ( length == 0 )
+        if ( token.length == 0 )
         {
-            length=minor;
+            token.length=token.minor;
         }
         else
         {
             uint32_t l=0;
-            while(length)
+            while(token.length)
             {
                 l <<= 8;
                 l+=read();
-                length--;
+                token.length--;
             }
-            length=l;
+            token.length=l;
         }
+    }
+    return E_OK;
+}
+
+uint64_t CborIn::getUint64(CborToken& token)
+{
+    if ( token.length == 0 )
+    {
+        return token.minor;
+    }
+    else
+    {
+        uint64_t l=0;
+        uint32_t length=token.length;
+        while(length)
+        {
+            l <<= 8;
+            l+=read();
+            length--;
+        }
+        return l;
+    }
+}
+
+
+int CborIn::anyToString(Str& str )
+{
+    CborToken token;
+    readToken(token);
+    switch(token.major)
+    {
+    case C_INT :
+    {
+        str << getUint64(token);
+        break;
+    }
+    case C_UINT :
+    {
+        str << getUint64(token);
+        break;
+    }
+    case C_STRING :
+    {
+        str << "\"";
+        uint32_t i;
+        for(i=0; i<token.length; i++)
+            if(hasData()) str.append((char)read());
+        str << "\"";
+        break;
+    }
+    case C_MAP :
+    {
+        int count = getUint64(token);
+        str << "{";
+        for(int i=0; i<count; i++)
+        {
+            if ( i ) str <<",";
+            anyToString(str);
+            str << ":";
+            anyToString(str);
+        }
+        str << "}";
+        break;
+    }
+    case C_ARRAY :
+    {
+        int count = getUint64(token);
+        str << "[";
+        for(int i=0; i<count; i++) {
+            if ( i ) str << ",";
+            anyToString(str);
+        }
+        str << "]";
+        break;
+    }
+    case C_TAG :{
+        int count = getUint64(token);
+        str << "(";
+        str << count;
+        str << ":";
+        anyToString(str);
+        str << ")";
+    break;
+    }
+    case C_SPECIAL:{
+        uint64_t value= getUint64(token);
+        if ( token.minor = 4 )
+    break;
+    }
+    default:{
+        break;
+    }
     }
     return E_OK;
 }
