@@ -13,6 +13,7 @@
 #endif
 
 #define _LITTLE_ENDIAN_
+#define _BIG_ENDIAN_
 
 
 
@@ -43,7 +44,7 @@ unsigned short CborInput::getShort()
 {
     uint16_t value=0;
     unsigned int i;
-    for(i=0; i<sizeof(value);i++)
+    for(i=0; i<sizeof(value); i++)
     {
         value <<= 8;
         value += read();
@@ -55,7 +56,7 @@ unsigned int CborInput::getInt()
 {
     uint32_t value=0;
     unsigned int i;
-    for(i=0; i<sizeof(value);i++)
+    for(i=0; i<sizeof(value); i++)
     {
         value <<= 8;
         value += read();
@@ -67,7 +68,7 @@ unsigned long long CborInput::getLong()
 {
     uint64_t value=0;
     unsigned int i;
-    for(i=0; i<sizeof(value);i++)
+    for(i=0; i<sizeof(value); i++)
     {
         value <<= 8;
         value += read();
@@ -77,8 +78,8 @@ unsigned long long CborInput::getLong()
 
 void CborInput::getBytes(uint8_t *to, int count)
 {
-     int i;
-    for(i=0; i<count;i++)
+    int i;
+    for(i=0; i<count; i++)
     {
         *(to++) = read();
     }
@@ -638,7 +639,7 @@ void CborOutput::putByte(unsigned char value)
 void CborOutput::putBytes(const unsigned char *data, int size)
 {
     int i;
-    for(i=0;i<size;i++)
+    for(i=0; i<size; i++)
         write(data[i]);
 }
 
@@ -761,6 +762,29 @@ void CborWriter::writeInt(int value)
     {
         writeTypeAndValue(0, (unsigned int) value);
     }
+}
+
+void CborWriter::write(float value)
+{
+    union
+    {
+        float f;
+        uint8_t b[4];
+    } u;
+    u.f=value;
+    output->putByte((7<<5) | 26);
+    output->putByte(u.b[3]);
+    output->putByte(u.b[2]);
+    output->putByte(u.b[1]);
+    output->putByte(u.b[0]);
+}
+
+void CborWriter::write(bool value)
+{
+    if ( value )
+        writeTypeAndValue(7, (uint32_t)21);
+    else
+        writeTypeAndValue(7, (uint32_t)20);
 }
 
 void CborWriter::writeBytes(const unsigned char *data, unsigned int size)

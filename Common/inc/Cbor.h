@@ -105,6 +105,8 @@ public:
 	void writeMap(int size);
 	void writeTag(const unsigned int tag);
 	void writeSpecial(int special);
+	void write(bool b);
+	void write(float f);
 private:
 	void writeTypeAndValue(int majorType, unsigned int value);
 	void writeTypeAndValue(int majorType, unsigned long long value);

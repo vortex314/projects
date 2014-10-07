@@ -95,8 +95,10 @@ Str& Str::operator+(Str& s) {
 	return *this;
 }
 #include <stdlib.h>
+#include <cstdio>
 Str& Str::operator<<(float f) {
 	char sFloat[20];
+	sprintf(sFloat,"%f",f);
 	append(sFloat);
 	return *this;
 }
@@ -149,7 +151,7 @@ bool ishex(uint8_t c) {
 }
 
 Str& Str::append(uint64_t val) {
-#define MAX_CHAR 20
+#define MAX_CHAR 22
 	char str[MAX_CHAR];
 	str[MAX_CHAR - 1] = '\0';
 	register char *cp = str + MAX_CHAR - 1;

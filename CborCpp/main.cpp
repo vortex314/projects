@@ -77,12 +77,20 @@ int main()
     CborOutput output(9000);
     CborWriter writer(output);
 
+    uint8_t bytes[]={1,2,0xFF,0xFE};
+
+    writer.write((float)1.23);
+    writer.write(true);
+    writer.write(false);
+
     writer.writeString("hello");
     writer.writeString("world");
+    writer.writeBytes(bytes,sizeof(bytes));
     writer.writeMap(1);
     writer.writeInt(1);
     writer.writeString("Een");
     writer.writeInt(321);
+    writer.writeInt(-321);
 
     writer.writeTag(123);
     writer.writeArray(2);
@@ -111,14 +119,14 @@ int main()
     reader.Run();
 
     CborIn cbi(data,size);
-    CborToken token;
+//  CborToken token;
     str.clear();
 
     while(cbi.hasData())
     {
 //       cbi.readToken(token);
 //       cout << " major : " << token.major << " , minor : "<< token.minor<<" , length : "<< token.length << endl;
-        cbi.anyToString(str);
+        cbi.toString(str);
         str << ",";
         /*       for(uint32_t i=0; i<token.length; i++)
                    cbi.read(); // skip data*/

@@ -6,18 +6,18 @@
  typedef struct {
         uint32_t major;
         uint32_t minor;
-        uint32_t length;
+        uint64_t value;
     } CborToken;
 
 class CborIn : public Bytes
 {
     public:
 
-    typedef enum { C_INT=0,C_UINT,C_BYTES,C_STRING,C_ARRAY,C_MAP,C_TAG,C_SPECIAL } CborMajor;
+    typedef enum { C_PINT=0,C_NINT,C_BYTES,C_STRING,C_ARRAY,C_MAP,C_TAG,C_SPECIAL } CborMajor;
         CborIn(uint8_t* pb,uint32_t size);
         virtual ~CborIn();
         int readToken(CborToken& token);
-        int anyToString(Str& str );
+        int toString(Str& str );
         uint64_t getUint64(CborToken& token);
     protected:
     private:

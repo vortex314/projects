@@ -24,59 +24,42 @@ int CborIn ::readToken(CborToken& token)
     token.minor = hdr & 0x1F;
     if(token.minor < 24)
     {
-        token.length=0;
+        token.value=0;
     }
-    else if(token.minor == 24)
+    else if(token.minor == 24 )
     {
-        token.length = 1;
+        token.value = 1;
     }
     else if(token.minor == 25)     // 2 byte
     {
-        token.length=2;
+        token.value=2;
     }
     else if(token.minor == 26)     // 4 byte
     {
-        token.length=4;
+        token.value=4;
     }
     else if(token.minor == 27)     // 8 byte
     {
-        token.length=8;
+        token.value=8;
     }
     else
     {
         return E_INVAL;
     }
-    if ( token.major == C_STRING || token.major==C_BYTES )
-    {
-        if ( token.length == 0 )
-        {
-            token.length=token.minor;
-        }
-        else
-        {
-            uint32_t l=0;
-            while(token.length)
-            {
-                l <<= 8;
-                l+=read();
-                token.length--;
-            }
-            token.length=l;
-        }
-    }
+    token.value = getUint64(token);
     return E_OK;
 }
 
 uint64_t CborIn::getUint64(CborToken& token)
 {
-    if ( token.length == 0 )
+    if ( token.value == 0 )
     {
         return token.minor;
     }
     else
     {
         uint64_t l=0;
-        uint32_t length=token.length;
+        uint32_t length=token.value;
         while(length)
         {
             l <<= 8;
@@ -88,72 +71,116 @@ uint64_t CborIn::getUint64(CborToken& token)
 }
 
 
-int CborIn::anyToString(Str& str )
+int CborIn::toString(Str& str )
 {
     CborToken token;
     readToken(token);
     switch(token.major)
     {
-    case C_INT :
+    case C_PINT :
     {
-        str << getUint64(token);
+        str.append(token.value);
         break;
     }
-    case C_UINT :
+    case C_NINT :
     {
-        str << getUint64(token);
+        int64_t v=-token.value;
+        str.append(v);
+        break;
+    }
+    case C_BYTES :
+    {
+        str << "0x";
+        uint32_t i;
+        for(i=0; i<token.value; i++)
+            if(hasData()) str.appendHex(read());
         break;
     }
     case C_STRING :
     {
         str << "\"";
         uint32_t i;
-        for(i=0; i<token.length; i++)
+        for(i=0; i<token.value; i++)
             if(hasData()) str.append((char)read());
         str << "\"";
         break;
     }
     case C_MAP :
     {
-        int count = getUint64(token);
+        int count = token.value;
         str << "{";
         for(int i=0; i<count; i++)
         {
             if ( i ) str <<",";
-            anyToString(str);
+            toString(str);
             str << ":";
-            anyToString(str);
+            toString(str);
         }
         str << "}";
         break;
     }
     case C_ARRAY :
     {
-        int count = getUint64(token);
+        int count = token.value;
         str << "[";
-        for(int i=0; i<count; i++) {
+        for(int i=0; i<count; i++)
+        {
             if ( i ) str << ",";
-            anyToString(str);
+            toString(str);
         }
         str << "]";
         break;
     }
-    case C_TAG :{
-        int count = getUint64(token);
+    case C_TAG :
+    {
+        int count = token.value;
         str << "(";
         str << count;
         str << ":";
-        anyToString(str);
+        toString(str);
         str << ")";
-    break;
-    }
-    case C_SPECIAL:{
-        uint64_t value= getUint64(token);
-        if ( token.minor = 4 )
-    break;
-    }
-    default:{
         break;
+    }
+    case C_SPECIAL:
+    {
+        uint64_t value= token.value;
+        switch(token.minor)
+        {
+        case 21 :   //TRUE
+        {
+            str << "true";
+            break;
+        }
+        case 20 :   //FALSE
+        {
+            str << "false";
+            break;
+        }
+        case 22 :   //NILL
+        {
+            str << "nill";
+            break;
+        }
+        case 26 :   //FLOAT32
+        {
+            union
+            {
+                float f;
+                uint32_t i;
+            };
+            i = value;
+            str << f;
+            break;
+        }
+        case 31 :   //BREAK
+        {
+            str << "BREAK";
+            break;
+        }
+        default :
+        {
+        }
+        }
     }
     }
     return E_OK;
