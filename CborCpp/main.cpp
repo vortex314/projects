@@ -76,76 +76,31 @@ string StrToString(Str& str)
 int main()
 {
     CborOut cbo(100);
-        Str str(100);
+    Str str(100);
 
-    cbo.add(true)
+    cbo.add(1)
+    .add(-1)
+    .add(true)
     .add(false)
-    .add((float)1.23)
+    .add((float)1.23)   // float
+    .add(1.23456)       //double
     .add("Hello world");
+    cbo.addMap(2).add(1).add("een").add(2).add("twee");
+    cbo.addArray(3).add("drie").add(3.0).add((float)4.0);
 
     CborIn cbi(cbo.data(),cbo.length());
 //  CborToken token;
     str.clear();
 
-    cbi.toString(str);
+    while ( cbi.hasData() )
+    {
+
+        cbi.toString(str);
+        if ( cbi.hasData() ) str <<",";
+    };
 
     cout << StrToString(str) << endl;
 
 
-
-    CborOutput output(9000);
-    CborWriter writer(output);
-
-    uint8_t bytes[]= {1,2,0xFF,0xFE};
-
-    writer.write((float)1.23);
-    writer.write(true);
-    writer.write(false);
-
-    writer.writeString("hello");
-    writer.writeString("world");
-    writer.writeBytes(bytes,sizeof(bytes));
-    writer.writeMap(1);
-    writer.writeInt(1);
-    writer.writeString("Een");
-    writer.writeInt(321);
-    writer.writeInt(-321);
-
-    writer.writeTag(123);
-    writer.writeArray(2);
-    writer.writeString("hello");
-    writer.writeMap(1);
-    writer.writeString("world");
-    writer.writeInt(321);
-
-    writer.writeInt(12235666);
-
-
-
-    output.toString(str);
-
-    cout << StrToString(str) << endl;
-
-
-
-    unsigned char *data = output.getData();
-    int size = output.getSize();
-
-    CborInput input(data, size);
-    CborReader reader(input);
-    CborExampleListener listener;
-    reader.SetListener(listener);
-    reader.Run();
-
-    CborIn cbi2(data,size);
-//  CborToken token;
-    str.clear();
-
-    cbi2.toString(str);
-
-    cout << StrToString(str) << endl;
-
-
-    cout << "Hello world!" << endl;
     return 0;
 }
