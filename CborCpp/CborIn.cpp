@@ -14,7 +14,7 @@ CborIn::~CborIn()
 
 // <major:5><minor:3>[<length:0-64>][<data:0-n]
 // if minor<24 => length=0
-uint8_t size[]= {1,2,4,8};
+int tokenSize[]= {1,2,4,8,0,0,0,-1};
 
 int CborIn ::readToken(CborToken& token)
 {
@@ -22,27 +22,13 @@ int CborIn ::readToken(CborToken& token)
     uint8_t hdr=read();
     token.major = hdr>>5;
     token.minor = hdr & 0x1F;
-    if(token.minor < 24)
+    token.value = 0;
+
+    if(token.minor > 23  )
     {
-        token.value=0;
+        token.value= tokenSize[token.minor-24];
     }
-    else if(token.minor == 24 )
-    {
-        token.value = 1;
-    }
-    else if(token.minor == 25)     // 2 byte
-    {
-        token.value=2;
-    }
-    else if(token.minor == 26)     // 4 byte
-    {
-        token.value=4;
-    }
-    else if(token.minor == 27)     // 8 byte
-    {
-        token.value=8;
-    }
-    else
+    if ( token.minor > 27 )
     {
         return E_INVAL;
     }
