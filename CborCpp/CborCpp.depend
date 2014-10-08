@@ -1,8 +1,9 @@
 # depslib dependency file v1.0
-1412597671 source:/home/lieven/projects/CborCpp/main.cpp
+1412770696 source:/home/lieven/projects/CborCpp/main.cpp
 	<iostream>
 	"Cbor.h"
 	"CborIn.h"
+	"CborOut.h"
 	<stdio.h>
 
 1412514150 source:/home/lieven/projects/Common/src/Bytes.cpp
@@ -32,21 +33,39 @@
 	"Bytes.h"
 	"Str.h"
 
-1412596861 /home/lieven/projects/Common/inc/Str.h
+1412766790 /home/lieven/projects/Common/inc/Str.h
 	"Bytes.h"
 	"Erc.h"
 
-1412597525 source:/home/lieven/projects/Common/src/Str.cpp
+1412766725 source:/home/lieven/projects/Common/src/Str.cpp
 	"Str.h"
 	<string.h>
 	<string.h>
 	<stdlib.h>
 	<cstdio>
 
-1412759753 source:/home/lieven/projects/CborCpp/CborIn.cpp
+1412768362 source:/home/lieven/projects/CborCpp/CborIn.cpp
 	"CborIn.h"
 
-1412595295 /home/lieven/projects/CborCpp/CborIn.h
+1412768592 /home/lieven/projects/CborCpp/CborIn.h
+	"Bytes.h"
+	"Str.h"
+	"errno.h"
+
+1412771212 source:/home/lieven/projects/Common/src/CborOut.cpp
+	"CborOut.h"
+	<cstring>
+
+1412770096 /home/lieven/projects/Common/inc/CborOut.h
+	<Bytes.h>
+	<CborIn.h>
+
+1412768592 /home/lieven/projects/CborCpp//CborIn.h
+	"Bytes.h"
+	"Str.h"
+	"errno.h"
+
+1412768592 /home/lieven/projects/Common/inc/CborIn.h
 	"Bytes.h"
 	"Str.h"
 	"errno.h"

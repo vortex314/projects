@@ -9,6 +9,10 @@
 
 #include <string.h>
 
+
+Str::Str() : Bytes(0) {
+}
+
 Str::Str(int size) :
 		Bytes(size) {
 }

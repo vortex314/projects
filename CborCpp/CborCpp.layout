@@ -1,28 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<ActiveTarget name="Debug" />
-	<File name="CborIn.cpp" open="1" top="1" tabpos="2">
-		<Cursor position="243" topLine="138" />
+	<File name="CborIn.cpp" open="1" top="0" tabpos="2">
+		<Cursor position="3938" topLine="143" />
 	</File>
-	<File name="CborIn.h" open="1" top="0" tabpos="5">
-		<Cursor position="467" topLine="0" />
+	<File name="CborIn.h" open="1" top="0" tabpos="3">
+		<Cursor position="887" topLine="2" />
 	</File>
 	<File name="main.cpp" open="1" top="0" tabpos="1">
-		<Cursor position="1529" topLine="63" />
+		<Cursor position="1871" topLine="74" />
 	</File>
 	<File name="../Common/inc/Bytes.h" open="0" top="0" tabpos="0">
 		<Cursor position="1423" topLine="41" />
 	</File>
-	<File name="../Common/inc/Cbor.h" open="1" top="0" tabpos="7">
+	<File name="../Common/inc/Cbor.h" open="1" top="0" tabpos="5">
 		<Cursor position="2451" topLine="75" />
 	</File>
-	<File name="../Common/src/Bytes.cpp" open="1" top="0" tabpos="3">
-		<Cursor position="3146" topLine="155" />
+	<File name="../Common/inc/CborOut.h" open="1" top="0" tabpos="6">
+		<Cursor position="718" topLine="0" />
+	</File>
+	<File name="../Common/inc/Str.h" open="0" top="0" tabpos="0">
+		<Cursor position="194" topLine="0" />
+	</File>
+	<File name="../Common/src/Bytes.cpp" open="1" top="0" tabpos="8">
+		<Cursor position="2367" topLine="125" />
 	</File>
 	<File name="../Common/src/Cbor.cpp" open="1" top="0" tabpos="4">
-		<Cursor position="393" topLine="0" />
+		<Cursor position="21232" topLine="763" />
 	</File>
-	<File name="../Common/src/Str.cpp" open="1" top="0" tabpos="6">
-		<Cursor position="1597" topLine="81" />
+	<File name="../Common/src/CborOut.cpp" open="1" top="1" tabpos="7">
+		<Cursor position="75" topLine="0" />
+	</File>
+	<File name="../Common/src/Str.cpp" open="0" top="0" tabpos="6">
+		<Cursor position="140" topLine="0" />
 	</File>
 </CodeBlocks_layout_file>

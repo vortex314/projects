@@ -13,6 +13,7 @@
 class Str : public Bytes
 {
 public:
+    Str();
     Str(int size);
     Str(const char* const s);
     Str(uint8_t* data, int capacity);

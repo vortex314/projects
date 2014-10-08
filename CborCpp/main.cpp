@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Cbor.h"
 #include "CborIn.h"
+#include "CborOut.h"
 #include <stdio.h>
 
 using namespace std;
@@ -74,10 +75,28 @@ string StrToString(Str& str)
 
 int main()
 {
+    CborOut cbo(100);
+        Str str(100);
+
+    cbo.add(true)
+    .add(false)
+    .add((float)1.23)
+    .add("Hello world");
+
+    CborIn cbi(cbo.data(),cbo.length());
+//  CborToken token;
+    str.clear();
+
+    cbi.toString(str);
+
+    cout << StrToString(str) << endl;
+
+
+
     CborOutput output(9000);
     CborWriter writer(output);
 
-    uint8_t bytes[]={1,2,0xFF,0xFE};
+    uint8_t bytes[]= {1,2,0xFF,0xFE};
 
     writer.write((float)1.23);
     writer.write(true);
@@ -101,7 +120,7 @@ int main()
 
     writer.writeInt(12235666);
 
-    Str str(100);
+
 
     output.toString(str);
 
@@ -118,19 +137,12 @@ int main()
     reader.SetListener(listener);
     reader.Run();
 
-    CborIn cbi(data,size);
+    CborIn cbi2(data,size);
 //  CborToken token;
     str.clear();
 
-    while(cbi.hasData())
-    {
-//       cbi.readToken(token);
-//       cout << " major : " << token.major << " , minor : "<< token.minor<<" , length : "<< token.length << endl;
-        cbi.toString(str);
-        str << ",";
-        /*       for(uint32_t i=0; i<token.length; i++)
-                   cbi.read(); // skip data*/
-    }
+    cbi2.toString(str);
+
     cout << StrToString(str) << endl;
 
 
