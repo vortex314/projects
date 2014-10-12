@@ -10,6 +10,7 @@
 #include "Mqtt.h"
 #include "Timer.h"
 #include "Prop.h"
+#include "Cbor.h"
 
 #include <malloc.h>
 
@@ -17,24 +18,30 @@
 
 void ftoa(float n, char *res, int afterpoint);
 
-void getTemp(void* addr, Cmd cmd, Packer& msg) {
+void getTemp(void* addr, Cmd cmd, Cbor& msg) {
 	if (cmd == CMD_GET)
-		msg.pack(Board::getTemp());
+		msg.add(Board::getTemp());
 }
 
-void getHardware(void* addr, Cmd cmd, Packer& msg) {
+void getHardware(void* addr, Cmd cmd, Cbor& msg) {
 	if (cmd == CMD_GET) {
-		msg.packMapHeader(3);
-		msg.pack("cpuRevision");
-		msg.pack(Board::processorRevision());
-		msg.pack("cpu");
-		msg.pack("LM4F120H5QR");
-		msg.pack("board");
-		msg.pack("EK-LM4F120XL");
+		msg.addMap(3);
+		msg.add("cpuRevision");
+		msg.add(Board::processorRevision());
+		msg.add("cpu");
+		msg.add("LM4F120H5QR");
+		msg.add("board");
+		msg.add("EK-LM4F120XL");
 	}
 }
 
+uint64_t cpuRev = Board::processorRevision();
+
 Prop uptime("system/uptime", Sys::_upTime);
+Prop cpu("hardware/cpu","LM4F120H5QR");
+Prop board("hardware/board","EK-LM4F120XL");
+Prop revision("hardware/cpuRevision",cpuRev);
+
 Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) { T_FLOAT, M_READ,
 				QOS_0, I_OBJECT, false, true, true });
 Prop rev("system/hardware", (void*) 0, getHardware, (Flags ) { T_OBJECT, M_READ,
@@ -62,8 +69,7 @@ public:
 			Board::setLedOn(Board::LED_GREEN, _isOn);
 			_isOn = !_isOn;
 			timeout(_msecInterval);
-			temp.updated();
-			uptime.updated();
+			Prop::publishAll();
 			break;
 		}
 		case SIG_MQTT_CONNECTED: {
@@ -112,54 +118,9 @@ void eventPump() {
 
 #include "Cbor.h"
 
-class Listener: public CborListener {
-public:
-	void OnInteger(int value) {
-	}
-
-	void OnBytes(unsigned char *data, int size) {
-	}
-
-	void OnString(std::string &str) {
-	}
-
-	void OnArray(int size) {
-	}
-
-	void OnMap(int size) {
-	}
-
-	void OnTag(unsigned int tag) {
-	}
-
-	void OnSpecial(int code) {
-	}
-
-	void OnError(const char *error) {
-	}
-
-};
 
 int main(void) {
 
-	CborOutput output(100);
-	CborWriter writer(output);
-
-	writer.writeTag(123);
-	writer.writeArray(3);
-	writer.writeString("hello");
-	writer.writeString("world");
-	writer.writeInt(321);
-
-	CborInput input(output.getData(), output.getSize());
-	CborReader reader(input);
-	Listener listener;
-
-	reader.SetListener(listener);
-	reader.Run();
-
-	Str s(10);
-	s << "eee";
 
 	Board::init();	// initialize usb
 	Usb::init();
