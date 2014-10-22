@@ -47,7 +47,7 @@ Str* MqttIn::topic() {
 	return &_topic;
 }
 
-Packer* MqttIn::message() {
+Cbor* MqttIn::message() {
 	return &_message;
 }
 

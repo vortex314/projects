@@ -1,905 +1,494 @@
 #include "Cbor.h"
 
-#include <string.h>
-#include <stdio.h>
-#ifndef LOG_H_
-#define LOG_H_
-
-#include <stdio.h>
-
-#define logger(line) fprintf(stderr, "%s:%d [%s]: %s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__, line)
-#define loggerf(format, ...) fprintf(stderr, "%s:%d [%s]: " format "\n", __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
-
-#endif
-
-#define _LITTLE_ENDIAN_
-#define _BIG_ENDIAN_
-
-
-
-using namespace std;
-
-CborInput::CborInput(uint8_t *data, int size) : Bytes(data,size)
+Cbor::Cbor(uint32_t size) : Bytes(size)
 {
 }
 
-CborInput::~CborInput()
+Cbor::Cbor(uint8_t* pb,uint32_t size) : Bytes(pb,size)
 {
-
 }
 
-bool CborInput::hasBytes(int count)
+Cbor::~Cbor()
 {
-    return available() >= count;
+    //dtor
 }
 
-unsigned char CborInput::getByte()
+// <type:5><minor:3>[<length:0-64>][<data:0-n]
+// if minor<24 => length=0
+int tokenSize[]= {1,2,4,8};
+
+Erc Cbor::readToken(CborToken& token)
 {
-    return read();
-}
+    CborType type;
+    int minor;
+    int length;
+    uint64_t value;
 
-
-
-unsigned short CborInput::getShort()
-{
-    uint16_t value=0;
-    unsigned int i;
-    for(i=0; i<sizeof(value); i++)
+    if ( !hasData() ) return E_NO_DATA;
+    uint8_t hdr=read();
+    type = (CborType)(hdr>>5);
+    minor = hdr & 0x1F;
+    if ( minor < 24 )
     {
-        value <<= 8;
-        value += read();
+        value = minor;
     }
-    return value;
-}
-
-unsigned int CborInput::getInt()
-{
-    uint32_t value=0;
-    unsigned int i;
-    for(i=0; i<sizeof(value); i++)
+    else if(minor < 28  )
     {
-        value <<= 8;
-        value += read();
+        length = tokenSize[minor-24];
+        value = getUint64(length);
     }
-    return value;
-}
-
-unsigned long long CborInput::getLong()
-{
-    uint64_t value=0;
-    unsigned int i;
-    for(i=0; i<sizeof(value); i++)
+    else if ( minor < 31  )
     {
-        value <<= 8;
-        value += read();
-    }
-    return value;
-}
-
-void CborInput::getBytes(uint8_t *to, int count)
-{
-    int i;
-    for(i=0; i<count; i++)
-    {
-        *(to++) = read();
-    }
-}
-
-
-CborReader::CborReader(CborInput &input)
-{
-    this->input = &input;
-    this->state = STATE_TYPE;
-}
-
-CborReader::CborReader(CborInput &input, CborListener &listener)
-{
-    this->input = &input;
-    this->listener = &listener;
-    this->state = STATE_TYPE;
-}
-
-CborReader::~CborReader()
-{
-
-}
-
-void CborReader::SetListener(CborListener &listener)
-{
-    this->listener = &listener;
-}
-
-void CborReader::Run()
-{
-    while(1)
-    {
-        if(state == STATE_TYPE)
-        {
-            if(input->hasBytes(1))
-            {
-                unsigned char type = input->getByte();
-                unsigned char majorType = type >> 5;
-                unsigned char minorType = type & 31;
-
-                switch(majorType)
-                {
-                case 0: // positive integer
-                    if(minorType < 24)
-                    {
-                        listener->OnInteger(minorType);
-                    }
-                    else if(minorType == 24)     // 1 byte
-                    {
-                        currentLength = 1;
-                        state = STATE_PINT;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_PINT;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_PINT;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_PINT;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid integer type");
-                    }
-                    break;
-                case 1: // negative integer
-                    if(minorType < 24)
-                    {
-                        listener->OnInteger(-minorType);
-                    }
-                    else if(minorType == 24)     // 1 byte
-                    {
-                        currentLength = 1;
-                        state = STATE_NINT;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_NINT;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_NINT;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_NINT;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid integer type");
-                    }
-                    break;
-                case 2: // bytes
-                    if(minorType < 24)
-                    {
-                        state = STATE_BYTES_DATA;
-                        currentLength = minorType;
-                    }
-                    else if(minorType == 24)
-                    {
-                        state = STATE_BYTES_SIZE;
-                        currentLength = 1;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_BYTES_SIZE;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_BYTES_SIZE;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_BYTES_SIZE;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid bytes type");
-                    }
-                    break;
-                case 3: // string
-                    if(minorType < 24)
-                    {
-                        state = STATE_STRING_DATA;
-                        currentLength = minorType;
-                    }
-                    else if(minorType == 24)
-                    {
-                        state = STATE_STRING_SIZE;
-                        currentLength = 1;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_STRING_SIZE;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_STRING_SIZE;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_STRING_SIZE;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid string type");
-                    }
-                    break;
-                case 4: // array
-                    if(minorType < 24)
-                    {
-                        listener->OnArray(minorType);
-                    }
-                    else if(minorType == 24)
-                    {
-                        state = STATE_ARRAY;
-                        currentLength = 1;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_ARRAY;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_ARRAY;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_ARRAY;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid array type");
-                    }
-                    break;
-                case 5: // map
-                    if(minorType < 24)
-                    {
-                        listener->OnMap(minorType);
-                    }
-                    else if(minorType == 24)
-                    {
-                        state = STATE_MAP;
-                        currentLength = 1;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_MAP;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_MAP;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_MAP;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid array type");
-                    }
-                    break;
-                case 6: // tag
-                    if(minorType < 24)
-                    {
-                        listener->OnTag(minorType);
-                    }
-                    else if(minorType == 24)
-                    {
-                        state = STATE_TAG;
-                        currentLength = 1;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_TAG;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_TAG;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_TAG;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid tag type");
-                    }
-                    break;
-                case 7: // special
-                    if(minorType < 24)
-                    {
-                        listener->OnSpecial(minorType);
-                    }
-                    else if(minorType == 24)
-                    {
-                        state = STATE_SPECIAL;
-                        currentLength = 1;
-                    }
-                    else if(minorType == 25)     // 2 byte
-                    {
-                        currentLength = 2;
-                        state = STATE_SPECIAL;
-                    }
-                    else if(minorType == 26)     // 4 byte
-                    {
-                        currentLength = 4;
-                        state = STATE_SPECIAL;
-                    }
-                    else if(minorType == 27)     // 8 byte
-                    {
-                        currentLength = 8;
-                        state = STATE_SPECIAL;
-                    }
-                    else
-                    {
-                        listener->OnError("invalid special type");
-                    }
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_PINT)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    listener->OnInteger(input->getByte());
-                    state = STATE_TYPE;
-                    break;
-                case 2:
-                    listener->OnInteger(input->getShort());
-                    state = STATE_TYPE;
-                    break;
-                case 4:
-                    // TODO: for integers > 2^31
-                    listener->OnInteger(input->getInt());
-                    state = STATE_TYPE;
-                    break;
-                case 8:
-                    input->getLong();
-                    state = STATE_TYPE;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_NINT)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    listener->OnInteger(-(int)input->getByte());
-                    state = STATE_TYPE;
-                    break;
-                case 2:
-                    listener->OnInteger(-(int)input->getShort());
-                    state = STATE_TYPE;
-                    break;
-                case 4:
-                    // TODO: for integers > 2^31
-                    listener->OnInteger(-(int)input->getInt());
-                    state = STATE_TYPE;
-                    break;
-                case 8:
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_BYTES_SIZE)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    currentLength = input->getByte();
-                    state = STATE_BYTES_DATA;
-                    break;
-                case 2:
-                    currentLength = input->getShort();
-                    state = STATE_BYTES_DATA;
-                    break;
-                case 4:
-                    currentLength = input->getInt();
-                    state = STATE_BYTES_DATA;
-                    break;
-                case 8:
-                    input->getLong();
-                    currentLength = 123;
-                    state = STATE_BYTES_DATA;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_BYTES_DATA)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                unsigned char *data = new unsigned char[currentLength];
-                input->getBytes(data, currentLength);
-                state = STATE_TYPE;
-                listener->OnBytes(data, currentLength);
-            }
-            else break;
-        }
-        else if(state == STATE_STRING_SIZE)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    currentLength = input->getByte();
-                    state = STATE_STRING_DATA;
-                    break;
-                case 2:
-                    currentLength = input->getShort();
-                    state = STATE_STRING_DATA;
-                    break;
-                case 4:
-                    currentLength = input->getInt();
-                    state = STATE_STRING_DATA;
-                    break;
-                case 8:
-                    input->getLong();
-                    currentLength = 123;
-                    state = STATE_STRING_DATA;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_STRING_DATA)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                unsigned char *data = new unsigned char[currentLength];
-                input->getBytes(data, currentLength);
-                state = STATE_TYPE;
-                Str str((uint8_t*)data,currentLength);
-                listener->OnString(str);
-//TODO				string str((const char *)data, (size_t)currentLength);
-//TODO				listener->OnString(str);
-            }
-            else break;
-        }
-        else if(state == STATE_ARRAY)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    listener->OnArray(input->getByte());
-                    state = STATE_TYPE;
-                    break;
-                case 2:
-                    listener->OnArray(currentLength = input->getShort());
-                    state = STATE_TYPE;
-                    break;
-                case 4:
-                    listener->OnArray(input->getInt());
-                    state = STATE_TYPE;
-                    break;
-                case 8:
-                    //input->getLong();
-                    //currentLength = 123;
-                    state = STATE_TYPE;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_MAP)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    listener->OnMap(input->getByte());
-                    state = STATE_TYPE;
-                    break;
-                case 2:
-                    listener->OnMap(currentLength = input->getShort());
-                    state = STATE_TYPE;
-                    break;
-                case 4:
-                    listener->OnMap(input->getInt());
-                    state = STATE_TYPE;
-                    break;
-                case 8:
-                    //input->getLong();
-                    //currentLength = 123;
-                    state = STATE_TYPE;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_TAG)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    listener->OnTag(input->getByte());
-                    state = STATE_TYPE;
-                    break;
-                case 2:
-                    listener->OnTag(input->getShort());
-                    state = STATE_TYPE;
-                    break;
-                case 4:
-                    listener->OnTag(input->getInt());
-                    state = STATE_TYPE;
-                    break;
-                case 8:
-                    input->getLong();
-                    state = STATE_TYPE;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else if(state == STATE_SPECIAL)
-        {
-            if(input->hasBytes(currentLength))
-            {
-                switch(currentLength)
-                {
-                case 1:
-                    listener->OnSpecial(input->getByte());
-                    state = STATE_TYPE;
-                    break;
-                case 2:
-                    listener->OnSpecial(input->getShort());
-                    state = STATE_TYPE;
-                    break;
-                case 4:
-                    // TODO: for integers > 2^31
-                    listener->OnSpecial(input->getInt());
-                    state = STATE_TYPE;
-                    break;
-                case 8:
-                    input->getLong();
-                    state = STATE_TYPE;
-                    // TODO: implement it
-                    break;
-                }
-            }
-            else break;
-        }
-        else
-        {
-            logger("UNKNOWN STATE");
-        }
-    }
-}
-
-CborOutput::CborOutput(int capacity) : Bytes(capacity)
-{
-}
-
-CborOutput::~CborOutput()
-{
-
-}
-
-void CborOutput::putByte(unsigned char value)
-{
-    write(value);
-}
-
-void CborOutput::putBytes(const unsigned char *data, int size)
-{
-    int i;
-    for(i=0; i<size; i++)
-        write(data[i]);
-}
-
-CborWriter::CborWriter(CborOutput &output)
-{
-    this->output = &output;
-}
-
-CborWriter::~CborWriter()
-{
-
-}
-
-unsigned char *CborOutput::getData()
-{
-    return data();
-}
-
-int CborOutput::getSize()
-{
-    return length();
-}
-
-void CborWriter::writeTypeAndValue(int majorType, unsigned int value)
-{
-    majorType <<= 5;
-    if(value < 24)
-    {
-        output->putByte(majorType | value);
-    }
-    else if(value < 256)
-    {
-        output->putByte(majorType | 24);
-        output->putByte(value);
-    }
-    else if(value < 65536)
-    {
-        output->putByte(majorType | 25);
-        output->putByte(value >> 8);
-        output->putByte(value);
+        return E_INVAL;
     }
     else
     {
-        output->putByte(majorType | 26);
-        output->putByte(value >> 24);
-        output->putByte(value >> 16);
-        output->putByte(value >> 8);
-        output->putByte(value);
+        value = 65535;  // suppoze very big length will be stopped by BREAK, side effect limited arrays and maps can also be breaked
     }
+    if ( type == C_SPECIAL )
+        switch(minor)
+        {
+        case 21 :   //TRUE
+        {
+            type = C_BOOL;
+            value = 1;
+            break;
+        }
+        case 20 :   //FALSE
+        {
+            type = C_BOOL;
+            value = 0;
+            break;
+        }
+        case 22 :   //NILL
+        {
+            type = C_NILL;
+            break;
+        }
+        case 26 :   //FLOAT32
+        {
+            type = C_FLOAT;
+            break;
+        }
+        case 27 :   //FLOAT64
+        {
+            type = C_DOUBLE;
+            break;
+        }
+
+        case 31 :   //BREAK
+        {
+            type = C_BREAK;
+            break;
+        }
+        }
+    token.type = type;
+    token.value=value;
+
+    return E_OK;
 }
 
-void CborWriter::writeTypeAndValue(int majorType, unsigned long long value)
+uint64_t Cbor::getUint64(int length)
 {
-    majorType <<= 5;
-    if(value < 24ULL)
+    uint64_t l=0;
+    while(length)
     {
-        output->putByte(majorType | value);
+        l <<= 8;
+        l+=read();
+        length--;
     }
-    else if(value < 256ULL)
-    {
-        output->putByte(majorType | 24);
-        output->putByte(value);
-    }
-    else if(value < 65536ULL)
-    {
-        output->putByte(majorType | 25);
-        output->putByte(value >> 8);
-    }
-    else if(value < 4294967296ULL)
-    {
-        output->putByte(majorType | 26);
-        output->putByte(value >> 24);
-        output->putByte(value >> 16);
-        output->putByte(value >> 8);
-        output->putByte(value);
-    }
-    else
-    {
-        output->putByte(majorType | 27);
-        output->putByte(value >> 56);
-        output->putByte(value >> 48);
-        output->putByte(value >> 40);
-        output->putByte(value >> 32);
-        output->putByte(value >> 24);
-        output->putByte(value >> 16);
-        output->putByte(value >> 8);
-        output->putByte(value);
-    }
+    return l;
 }
 
-void CborWriter::writeInt(unsigned int value)
+
+CborType Cbor::tokenToString(Str& str )
 {
-    writeTypeAndValue(0, value);
-}
+    CborToken token;
+    if ( readToken(token) != E_OK) return C_ERROR;
+    switch(token.type)
+    {
+    case C_PINT :
+    {
+        str.append(token.value);
+        return C_PINT;
+    }
+    case C_NINT :
+    {
+        int64_t v=-token.value;
+        str.append(v);
+        return C_NINT;
+    }
+    case C_BYTES :
+    {
+        str << "0x";
+        uint32_t i;
+        for(i=0; i<token.value; i++)
+            if(hasData()) str.appendHex(read());
+        return C_BYTES;
+    }
+    case C_STRING :
+    {
+        str << "\"";
+        uint32_t i;
+        for(i=0; i<token.value; i++)
+            if(hasData()) str.append((char)read());
+        str << "\"";
+        return C_STRING;
+    }
+    case C_MAP :
+    {
+        int count = token.value;
+        str << "{";
+        for(int i=0; i<count; i++)
+        {
+            if ( i ) str <<",";
+            if ( tokenToString(str)==C_BREAK) break;
+            str << ":";
+            tokenToString(str);
+        }
+        str << "}";
+        return C_MAP;
+    }
+    case C_ARRAY :
+    {
+        int count = token.value;
+        str << "[";
+        for(int i=0; i<count; i++)
+        {
+            if ( i ) str << ",";
+            if ( tokenToString(str)==C_BREAK) break;
+        }
+        str << "]";
+        return C_ARRAY;
+    }
+    case C_TAG :
+    {
+        int count = token.value;
+        str << "(";
+        str << count;
+        str << ":";
+        tokenToString(str);
+        str << ")";
+        return C_TAG;
+    }
+    case C_BOOL :
+    {
+        if ( token.value ) str << "true";
+        else str <<"false";
+        return C_BOOL;
+    }
+    case C_NILL :
+    {
+        str << "null";
+        return C_NILL;
+    }
+    case C_FLOAT :
+    {
+        union
+        {
+            float f;
+            uint32_t i;
+        };
+        i = token.value;
+        str << f;
+        return C_FLOAT;
+    }
+    case C_DOUBLE :
+    {
+        union
+        {
+            double d;
+            uint64_t i;
+        };
+        i = token.value;
+        str << "DOUBLE";
+//                str << f;
+        return C_DOUBLE;
+    }
+    case C_BREAK :
+    {
+        str << "BREAK";
+        return C_BREAK;
+    }
+    case C_SPECIAL:
+    {
+        return C_ERROR;
+    }
+    default:  // avoid warnings about additional types > 7
+    {
+        return C_ERROR;
+    }
+    }
 
-void CborWriter::writeInt(unsigned long long value)
+}
+Erc Cbor::toString(Str& str)
 {
-    writeTypeAndValue(0, value);
+    CborType ct;
+    offset(0);
+    while ( hasData() )
+    {
+        ct=tokenToString(str);
+        if ( ct == C_BREAK || ct==C_ERROR) return E_INVAL;
+        if ( hasData() ) str <<",";
+    };
+    return E_OK;
 }
 
-void CborWriter::writeInt(long long value)
+
+CborType Cbor::parse(CborListener& listener)
 {
-    if(value < 0)
+    CborToken token;
+
+    while ( hasData() )
     {
-        writeTypeAndValue(1, (unsigned long long) -value);
-    }
-    else
-    {
-        writeTypeAndValue(0, (unsigned long long) value);
-    }
+        token.value=0;
+        if ( readToken(token) != E_OK) return C_ERROR;
+        token.u._uint64 = token.value;
+        switch(token.type)
+        {
+        case C_PINT :
+        {
+            token.u._uint64 = token.value;
+            listener.onToken(token);
+            break;
+        }
+        case C_NINT :
+        {
+            token.u._int64 = -token.value;
+            listener.onToken(token);
+            break;
+        }
+        case C_BYTES :
+        {
+            token.u.pb = data() + offset();
+            listener.onToken(token);
+             move(token.value); // skip bytes
+            break;
+        }
+        case C_STRING :
+        {
+            token.u.pb = data() + offset();
+            listener.onToken(token);
+            move(token.value);// skip bytes
+            break;
+        }
+        case C_MAP :
+        {
+            listener.onToken(token);
+            int count = token.value;
+            for(int i=0; i<count; i++)
+            {
+                parse(listener);
+                if ( parse(listener)==C_BREAK) break;
+                parse(listener);
+            }
+            break;
+        }
+        case C_ARRAY :
+        {
+            listener.onToken(token);
+            int count = token.value;
+            for(int i=0; i<count; i++)
+            {
+                if ( parse(listener)==C_BREAK) break;
+            }
+            break;
+        }
+        case C_TAG :
+        {
+            listener.onToken(token);
+            parse(listener);
+            break;
+        }
+        case C_BOOL :
+        {
+            token.u._bool= token.value == 1 ? true : false;
+            listener.onToken(token);
+            break;
+        }
+        case C_NILL :
+        case C_BREAK :
+        {
+            listener.onToken(token);
+            break;
+        }
+        case C_FLOAT :
+        {
+            token.u._uint64=token.value ;
+            listener.onToken(token);
+            break;
+        }
+        case C_DOUBLE:
+        {
+            token.u._uint64=token.value;
+            listener.onToken(token);
+            break;
+        }
+        case C_SPECIAL:
+        {
+            listener.onToken(token);
+            break;
+        }
+        default:  // avoid warnings about additional types > 7
+        {
+            return C_ERROR;
+        }
+        }
+    };
+    return token.type;
+
 }
 
-void CborWriter::writeInt(int value)
+Cbor& Cbor::add(int i)
 {
-    if(value < 0)
-    {
-        writeTypeAndValue(1, (unsigned int) -value);
-    }
-    else
-    {
-        writeTypeAndValue(0, (unsigned int) value);
-    }
+    if ( i > 0) addToken(C_PINT,(uint64_t)i);
+    else addToken(C_NINT,(uint64_t)-i);;
+    return *this;
 }
 
-void CborWriter::write(float value)
+Cbor& Cbor::add(float fl)
 {
     union
     {
         float f;
         uint8_t b[4];
-    } u;
-    u.f=value;
-    output->putByte((7<<5) | 26);
-    output->putByte(u.b[3]);
-    output->putByte(u.b[2]);
-    output->putByte(u.b[1]);
-    output->putByte(u.b[0]);
+    };
+    f=fl;
+    addHeader(C_SPECIAL,26);
+    for(int i=3; i>=0; i--)
+        write(b[i]);
+    return *this;
+}
+Cbor& Cbor::add(double d)
+{
+    union
+    {
+        double dd;
+        uint8_t b[8];
+    };
+    dd=d;
+    addHeader(C_SPECIAL,27);
+    for(int i=7; i>=0; i--)
+        write(b[i]);
+    return *this;
+}
+Cbor& Cbor::add(Bytes& b)
+{
+    addToken(C_BYTES,b.length());
+    b.offset(0);
+    while(b.hasData())
+        write(b.read());
+
+    return *this;
+}
+Cbor& Cbor::add(Str& str)
+{
+    addToken(C_STRING,str.length());
+    str.offset(0);
+    while(str.hasData())
+        write(str.read());
+
+    return *this;
+}
+#include <cstring>
+Cbor& Cbor::add(const char* s)
+{
+    uint32_t size=strlen(s);
+    addToken(C_STRING,size);
+    for(uint32_t i=0; i<size; i++) write(*s++);
+    return *this;
 }
 
-void CborWriter::write(bool value)
+Cbor& Cbor::add(uint64_t i64)
 {
-    if ( value )
-        writeTypeAndValue(7, (uint32_t)21);
+    addToken(C_PINT,i64);
+    return *this;
+}
+
+Cbor& Cbor::add(int64_t i64)
+{
+    if ( i64 > 0) addToken(C_PINT,(uint64_t)i64);
+    else addToken(C_NINT,(uint64_t)-i64);
+    return *this;
+}
+
+Cbor& Cbor::add(bool b)
+{
+    if ( b ) addHeader(C_SPECIAL,21);
+    else addHeader(C_SPECIAL,20);
+    return *this;
+}
+
+Cbor& Cbor::addMap(int size)
+{
+    if ( size < 0 ) addHeader(C_MAP,31);
+    else addToken(C_MAP,size);
+    return *this;
+}
+
+Cbor& Cbor::addArray(int size)
+{
+    if ( size < 0 ) addHeader(C_ARRAY,31);
+    else addToken(C_ARRAY,size);
+    return *this;
+}
+
+Cbor& Cbor::addTag(int nr)
+{
+    addToken(C_TAG,nr);
+    return *this;
+}
+
+Cbor& Cbor::addBreak()
+{
+    addHeader(C_SPECIAL, 31);
+    return *this;
+}
+
+
+void Cbor::addToken(CborType ctype, uint64_t value)
+{
+    uint8_t majorType = (uint8_t)(ctype<<5);
+    if(value < 24ULL)
+    {
+        write(majorType | value);
+    }
+    else if(value < 256ULL)
+    {
+        write(majorType | 24);
+        write(value);
+    }
+    else if(value < 65536ULL)
+    {
+        write(majorType | 25);
+        write(value >> 8);
+    }
+    else if(value < 4294967296ULL)
+    {
+        write(majorType | 26);
+        write(value >> 24);
+        write(value >> 16);
+        write(value >> 8);
+        write(value);
+    }
     else
-        writeTypeAndValue(7, (uint32_t)20);
+    {
+        write(majorType | 27);
+        write(value >> 56);
+        write(value >> 48);
+        write(value >> 40);
+        write(value >> 32);
+        write(value >> 24);
+        write(value >> 16);
+        write(value >> 8);
+        write(value);
+    }
 }
 
-void CborWriter::writeBytes(const unsigned char *data, unsigned int size)
+inline void Cbor::addHeader(uint8_t major,uint8_t minor)
 {
-    writeTypeAndValue(2, size);
-    output->putBytes(data, size);
-}
-
-void CborWriter::writeString(const char *data, unsigned int size)
-{
-    writeTypeAndValue(3, size);
-    output->putBytes((const unsigned char *)data, size);
-}
-
-void CborWriter::writeString(const char *data)
-{
-    unsigned int size=strlen(data);
-    writeTypeAndValue(3, size);
-    output->putBytes((const unsigned char *)data, size);
-}
-
-void CborWriter::writeString(const Str& str)
-{
-    writeTypeAndValue(3, (unsigned int)str.length());
-    output->putBytes((const unsigned char *)str.data(), str.length());
+    write((major<<5)|minor);
 }
 
 
-void CborWriter::writeArray(int size)
-{
-    writeTypeAndValue(4, (unsigned int)size);
-}
 
-void CborWriter::writeMap(int size)
-{
-    writeTypeAndValue(5, (unsigned int)size);
-}
-
-void CborWriter::writeTag(const unsigned int tag)
-{
-    writeTypeAndValue(6, tag);
-}
-
-void CborWriter::writeSpecial(int special)
-{
-    writeTypeAndValue(7, (unsigned int)special);
-}
-
-// TEST HANDLERS
-
-void CborDebugListener::OnInteger(int value)
-{
-    printf("integer: %d\n", value);
-}
-
-void CborDebugListener::OnBytes(unsigned char *data, int size)
-{
-    printf("bytes with size: %d", size);
-}
-
-void CborDebugListener::OnString(Str &str)
-{
-    printf("string: '%.*s'\n", (int)str.length(), str.data());
-}
-
-void CborDebugListener::OnArray(int size)
-{
-    printf("array: %d\n", size);
-}
-
-void CborDebugListener::OnMap(int size)
-{
-    printf("map: %d\n", size);
-}
-
-void CborDebugListener::OnTag(unsigned int tag)
-{
-    printf("tag: %d\n", tag);
-}
-
-void CborDebugListener::OnSpecial(int code)
-{
-    printf("special: %d\n", code);
-}
-
-void CborDebugListener::OnError(const char *error)
-{
-    printf("error: %s\n", error);
-}
-
-// TEST HANDLERTE
-
-void writeTest()
-{
-    CborOutput output(4096);
-    CborWriter writer(output);
-
-    writer.writeArray(3);
-    writer.writeInt(123);
-    writer.writeInt(12);
-    writer.writeString("hello", 5);
-
-    //fwrite(output.getData(), 1, output.getSize(), stdout);
-
-    unsigned char *data = output.getData();
-    int size = output.getSize();
-
-    CborInput input(data, size);
-    CborReader reader(input);
-    reader.Run();
-}
-
-/*
-int main(int argc, char **argv) {
-	writeTest();
-	return 0;
-}
-*/

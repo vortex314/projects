@@ -1,121 +1,69 @@
 #ifndef CBOR_H
 #define CBOR_H
-
 #include "Bytes.h"
 #include "Str.h"
-
-class CborInput : public Bytes {
-public:
-	CborInput(uint8_t *data, int size);
-	~CborInput();
-
-	bool hasBytes(int count);
-	unsigned char getByte();
-	unsigned short getShort();
-	unsigned int getInt();
-	unsigned long long getLong();
-	void getBytes(uint8_t *to, int count);
-private:
-	unsigned char *data;
-	int size;
-	int offset;
-};
+#include "errno.h"
 
 typedef enum {
-	STATE_TYPE,
-	STATE_PINT,
-    STATE_NINT,
-    STATE_BYTES_SIZE,
-    STATE_BYTES_DATA,
-    STATE_STRING_SIZE,
-    STATE_STRING_DATA,
-    STATE_ARRAY,
-    STATE_MAP,
-    STATE_TAG,
-    STATE_SPECIAL
-} CborReaderState;
+	C_PINT = 0, C_NINT, C_BYTES, C_STRING, C_ARRAY, C_MAP, C_TAG, C_SPECIAL = 7, // major types
+	C_BOOL,
+	C_FLOAT,
+	C_DOUBLE,
+	C_BREAK,
+	C_NILL,
+	C_ERROR
+} // minor additional types
+CborType;
 
-
+typedef struct cborToken {
+	CborType type;
+	uint64_t value;
+	union {
+		uint64_t _uint64;
+		int64_t _int64;
+		double _double;
+		float _float;
+		uint8_t* pb;
+		bool _bool;
+	} u;
+} CborToken;
 
 class CborListener {
 public:
-	virtual void OnInteger(int value) = 0;
-	virtual void OnBytes(unsigned char *data, int size) = 0;
-	virtual void OnString(Str& str) = 0;
-	virtual void OnArray(int size) = 0;
-	virtual void OnMap(int size) = 0;
-	virtual void OnTag(unsigned int tag) = 0;
-	virtual void OnSpecial(int code) = 0;
-	virtual void OnError(const char *error) = 0;
+	virtual Erc onToken(CborToken& token)=0;
 };
 
-class CborDebugListener : public CborListener {
+class Cbor: public Bytes {
 public:
-	virtual void OnInteger(int value);
-	virtual void OnBytes(unsigned char *data, int size);
-	virtual void OnString(Str& str);
-	virtual void OnArray(int size);
-	virtual void OnMap(int size);
-	virtual void OnTag(unsigned int tag);
-	virtual void OnSpecial(int code);
-	virtual void OnError(const char *error);
-};
+	Cbor(uint8_t* pb, uint32_t size);
+	Cbor(uint32_t size);
+	virtual ~Cbor();
 
-class CborReader {
-public:
-	CborReader(CborInput &input);
-	CborReader(CborInput &input, CborListener &listener);
-	~CborReader();
-	void Run();
-	void SetListener(CborListener &listener);
+	Cbor& add(int i);
+	Cbor& add(float f);
+	Cbor& add(double d);
+	Cbor& add(Bytes& b);
+	Cbor& add(Str& str);
+	Cbor& add(const char* s);
+	Cbor& add(uint64_t i64);
+	Cbor& add(int64_t i64);
+	Cbor& add(bool b);
+	Cbor& addMap(int size);
+	Cbor& addArray(int size);
+	Cbor& addTag(int nr);
+	Cbor& addBreak();
+
+	Erc readToken(CborToken& token);
+	Erc toString(Str& str);
+	CborType parse(CborListener& listener);
+
+protected:
 private:
-	CborListener *listener;
-	CborInput *input;
-	CborReaderState state;
-	int currentLength;
+	void addToken(CborType type, uint64_t data);
+	void addHeader(uint8_t major, uint8_t minor);
+	uint64_t getUint64(int length);
+	CborType tokenToString(Str& str);
+
 };
 
-
-class CborOutput : public Bytes {
-public:
-	CborOutput(int capacity);
-	~CborOutput();
-	unsigned char *getData();
-	int getSize();
-
-	void putByte(unsigned char value);
-	void putBytes(const unsigned char *data, int size);
-};
-
-
-class CborWriter {
-public:
-	CborWriter(CborOutput &output);
-	~CborWriter();
-
-	void writeInt(int value);
-	void writeInt(long long value);
-	void writeInt(unsigned int value);
-	void writeInt(unsigned long long value);
-	void writeBytes(const unsigned char *data, unsigned int size);
-	void writeString(const char *data, unsigned int size);
-		void writeString(const char *data);
-	void writeString(const Str& str);
-	void writeArray(int size);
-	void writeMap(int size);
-	void writeTag(const unsigned int tag);
-	void writeSpecial(int special);
-	void write(bool b);
-	void write(float f);
-private:
-	void writeTypeAndValue(int majorType, unsigned int value);
-	void writeTypeAndValue(int majorType, unsigned long long value);
-	CborOutput *output;
-};
-
-class CborSerializable {
-public:
-	virtual void Serialize(CborWriter &writer) = 0;
-};
-
-#endif
+#endif // CBOR_H

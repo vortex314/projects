@@ -33,7 +33,7 @@ class MqttSub: public Fsm {
 private:
 	Mqtt& _mqtt;
 	Str _topic;
-	Packer _message;
+	Cbor _message;
 	uint16_t _messageId;
 	Flags _flags;
 	uint8_t _header;
@@ -42,7 +42,7 @@ private:
 public:
 	MqttSub(Mqtt& mqtt);
 
-	bool send(Flags flags, uint16_t id, Str& topic, Packer& msg);
+	bool send(Flags flags, uint16_t id, Str& topic, Cbor& msg);
 	void Publish();
 	void sleep(Msg& event);
 	void ready(Msg& event);

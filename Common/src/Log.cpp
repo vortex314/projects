@@ -13,15 +13,13 @@ Log& Log::flush() {
     clear();
     return *this;
     }
-const char *HEX="0123456789ABCDEF";
 Log& Log::dump(Bytes& bytes) {
     uint32_t  i;
 
     for(i=0; i<bytes.length(); i++) {
         uint8_t b;
         b=bytes.read();
-        *this << (char)HEX[b>>4];
-        *this << (char)HEX[b&0x0F] ;
+        appendHex(b);
         *this << " ";
         }
     bytes.offset(0);

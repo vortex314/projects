@@ -22,9 +22,11 @@ class Usb: public Fsm, public Link {
 private:
 	MqttIn _mqttIn;
 
+
 public:
 //	static const int CONNECTED, DISCONNECTED, RXD, MQTT_MESSAGE, FREE;
-
+	CircBuf _out;
+	CircBuf _in;
 	Usb();
 	static void init();
 	void reset();

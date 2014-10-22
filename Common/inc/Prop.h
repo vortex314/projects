@@ -13,9 +13,7 @@
 #include "Fsm.h"
 #include "Bytes.h"
 #include "Mqtt.h"
-#include "Msgpack.h"
-
-#define Packer Msgpack
+#include "Cbor.h"
 
 enum Type {
 	T_UINT8,
@@ -65,7 +63,7 @@ typedef struct {
 typedef enum {
 	CMD_GET, CMD_DESC, CMD_PUT
 } Cmd;
-typedef void (*Xdr)(void*, Cmd, Packer&);
+typedef void (*Xdr)(void*, Cmd, Cbor&);
 
 class Mqtt;
 
@@ -87,11 +85,12 @@ public:
 	void init(const char* name, void* instance, Xdr xdr, Flags flags);
 
 	static Prop* findProp(Str& name);
-	static void set(Str& topic, Packer& message);
-	static void xdrUint64(void* addr, Cmd cmd, Packer& strp);
-	static void xdrString(void* addr, Cmd cmd, Packer& strp);
+	static void set(Str& topic, Cbor& message);
+	static void xdrUint64(void* addr, Cmd cmd, Cbor& strp);
+	static void xdrString(void* addr, Cmd cmd, Cbor& strp);
 
 	void updated();
+	static void publishAll();
 };
 
 class PropMgr: public Fsm {
@@ -100,7 +99,7 @@ private:
 	Mqtt& _mqtt;
 	struct pt t;
 	Str _topic;
-	Packer _message;
+	Cbor _message;
 	Prop* _cursor;
 	bool _publishMeta;
 

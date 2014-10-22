@@ -10,8 +10,7 @@
 #include "MqttConstants.h"
 #include "Event.h"
 #include "Str.h"
-#include "Msgpack.h"
-#define Packer Msgpack
+#include "Cbor.h"
 #define TOPIC_LEN  100
 #define MSG_LEN    256
 
@@ -25,7 +24,7 @@ public:
     uint8_t _returnCode;
     uint16_t _messageId;
     Str _topic;
-    Packer _message;
+    Cbor _message;
 
     enum RecvState
     {
@@ -53,7 +52,7 @@ public:
     void readUtf(Str* str);
     void readBytes(Bytes* b, int length);
      Str* topic();
-     Packer* message();
+     Cbor* message();
      void toString(Str& str);
 };
 

@@ -62,7 +62,7 @@
 #include "Usb.h"
 #include "Pool.h"
 //Usb usb;
-
+Usb* gUsb;
 //*******************************************************************************
 //*****************************************************************************
 //
@@ -83,11 +83,14 @@ static volatile tBoolean g_bUSBConfigured = false;
 #define MAX_MSG_SIZE 100
 
 Usb::Usb() :
-		_mqttIn(100) {
+		_mqttIn(100), _out(100), _in(100) {
+	gUsb = this;
 }
 
 void Usb::reset() {
 	_mqttIn.clear();
+	_out.clear();
+	_in.clear();
 }
 
 Erc Usb::connect() {
@@ -104,31 +107,35 @@ Erc Usb::send(Bytes& bytes) {
 	bytes.Encode();
 	bytes.Frame();
 	bytes.offset(0);
-	while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
-			&& bytes.hasData()) {
-		uint8_t b;
-		b = bytes.read();
-		USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b, 1);
-	}
+	while (bytes.hasData() && _out.hasSpace()) {
+		_out.write(bytes.read());
+	};
+	USBDCDCTxPacketAvailable((tUSBBuffer *) &g_sTxBuffer);
+	/*	while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
+	 && bytes.hasData()) {
+	 uint8_t b;
+	 b = bytes.read();
+	 USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b, 1);
+	 }*/
 	if (bytes.hasData() == false)
 		return E_OK;
 	return EAGAIN;
 }
-
-
 
 Erc Usb::recv(Bytes& bytes) {
 	return E_AGAIN;
 }
 
 uint8_t Usb::read() {
-	uint8_t b;
+	return _in.read();
+/*	uint8_t b;
 	USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1);
-	return b;
+	return b;*/
 }
 
 uint32_t Usb::hasData() {
-	return USBBufferDataAvailable((tUSBBuffer *) &g_sRxBuffer);
+	return _in.hasData();
+//	return USBBufferDataAvailable((tUSBBuffer *) &g_sRxBuffer);
 }
 
 void Usb::dispatch(Msg& event) {
@@ -165,7 +172,9 @@ void Usb::dispatch(Msg& event) {
 		}
 		break;
 	}
-	default:{};
+	default: {
+	}
+		;
 	}
 }
 
@@ -404,12 +413,28 @@ extern "C" unsigned long TxHandler(void *pvCBData, unsigned long ulEvent,
 	// Which event have we been sent?
 	//
 	switch (ulEvent) {
-	case USB_EVENT_TX_COMPLETE:
+	case USB_EVENT_TX_COMPLETE: {
+		/*		Bytes temp(64);
+		 while ( gUsb->_out.hasData() && temp.hasSpace()) {
+		 temp.write(gUsb->_out.read());
+		 }
+		 if ( temp.length() >0)
+		 {
+		 USBDCDCPacketWrite((void*)&g_sCDCDevice,temp.data(),temp.length(),!gUsb->_out.hasData());
+		 }*/
+		while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
+				&& gUsb->_out.hasData()) {
+			uint8_t b;
+			b = gUsb->_out.read();
+			USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b,
+					1);
+		}
 //
-// Since we are using the USBBuffer, we don't need to do anything
+// Since we are using the USBBuffer, we don't need to do anything ???
 // here.
 //
 		break;
+	}
 //
 // We don't expect to receive any other events.  Ignore any that show
 // up in a release build or hang in a debug build.
@@ -452,12 +477,17 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 	// A new packet has been received.
 	//
 	case USB_EVENT_RX_AVAILABLE: {
-		/*		uint8_t b;
-		 while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
-		 usb.in.write(b);*/
-
+		uint8_t b;
+		/*		int size=USBDCDCRxPacketAvailable((void*)&g_sCDCDevice);
+		 Bytes temp(64);
+		 size = USBDCDCPacketRead((void*)&g_sCDCDevice,temp.data(),64,false);
+		 temp.length(size);
+		 while(gUsb->_in.hasSpace() && temp.hasData()) {
+		 gUsb->_in.write(temp.read());
+		 }*/
+		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
+			gUsb->_in.write(b);
 		Msg::publish(SIG_USB_RXD);
-
 		break;
 	}
 
@@ -474,6 +504,8 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 // still has to clear the transmitter.
 //
 		return (0);
+//		return gUsb->_in.size();
+
 	}
 
 //

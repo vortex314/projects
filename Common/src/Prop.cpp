@@ -9,7 +9,6 @@
 #include "Prop.h"
 #include "Fsm.h"
 
-
 Prop* Prop::_first;
 
 const char* sType[] = { "UINT8", "UINT16", "UINT32", "UINT64", "INT8", "INT16",
@@ -53,24 +52,20 @@ Prop::Prop(const char* name, uint64_t& value) {
 
 #include <cstdlib>
 
-void Prop::xdrUint64(void* addr, Cmd cmd, Packer& msg) {
+void Prop::xdrUint64(void* addr, Cmd cmd, Cbor& msg) {
 	if (cmd == CMD_GET)
-		msg.pack(*((uint64_t*) addr));
+		msg.add(*((uint64_t*) addr));
 	else if (cmd == CMD_PUT) {
-
-		char value[20];
-		int i = 0;
-		while (msg.hasData())
-			value[i++] = msg.read();
-		value[i++] = '\0';
-		char *ptr;
-		*((uint64_t*) addr) = strtoull(value, &ptr, 10);
+		CborToken cbt;
+		msg.readToken(cbt);
+		if (cbt.type == C_PINT)
+			*((uint64_t*) addr) = cbt.u._uint64;
 	}
 }
 
-void Prop::xdrString(void* addr, Cmd cmd, Packer& msg) {
+void Prop::xdrString(void* addr, Cmd cmd, Cbor& msg) {
 	if (cmd == CMD_GET)
-		msg.pack( (const char*) addr);
+		msg.add((const char*) addr);
 	else if (cmd == CMD_PUT) {
 		int i = 0;
 		msg.offset(0);
@@ -93,7 +88,7 @@ Prop::findProp(Str& name) {
 extern Str putPrefix;
 extern Str getPrefix;
 
-void Prop::set(Str& topic, Packer& message) {
+void Prop::set(Str& topic, Cbor& message) {
 	Str str(30);
 
 	if (topic.startsWith(putPrefix)) {
@@ -148,19 +143,12 @@ void PropMgr::publishing(Msg& event) {
 		break;
 	}
 	case SIG_ENTRY: {
-		Prop* cursor = _cursor = Prop::_first;
-		while (cursor->_next != 0) {
-			cursor->_flags.publishValue = true;
-			cursor->_flags.publishMeta = true;
-			cursor = cursor->_next;
-		}
-
 		timeout(10);
 		break;
 	}
 	case SIG_MQTT_PUBLISH_FAILED: {
 		nextProp();
-		timeout(100);
+		timeout(1000);
 		break;
 	}
 	case SIG_MQTT_PUBLISH_OK: {
@@ -169,7 +157,7 @@ void PropMgr::publishing(Msg& event) {
 		else
 			_cursor->_flags.publishValue = false;
 		nextProp();
-		timeout(100);
+		timeout(1);
 		break;
 	}
 	case SIG_TIMEOUT: {
@@ -185,18 +173,16 @@ void PropMgr::publishing(Msg& event) {
 			_topic = _cursor->_name;
 			_topic << ".META";
 			_message.clear();
-			Msgpack msg(_message);
-			msg.packMapHeader(3);
-			msg.pack("type");msg.pack(sType[_cursor->_flags.type]);
-			msg.pack("mode");msg.pack(sMode[_cursor->_flags.mode]);
-			msg.pack("qos"),msg.pack(sQos[_cursor->_flags.qos]);
+			Cbor msg(_message);
+			msg.addMap(3);
+			msg.add("type").add(sType[_cursor->_flags.type]);
+			msg.add("mode").add(sMode[_cursor->_flags.mode]);
+			msg.add("qos").add(sQos[_cursor->_flags.qos]);
 			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
 			timeout(UINT32_MAX);
-
 		} else {
 			nextProp();
-			timeout(1000);
-
+			timeout(1);
 		}
 
 		break;
@@ -219,3 +205,11 @@ void Prop::updated() {
 	_flags.publishValue = true;
 }
 
+void Prop::publishAll() {
+	Prop* cursor = Prop::_first;
+	while (cursor->_next != 0) {
+		cursor->_flags.publishValue = true;
+		cursor->_flags.publishMeta = true;
+		cursor = cursor->_next;
+	}
+}
