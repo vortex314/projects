@@ -26,6 +26,14 @@ Tcp::Tcp( const char *host,uint16_t port) : msg(100) {
     _connected=false;
     };
 
+void Tcp::setHost(const char* host){
+    _host=host;
+}
+
+void Tcp::setPort(uint16_t port){
+    _port=port;
+}
+
 Tcp::~Tcp() {
     }
 

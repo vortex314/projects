@@ -23,6 +23,8 @@ public:
 
     static int CONNECTED,DISCONNECTED,RXD,MESSAGE,FREE,ERROR;
     Tcp( const char *host,uint16_t port);
+    void setHost(const char* host);
+    void setPort(uint16_t port);
     ~Tcp();
 
     Erc connect();

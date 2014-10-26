@@ -79,6 +79,7 @@
 		<Unit filename="../Common/inc/pt-sem.h" />
 		<Unit filename="../Common/inc/pt.h" />
 		<Unit filename="../Common/src/Bytes.cpp" />
+		<Unit filename="../Common/src/Cbor.cpp" />
 		<Unit filename="../Common/src/CircBuf.cpp" />
 		<Unit filename="../Common/src/Event.cpp" />
 		<Unit filename="../Common/src/EventSource.cpp" />
