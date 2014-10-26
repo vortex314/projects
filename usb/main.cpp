@@ -29,6 +29,12 @@ using namespace std;
 #include "Tcp.h"
 #include "Usb.h"
 
+struct
+{
+    const char* host;
+    uint16_t port;
+    const char* device;
+} context= {"localhost",1883,"/dev/mqtt"};
 
 Usb usb("/dev/mqtt");
 Tcp tcp("localhost",1883);
@@ -202,6 +208,12 @@ public:
                             tcp.connect();
                             tcp.send(*msg);
                         }
+                        else {
+                            MqttOut m(10);
+                            m.ConnAck(0);
+ //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
+                            usb.send(m);
+                        }
                     }
                     else
                         tcp.send(*msg);
@@ -254,13 +266,47 @@ public:
 
 #include "Tcp.h"
 
+void loadOptions(int argc,char* argv[])
+{
+    int c;
+    while ((c = getopt (argc, argv, "h:p:d:")) != -1)
+        switch (c)
+        {
+        case 'h':
+            context.host=optarg;
+            break;
+        case 'p':
+            context.port= atoi(optarg);
+            break;
+        case 'd':
+            context.device = optarg;
+            break;
+        case '?':
+            if (optopt == 'c')
+                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+            else if (isprint (optopt))
+                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+            else
+                fprintf (stderr,
+                         "Unknown option character `\\x%x'.\n",
+                         optopt);
+            return ;
+        default:
+            abort ();
+        }
+}
+
 int main(int argc, char *argv[] )
 {
 
     Log::log() << "Start " << argv[0] << " version : " << __DATE__ << " " << __TIME__ ;
     Log::log().flush();
 
-    if ( argc>1 ) usb.setDevice(argv[1]);
+    loadOptions(argc,argv);
+
+    usb.setDevice(context.device);
+    tcp.setHost(context.host);
+    tcp.setPort(context.port);
 
     PollerThread poller("",0,1);
 //    poller.start();

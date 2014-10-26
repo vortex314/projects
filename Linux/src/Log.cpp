@@ -51,13 +51,13 @@ Log& Log::flush() {
     }
 
 
-const char *HEX="0123456789ABCDEF";
+const char *HX="0123456789ABCDEF";
 Log& Log::dump(Bytes& bytes) {
     bytes.offset(0);
     while(bytes.hasData()) {
         uint8_t b;
         b=bytes.read();
-        *this << (char)HEX[b>>4]<< (char)HEX[b&0x0F] << " ";
+        *this << (char)HX[b>>4]<< (char)HX[b&0x0F] << " ";
         }
     bytes.offset(0);
     while(bytes.hasData()) {

@@ -38,8 +38,8 @@ Erc Usb::connect() {
     fcntl(_fd, F_SETFL, FNDELAY);
 
     tcgetattr(_fd, &options);
-    cfsetispeed(&options, B38400);
-    cfsetospeed(&options, B38400);
+    cfsetispeed(&options, B1000000);
+    cfsetospeed(&options, B1000000);
 
 
     options.c_cflag |= (CLOCAL | CREAD);
@@ -54,6 +54,8 @@ Erc Usb::connect() {
 
 
     tcsetattr(_fd, TCSANOW, &options);
+    Log::log() << " USB set baudrate to 1Mb ";
+    Log::log().flush();
     Log::log() << "USB open " << _device << " succeeded.";
     Log::log().flush();
     isConnected(true);
@@ -67,11 +69,11 @@ Erc Usb::disconnect() {
     }
 
 Erc Usb::send(Bytes& bytes) {
- //   Log::log().message("USB send : ",bytes);
+    Log::log().message("USB send : ",bytes);
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
-//    Log::log().message("USB send full : ",bytes);
+    Log::log().message("USB send full : ",bytes);
     int count = ::write(_fd,bytes.data(),bytes.length());
     if ( count != bytes.length()) {
         disconnect();
@@ -86,6 +88,8 @@ uint8_t Usb::read() {
         perror(" Usb read failed");
         return 0;
         }
+        fprintf(stdout,".");
+        fflush(stdout);
     return b;
     }
 
@@ -129,7 +133,7 @@ int Usb::handler ( Event* event ) {
             if ( inBuffer.hasData() && (_isComplete==false) ) {
                 while( inBuffer.hasData() ) {
                     if ( msg.Feed(inBuffer.read())) {
- //                       Log::log().message("USB recv : " ,msg);
+                        Log::log().message("USB recv : " ,msg);
                         msg.Decode();
                         if ( msg.isGoodCrc() ) {
                             msg.RemoveCrc();
