@@ -47,7 +47,7 @@ Str* MqttIn::topic() {
 	return &_topic;
 }
 
-Cbor* MqttIn::message() {
+Json* MqttIn::message() {
 	return &_message;
 }
 

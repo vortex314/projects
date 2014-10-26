@@ -52,18 +52,19 @@ Prop::Prop(const char* name, uint64_t& value) {
 
 #include <cstdlib>
 
-void Prop::xdrUint64(void* addr, Cmd cmd, Cbor& msg) {
+void Prop::xdrUint64(void* addr, Cmd cmd, Json& msg) {
 	if (cmd == CMD_GET)
 		msg.add(*((uint64_t*) addr));
 	else if (cmd == CMD_PUT) {
-		CborToken cbt;
-		msg.readToken(cbt);
-		if (cbt.type == C_PINT)
-			*((uint64_t*) addr) = cbt.u._uint64;
+		Variant v;
+		PackType t;
+		msg.readToken(t,v);
+		if (t == P_PINT)
+			*((uint64_t*) addr) = v._uint64;
 	}
 }
 
-void Prop::xdrString(void* addr, Cmd cmd, Cbor& msg) {
+void Prop::xdrString(void* addr, Cmd cmd, Json& msg) {
 	if (cmd == CMD_GET)
 		msg.add((const char*) addr);
 	else if (cmd == CMD_PUT) {
@@ -88,7 +89,7 @@ Prop::findProp(Str& name) {
 extern Str putPrefix;
 extern Str getPrefix;
 
-void Prop::set(Str& topic, Cbor& message) {
+void Prop::set(Str& topic, Json& message) {
 	Str str(30);
 
 	if (topic.startsWith(putPrefix)) {
@@ -173,7 +174,7 @@ void PropMgr::publishing(Msg& event) {
 			_topic = _cursor->_name;
 			_topic << ".META";
 			_message.clear();
-			Cbor msg(_message);
+			Json msg(_message);
 			msg.addMap(3);
 			msg.add("type").add(sType[_cursor->_flags.type]);
 			msg.add("mode").add(sMode[_cursor->_flags.mode]);

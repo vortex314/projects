@@ -115,17 +115,21 @@ void eventPump() {
 //*****************************************************************************
 #include "BipBuffer.h"
 #include "Msg.h"
+#include "Uart.h"
 
 #include "Cbor.h"
 
+extern void uartTest();
 
 int main(void) {
 
 
 	Board::init();	// initialize usb
 	Usb::init();
-	Usb usb;	// usb active object
-	Mqtt mqtt(usb);	// mqtt active object
+	Uart::init();
+//	Usb usb;	// usb active object
+	Uart uart0;
+	Mqtt mqtt(uart0);	// mqtt active object
 
 	PropMgr propertyListener(mqtt);
 	uint64_t clock = Sys::upTime() + 100;

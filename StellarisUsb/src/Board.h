@@ -27,6 +27,8 @@ public:
 	static char* processor();
 	static uint64_t processorRevision();
 	static float getTemp();
+	static void disableInterrupts();
+	static void enableInterrupts();
 };
 #endif
 #endif /* BOARD_H_ */

@@ -11,6 +11,8 @@
 #include "Event.h"
 #include "Str.h"
 #include "Cbor.h"
+#include "Packer.h"
+#include "Json.h"
 #define TOPIC_LEN  100
 #define MSG_LEN    256
 
@@ -24,7 +26,7 @@ public:
     uint8_t _returnCode;
     uint16_t _messageId;
     Str _topic;
-    Cbor _message;
+    Json _message;
 
     enum RecvState
     {
@@ -52,7 +54,7 @@ public:
     void readUtf(Str* str);
     void readBytes(Bytes* b, int length);
      Str* topic();
-     Cbor* message();
+     Json* message();
      void toString(Str& str);
 };
 

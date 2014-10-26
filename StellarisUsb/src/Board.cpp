@@ -24,6 +24,9 @@
 #include "driverlib/systick.h"
 #include "driverlib/adc.h"
 #include "Board.h"
+#include <stdio.h>
+#include <string.h>
+
 
 char *Board::processor() {
 	return (char *) "LM4F120H5QR";
@@ -32,6 +35,13 @@ char *Board::processor() {
 uint64_t Board::processorRevision() {
 	uint64_t l = SYSCTL_DID1_R;
 	return (l << 32) + SYSCTL_DID0_R;
+}
+
+void Board::disableInterrupts() {
+//	IntMasterDisable();
+}
+void Board::enableInterrupts() {
+//	 IntMasterEnable();
 }
 
 //*****************************************************************************
@@ -211,11 +221,10 @@ bool Board::isButtonPressed(Button button) {
 float fTempValueC;
 uint32_t ui32TempAvg;
 
-
 extern "C" void ADC0IntHandler(void) // NOT started yet !!!!
 		{
 	uint32_t ui32ADC0Value[4]; //used for storing data from ADC FIFO, must be as large as the FIFO for sequencer in use. Sequencer 1 has FIFO depth of 4
-	 //variables that cannot be optimized out by compiler
+	//variables that cannot be optimized out by compiler
 
 	ADCIntClear(ADC0_BASE, 1); //clear interrupt flag
 	ADCSequenceDataGet(ADC0_BASE, 1, ui32ADC0Value);
@@ -233,9 +242,9 @@ void AdcInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 1, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
-			ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
-	ADCIntEnable(ADC0_BASE, 1);
-	IntEnable(INT_ADC0SS1);
+	ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
+//	ADCIntEnable(ADC0_BASE, 1);
+//	IntEnable(INT_ADC0SS1);
 	ADCSequenceEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 }
@@ -302,23 +311,23 @@ void Board::init() // initialize the board specifics
 }
 
 float Board::getTemp() {
-/*	float ulTempValueC;
-	unsigned long ulADC0Value[4], ulTempAvg;
-//	ADCIntClear(ADC0_BASE, 1);
-//	ADCIntEnable(ADC0_BASE, 1);
-	ADCProcessorTrigger(ADC0_BASE, 1);
-	while (!ADCIntStatus(ADC0_BASE, 1, false)) {
-	}
-	SysCtlDelay(100000);
-	ADCSequenceDataGet(ADC0_BASE, 1, ulADC0Value);
-	if (ulADC0Value[0] == 0)
-		ADCInit();
-	ulTempAvg = (ulADC0Value[0] + ulADC0Value[1] + ulADC0Value[2]
-			+ ulADC0Value[3] + 2) / 4;
-	ulTempValueC = (1475.0 - ((2475.0 * ulTempAvg)) / 4096) / 10;*/
-	if ( ui32TempAvg==0 )
+	/*	float ulTempValueC;
+	 unsigned long ulADC0Value[4], ulTempAvg;
+	 //	ADCIntClear(ADC0_BASE, 1);
+	 //	ADCIntEnable(ADC0_BASE, 1);
+	 ADCProcessorTrigger(ADC0_BASE, 1);
+	 while (!ADCIntStatus(ADC0_BASE, 1, false)) {
+	 }
+	 SysCtlDelay(100000);
+	 ADCSequenceDataGet(ADC0_BASE, 1, ulADC0Value);
+	 if (ulADC0Value[0] == 0)
+	 ADCInit();
+	 ulTempAvg = (ulADC0Value[0] + ulADC0Value[1] + ulADC0Value[2]
+	 + ulADC0Value[3] + 2) / 4;
+	 ulTempValueC = (1475.0 - ((2475.0 * ulTempAvg)) / 4096) / 10;*/
+	if (ui32TempAvg == 0)
 		AdcInit();
-	fTempValueC = (1475.0 - ((2475.0 * ui32TempAvg)) / 4096) / 10; 	//TEMP = 147.5 – ((75 * (VREFP – VREFN) * ADCVALUE) / 4096) multiply by 10 to keep precision and then div by 10 at end
+	fTempValueC = (1475.0 - ((2475.0 * ui32TempAvg)) / 4096) / 10; //TEMP = 147.5 – ((75 * (VREFP – VREFN) * ADCVALUE) / 4096) multiply by 10 to keep precision and then div by 10 at end
 	return fTempValueC;
 }
 

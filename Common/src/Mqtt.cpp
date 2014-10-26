@@ -33,7 +33,7 @@ class MqttSub: public Fsm {
 private:
 	Mqtt& _mqtt;
 	Str _topic;
-	Cbor _message;
+	Json _message;
 	uint16_t _messageId;
 	Flags _flags;
 	uint8_t _header;
@@ -42,7 +42,7 @@ private:
 public:
 	MqttSub(Mqtt& mqtt);
 
-	bool send(Flags flags, uint16_t id, Str& topic, Cbor& msg);
+	bool send(Flags flags, uint16_t id, Str& topic, Json& msg);
 	void Publish();
 	void sleep(Msg& event);
 	void ready(Msg& event);
@@ -103,9 +103,10 @@ void Mqtt::sleep(Msg& event) {
 	switch (event.sig()) {
 	case SIG_ENTRY: {
 		Msg::publish(SIG_MQTT_DISCONNECTED);
+		_link.connect();
 		break;
 	}
-	case SIG_USB_CONNECTED: {
+	case SIG_LINK_CONNECTED: {
 		TRAN(Mqtt::connecting);
 		break;
 	}
@@ -142,7 +143,8 @@ void Mqtt::connecting(Msg& event) {
 		}
 		break;
 	}
-	case SIG_USB_DISCONNECTED: {
+	case SIG_LINK_DISCONNECTED:
+	case SIG_MQTT_DISCONNECTED :{
 		TRAN(Mqtt::sleep);
 		break;
 	}
@@ -196,7 +198,8 @@ void Mqtt::subscribing(Msg& event) {
 
 		break;
 	}
-	case SIG_USB_DISCONNECTED: {
+	case SIG_LINK_DISCONNECTED:
+		case SIG_MQTT_DISCONNECTED :{
 		TRAN(Mqtt::sleep);
 		break;
 	}
@@ -212,9 +215,10 @@ void Mqtt::subscribing(Msg& event) {
 
 void Mqtt::waitDisconnect(Msg& event) {
 	switch (event.sig()) {
-	case SIG_USB_DISCONNECTED: {
+	case SIG_LINK_DISCONNECTED:
+		case SIG_MQTT_DISCONNECTED :{
 		Msg::publish(SIG_MQTT_DISCONNECTED);
-		TRAN(Mqtt::connecting);
+		TRAN(Mqtt::sleep);
 		break;
 	}
 	default: {
@@ -248,6 +252,7 @@ bool Mqtt::isConnected() {
 }
 
 Erc Mqtt::disconnect() {
+	Msg::publish(SIG_MQTT_DISCONNECTED);
 	return E_OK;
 }
 

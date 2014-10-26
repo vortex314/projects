@@ -63,7 +63,7 @@ typedef struct {
 typedef enum {
 	CMD_GET, CMD_DESC, CMD_PUT
 } Cmd;
-typedef void (*Xdr)(void*, Cmd, Cbor&);
+typedef void (*Xdr)(void*, Cmd, Json&);
 
 class Mqtt;
 
@@ -85,9 +85,9 @@ public:
 	void init(const char* name, void* instance, Xdr xdr, Flags flags);
 
 	static Prop* findProp(Str& name);
-	static void set(Str& topic, Cbor& message);
-	static void xdrUint64(void* addr, Cmd cmd, Cbor& strp);
-	static void xdrString(void* addr, Cmd cmd, Cbor& strp);
+	static void set(Str& topic, Json& message);
+	static void xdrUint64(void* addr, Cmd cmd, Json& strp);
+	static void xdrString(void* addr, Cmd cmd, Json& strp);
 
 	void updated();
 	static void publishAll();
@@ -99,7 +99,7 @@ private:
 	Mqtt& _mqtt;
 	struct pt t;
 	Str _topic;
-	Cbor _message;
+	Json _message;
 	Prop* _cursor;
 	bool _publishMeta;
 

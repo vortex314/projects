@@ -1,39 +1,23 @@
 #ifndef CBOR_H
 #define CBOR_H
 #include "Bytes.h"
+#include "Packer.h"
 #include "Str.h"
 #include "errno.h"
-
+/*
 typedef enum {
-	C_PINT = 0, C_NINT, C_BYTES, C_STRING, C_ARRAY, C_MAP, C_TAG, C_SPECIAL = 7, // major types
-	C_BOOL,
-	C_FLOAT,
-	C_DOUBLE,
-	C_BREAK,
-	C_NILL,
-	C_ERROR
+	P_PINT = 0, P_NINT, P_BYTES, P_STRING, P_ARRAY, P_MAP, P_TAG, P_SPECIAL = 7, // major types
+	P_BOOL,
+	P_FLOAT,
+	P_DOUBLE,
+	P_BREAK,
+	P_NILL,
+	P_ERROR
 } // minor additional types
 CborType;
+*/
 
-typedef struct cborToken {
-	CborType type;
-	uint64_t value;
-	union {
-		uint64_t _uint64;
-		int64_t _int64;
-		double _double;
-		float _float;
-		uint8_t* pb;
-		bool _bool;
-	} u;
-} CborToken;
-
-class CborListener {
-public:
-	virtual Erc onToken(CborToken& token)=0;
-};
-
-class Cbor: public Bytes {
+class Cbor: public Bytes,public Packer {
 public:
 	Cbor(uint8_t* pb, uint32_t size);
 	Cbor(uint32_t size);
@@ -52,17 +36,17 @@ public:
 	Cbor& addArray(int size);
 	Cbor& addTag(int nr);
 	Cbor& addBreak();
+	Cbor& addNull();
 
-	Erc readToken(CborToken& token);
+	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);
-	CborType parse(CborListener& listener);
 
 protected:
 private:
-	void addToken(CborType type, uint64_t data);
+	void addToken(PackType type, uint64_t data);
 	void addHeader(uint8_t major, uint8_t minor);
 	uint64_t getUint64(int length);
-	CborType tokenToString(Str& str);
+	PackType tokenToString(Str& str);
 
 };
 
