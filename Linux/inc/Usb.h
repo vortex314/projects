@@ -22,6 +22,7 @@ class Usb :public Link,public Sequence  {
         int handler(Event* event);
 
         void setDevice(const char* device) ;
+        void setBaudrate(uint32_t baud);
         int fd();
     private :
     uint8_t read() ;
@@ -29,6 +30,7 @@ class Usb :public Link,public Sequence  {
         struct pt t;
         int _fd;
         const char* _device;
+        uint32_t _baudrate;
         bool _isComplete;
         MqttIn msg;
         CircBuf inBuffer;

@@ -11,35 +11,98 @@ const int Usb::FREE=Event::nextEventId("USB::FREE");
 #include <termios.h>
 #include "Log.h"
 
-Usb::Usb(const char* device) : msg(100),inBuffer(256) {
+typedef struct
+{
+    uint32_t baudrate;
+    uint32_t symbol;
+} BAUDRATE;
+BAUDRATE BAUDRATES[]=
+{
+    {50,  B50	},
+    {75, B75	},
+    {110,  B110	},
+    {134,  B134	},
+    {150,  B150	},
+    {200,  B200	},
+    {300,  B300	},
+    {600,  B600	},
+    {1200,  B1200	},
+    {1800,  B1800	},
+    {2400,  B2400	},
+    {4800,  B4800	},
+    {9600,  B9600	},
+    {19200,  B19200	},
+    {38400,  B38400	},
+    {57600,  B57600   },
+    {115200,  B115200  },
+    {230400,  B230400  },
+    {460800,  B460800  },
+    {500000,  B500000  },
+    {576000,  B576000  },
+    {921600,  B921600  },
+    {1000000,  B1000000 },
+    {1152000,  B1152000 },
+    {1500000,  B1500000 },
+    {2000000,  B2000000 },
+    {2500000,  B2500000 },
+    {3000000,  B3000000 },
+    {3500000,  B3500000 },
+    {4000000,  B4000000 }
+};
+
+Usb::Usb(const char* device) : msg(100),inBuffer(256)
+{
     _device =  device;
     isConnected(false);
     _fd=0;
     PT_INIT(&t);
     _isComplete = false;
-    }
+}
 
-void Usb::setDevice(const char* device){
+void Usb::setDevice(const char* device)
+{
     _device =  device;
 }
 
-Erc Usb::connect() {
+void Usb::setBaudrate(uint32_t baudrate)
+{
+    _baudrate =  baudrate;
+}
+#include <stdio.h>
+#include <stdlib.h>
+uint32_t baudSymbol(uint32_t value)
+{
+    char buffer[30];
+    int structSize=sizeof(BAUDRATE);
+    for(int i=0; i<sizeof(BAUDRATES)/sizeof(BAUDRATE); i++)
+        if ( BAUDRATES[i].baudrate == value) return BAUDRATES[i].symbol;
+    Log::log() <<  "USB connect: baudrate " ;
+    sprintf(buffer,"%d",value);
+    Log::log() << buffer;
+    Log::log() << " not found, default to 115200.";
+    Log::log().flush();
+    return B115200;
+}
+
+Erc Usb::connect()
+{
     struct termios options;
     Log::log() << " USB Connecting to " << _device  << " ...";
     Log::log().flush();
 
     _fd = ::open(_device, O_RDWR | O_NOCTTY | O_NDELAY);
 
-    if (_fd == -1) {
+    if (_fd == -1)
+    {
         Log::log() <<  "USB connect: Unable to open " << _device << " : "<< strerror(errno);
         Log::log().flush();
         return E_AGAIN;
-        }
+    }
     fcntl(_fd, F_SETFL, FNDELAY);
 
     tcgetattr(_fd, &options);
-    cfsetispeed(&options, B1000000);
-    cfsetospeed(&options, B1000000);
+    cfsetispeed(&options, baudSymbol(_baudrate));
+    cfsetospeed(&options, baudSymbol(_baudrate));
 
 
     options.c_cflag |= (CLOCAL | CREAD);
@@ -54,119 +117,145 @@ Erc Usb::connect() {
 
 
     tcsetattr(_fd, TCSANOW, &options);
-    Log::log() << " USB set baudrate to 1Mb ";
+    char buffer[100];
+    sprintf(buffer," USB set baudrate to %d ",_baudrate);
+    Log::log() << buffer ;
     Log::log().flush();
     Log::log() << "USB open " << _device << " succeeded.";
     Log::log().flush();
     isConnected(true);
     return E_OK;
-    }
-Erc Usb::disconnect() {
+}
+Erc Usb::disconnect()
+{
     isConnected(false);
     _isComplete=false;
     if ( ::close(_fd) < 0 )   return errno;
     return E_OK;
-    }
+}
 
-Erc Usb::send(Bytes& bytes) {
+Erc Usb::send(Bytes& bytes)
+{
     Log::log().message("USB send : ",bytes);
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
 //    Log::log().message("USB send full : ",bytes);
     int count = ::write(_fd,bytes.data(),bytes.length());
-    if ( count != bytes.length()) {
+    if ( count != bytes.length())
+    {
         disconnect();
         return errno;
-        }
-    return E_OK;
     }
+    return E_OK;
+}
 
-uint8_t Usb::read() {
+uint8_t Usb::read()
+{
     uint8_t b;
-    if (::read(_fd,&b,1)<0) {
+    if (::read(_fd,&b,1)<0)
+    {
         perror(" Usb read failed");
         return 0;
-        }
-        fprintf(stdout,".");
-        fflush(stdout);
-    return b;
     }
+    fprintf(stdout,".");
+    fflush(stdout);
+    return b;
+}
 
-    #include <sys/ioctl.h>
-uint32_t Usb::hasData(){
+#include <sys/ioctl.h>
+uint32_t Usb::hasData()
+{
     int count;
     int rc = ioctl(_fd, FIONREAD, (char *) &count);
-    if (rc < 0) {
+    if (rc < 0)
+    {
         perror("ioctl failed");
         isConnected(false);
         return 0;
-        }
-        return count;
+    }
+    return count;
 }
 
-int Usb::handler ( Event* event ) {
+int Usb::handler ( Event* event )
+{
     uint8_t b;
     uint32_t i;
     uint32_t count;
 
-    if ( event->is(Usb::ERROR )) {
+    if ( event->is(Usb::ERROR ))
+    {
         disconnect();
         connect();
         return 0;
-        }
+    }
     PT_BEGIN ( &t );
-    while(true) {
-        while( isConnected()) {
+    while(true)
+    {
+        while( isConnected())
+        {
             PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
-            if ( event->is(RXD) &&  hasData()) {
+            if ( event->is(RXD) &&  hasData())
+            {
                 count =hasData();
-                for(i=0;i<count;i++){
+                for(i=0; i<count; i++)
+                {
                     b=read();
                     inBuffer.write(b);
-                    }
                 }
-            else if ( event->is(FREE)) { // re-use buffer after message handled
+            }
+            else if ( event->is(FREE))   // re-use buffer after message handled
+            {
                 _isComplete=false;
                 msg.clear();
-                };
-            if ( inBuffer.hasData() && (_isComplete==false) ) {
-                while( inBuffer.hasData() ) {
-                    if ( msg.Feed(inBuffer.read())) {
+            };
+            if ( inBuffer.hasData() && (_isComplete==false) )
+            {
+                while( inBuffer.hasData() )
+                {
+                    if ( msg.Feed(inBuffer.read()))
+                    {
                         Log::log().message("USB recv : " ,msg);
                         msg.Decode();
-                        if ( msg.isGoodCrc() ) {
+                        if ( msg.isGoodCrc() )
+                        {
                             msg.RemoveCrc();
 //                            Log::log().message("USB -> TCP : " ,msg);
                             publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
                             _isComplete=true;
                             break;
-                            }
-                        else {
+                        }
+                        else
+                        {
                             msg.clear(); // throw away bad data
-                            }
                         }
                     }
                 }
-            PT_YIELD ( &t );
             }
-        PT_YIELD_UNTIL ( &t,isConnected() );
+            PT_YIELD ( &t );
         }
+        PT_YIELD_UNTIL ( &t,isConnected() );
+    }
 
     PT_END ( &t );
-    }
+}
 
-MqttIn* Usb::recv() {
-    if ( _isComplete ) {
+MqttIn* Usb::recv()
+{
+    if ( _isComplete )
+    {
         return &msg;
-        }
+    }
     return 0;
-    }
+}
 
-int Usb::fd() {
+int Usb::fd()
+{
     return _fd;
-    }
+}
+
+
 
 
 

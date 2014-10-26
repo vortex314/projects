@@ -33,10 +33,11 @@ struct
 {
     const char* host;
     uint16_t port;
+    uint32_t baudrate;
     const char* device;
-} context= {"localhost",1883,"/dev/mqtt"};
+} context= {"localhost",1883,115200,"/dev/ttyACM0"};
 
-Usb usb("/dev/mqtt");
+Usb usb("/dev/ttyACM0");
 Tcp tcp("localhost",1883);
 //_______________________________________________________________________________________
 //
@@ -281,6 +282,9 @@ void loadOptions(int argc,char* argv[])
         case 'd':
             context.device = optarg;
             break;
+         case 'b':
+            context.baudrate= atoi(optarg);
+            break;
         case '?':
             if (optopt == 'c')
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -305,6 +309,7 @@ int main(int argc, char *argv[] )
     loadOptions(argc,argv);
 
     usb.setDevice(context.device);
+    usb.setBaudrate(context.baudrate);
     tcp.setHost(context.host);
     tcp.setPort(context.port);
 
