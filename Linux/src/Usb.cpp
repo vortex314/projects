@@ -73,7 +73,7 @@ Erc Usb::send(Bytes& bytes) {
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
-    Log::log().message("USB send full : ",bytes);
+//    Log::log().message("USB send full : ",bytes);
     int count = ::write(_fd,bytes.data(),bytes.length());
     if ( count != bytes.length()) {
         disconnect();
@@ -137,7 +137,7 @@ int Usb::handler ( Event* event ) {
                         msg.Decode();
                         if ( msg.isGoodCrc() ) {
                             msg.RemoveCrc();
-                            Log::log().message("USB -> TCP : " ,msg);
+//                            Log::log().message("USB -> TCP : " ,msg);
                             publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
                             _isComplete=true;
