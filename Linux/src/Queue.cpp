@@ -12,8 +12,11 @@
 #define PQ ((mqd_t*)_ref)
 #define QUEUE_NAME "/MQ"
 //    mqd_t mq;
+#include <Logger.h>
+static Logger logger(256);
 Queue::Queue(uint32_t elementSize,uint32_t depth)
 {
+    logger.module("Queue");
     _ref = new mqd_t; //
     // Sys::malloc(sizeof(mqd_t));
     mqd_t* mq = (mqd_t*)_ref;
@@ -34,7 +37,7 @@ Queue::Queue(uint32_t elementSize,uint32_t depth)
     }
     if ( *mq < 0 )
     {
-        perror("mq_open");
+        logger.perror("mq_open");
         assert(false);
     }
 
@@ -57,7 +60,7 @@ Erc Queue::put(void* data)
     tm.tv_sec += 1;
     if( mq_timedsend( *mq, (const char *)data ,_msgSize, 0,  &tm )<0 )
     {
-        perror("mq_send : QUEUE FULL ?");
+        logger.perror("mq_send : QUEUE FULL ?");
         return E_AGAIN;
     }
     else
@@ -79,7 +82,7 @@ Erc Queue::get(void* data)
     mqd_t* mq = (mqd_t*)_ref;
     if ( mq_receive(*mq, (char *)data ,msgSize,&prio) < 0 )
     {
-        perror("mq_receive");
+        logger.perror("mq_receive");
         return E_AGAIN;
     };
     return E_OK;
