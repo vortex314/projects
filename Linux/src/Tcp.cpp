@@ -44,17 +44,19 @@ bool Tcp::isConnected() {
     }
 
 Erc Tcp::connect() {
-    logger.info() << " TCP Connecting to " << _host << " : " << _port << " ...";
+    logger.info() << " connect() to " << _host << " : " << _port << " ...";
     logger.flush();
     struct sockaddr_in serv_addr;
     struct hostent *server;
     /* Create a socket point */
     _sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (_sockfd < 0) {
+        logger.perror("socket()").flush();
         return E_INVAL;
         }
     server = gethostbyname(_host);
     if (server == NULL) {
+        logger.perror("gethostbyname()").flush();
         return E_NOT_FOUND;
         }
 
@@ -67,11 +69,11 @@ Erc Tcp::connect() {
 
     /* Now connect to the server */
     if (::connect(_sockfd,(const sockaddr*)&serv_addr,sizeof(serv_addr)) < 0) {
-        logger.error().perror(" socket connect()  " ).flush() ;
+        logger.perror(" socket connect()  " ).flush() ;
         return E_CONN_LOSS;
         }
     _connected=true;
-    logger.info() <<  "Tcp connect: connected to " << _host << " : " << _port;
+    logger.info() <<  "connect() connected to " << _host << " : " << _port;
     logger.flush();
     return E_OK;
     }
@@ -94,7 +96,7 @@ uint8_t Tcp::read() {
     n=::read(_sockfd,&b,1) ;
     if (n <= 0) {
         _connected=false;
-        logger.perror("read failure");
+        logger.perror("read()");
         return -1;
         }
     return b;
@@ -106,7 +108,7 @@ Erc Tcp::send(Bytes& bytes) {
  //   Log::log().message("TCP send : " ,bytes);
     n=write(_sockfd,bytes.data(),bytes.length()) ;
     if (n < 0) {
-        logger.perror("write failed");
+        logger.perror("write()");
         _connected=false;
         return E_CONN_LOSS;
         }
@@ -118,7 +120,7 @@ uint32_t Tcp::hasData(){
     int count;
     int rc = ioctl(_sockfd, FIONREAD, (char *) &count);
     if (rc < 0) {
-        logger.perror("ioctl failed");
+        logger.perror("ioctl()");
         _connected=false;
         return E_CONN_LOSS;
         }
@@ -137,7 +139,7 @@ int Tcp::handler ( Event* event ) {
                     b=read();
                     msg.add(b);
                     if (  msg.complete() ) {
-                        logger.debug()<<"TCP -> USB : " <<msg; logger.flush();
+                        logger.debug()<<"-> USB : " <<msg; logger.flush();
                         msg.parse();
                         publish(MESSAGE);
                         publish(FREE);

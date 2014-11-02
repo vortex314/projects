@@ -23,6 +23,7 @@ class Usb :public Link,public Sequence  {
 
         void setDevice(const char* device) ;
         void setBaudrate(uint32_t baud);
+        void logStats();
         int fd();
     private :
     uint8_t read() ;

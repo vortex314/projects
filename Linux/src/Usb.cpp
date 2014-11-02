@@ -56,7 +56,7 @@ BAUDRATE BAUDRATES[]=
 
 Usb::Usb(const char* device) : msg(100),inBuffer(256)
 {
-    logger.module("USB");
+    logger.module("Usb");
     _device =  device;
     isConnected(false);
     _fd=0;
@@ -123,6 +123,20 @@ Erc Usb::connect()
     isConnected(true);
     return E_OK;
 }
+#include <linux/serial.h>
+#include <sys/ioctl.h>
+void Usb::logStats()
+{
+    struct serial_icounter_struct counters;
+    int rc = ioctl(_fd, TIOCGICOUNT, &counters);
+    if ( rc < 0 )
+    {
+        logger.error().perror("ioctl TIOCGICOUNT failed").flush();
+        return;
+    }
+    logger.info() << " overrun : " << counters.buf_overrun;
+}
+
 Erc Usb::disconnect()
 {
     isConnected(false);
@@ -133,7 +147,8 @@ Erc Usb::disconnect()
 
 Erc Usb::send(Bytes& bytes)
 {
-//   Log::log().message("USB send : ",bytes);
+    logger.debug()<< "send() " << bytes;
+    logger.flush();
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
@@ -143,7 +158,9 @@ Erc Usb::send(Bytes& bytes)
     if ( count != bytes.length())
     {
         disconnect();
-        return errno;
+        logger.perror("send() failed");
+        logger.flush();
+        return E_AGAIN;
     }
     return E_OK;
 }
@@ -153,7 +170,7 @@ uint8_t Usb::read()
     uint8_t b;
     if (::read(_fd,&b,1)<0)
     {
-        logger.level(Logger::WARN).module("USB")<<"read failed : "<<strerror(errno);
+        logger.level(Logger::WARN).perror("read() failed : ");
         logger.flush();
         return 0;
     }
@@ -169,7 +186,7 @@ uint32_t Usb::hasData()
     int rc = ioctl(_fd, FIONREAD, (char *) &count);
     if (rc < 0)
     {
-        logger.level(Logger::WARN)<<"ioctl failed : "<<strerror(errno);
+        logger.level(Logger::WARN).perror("ioctl() ");
         logger.flush();
         isConnected(false);
         return 0;
@@ -185,6 +202,8 @@ int Usb::handler ( Event* event )
 
     if ( event->is(Usb::ERROR ))
     {
+        logger.level(Logger::WARN) << " error occured. Reconnecting.";
+        logger.flush();
         disconnect();
         connect();
         return 0;
@@ -232,6 +251,7 @@ int Usb::handler ( Event* event )
                         {
                             logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
                             logger.flush();
+                            logStats();
                             msg.isGoodCrc();
                             msg.clear(); // throw away bad data
                         }

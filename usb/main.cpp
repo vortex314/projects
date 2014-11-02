@@ -210,6 +210,10 @@ public:
                 if ( mqttIn->length() >1 )   // sometimes bad message
                 {
                     mqttIn->parse();
+                    Str str(100);
+                    mqttIn->toString(str);
+                    logger.info()<< str;
+                    logger.flush();
                     if ( mqttIn->type() == MQTT_MSG_CONNECT )
                     {
                         if ( !tcp.isConnected())   // ignore connect mqqt messages when already connected
