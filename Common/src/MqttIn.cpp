@@ -47,7 +47,7 @@ Str* MqttIn::topic() {
 	return &_topic;
 }
 
-Json* MqttIn::message() {
+Bytes* MqttIn::message() {
 	return &_message;
 }
 

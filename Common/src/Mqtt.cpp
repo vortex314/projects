@@ -19,7 +19,7 @@ Str prefix(20);
 
 uint16_t gMessageId = 1;
 
-uint16_t nextMessageId() {
+uint16_t Mqtt::nextMessageId() {
 	return ++gMessageId;
 }
 
@@ -33,7 +33,7 @@ class MqttSub: public Fsm {
 private:
 	Mqtt& _mqtt;
 	Str _topic;
-	Json _message;
+	Bytes _message;
 	uint16_t _messageId;
 	Flags _flags;
 	uint8_t _header;
@@ -42,7 +42,7 @@ private:
 public:
 	MqttSub(Mqtt& mqtt);
 
-	bool send(Flags flags, uint16_t id, Str& topic, Json& msg);
+	bool send(Flags flags, uint16_t id, Str& topic, Bytes& msg);
 	void Publish();
 	void sleep(Msg& event);
 	void ready(Msg& event);
@@ -359,7 +359,7 @@ bool MqttPub::send(Flags flags, uint16_t id, Str& topic, Bytes& message) {
 	if (!Fsm::isInState(static_cast<SF>(&MqttPub::ready)))
 		return false;
 
-	_messageId = nextMessageId();
+	_messageId = Mqtt::nextMessageId();
 	_topic = topic;
 	_message = message;
 	_flags = flags;
@@ -381,7 +381,7 @@ void MqttPub::ready(Msg& event) {
 		break;
 	}
 	case SIG_MQTT_DO_PUBLISH: {
-		_messageId = nextMessageId();
+		_messageId = Mqtt::nextMessageId();
 		if (_flags.qos == QOS_0) {
 			Publish();
 			TRAN(MqttPub::ready);

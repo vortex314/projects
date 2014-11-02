@@ -10,9 +10,9 @@
 
 #include "Packer.h"
 
-class Json : public Str,public Packer  {
+class Json : public Packer  {
 public:
-	Json(uint8_t* pb, uint32_t size);
+	Json(Str& bytes);
 	Json(uint32_t size);
 	virtual ~Json();
 
@@ -42,6 +42,7 @@ private:
 	PackType tokenToString(Str& str);
 	char _break[10];
 	int _breakIndex;
+	Str& _str;
 };
 
 #endif /* JSON_H_ */

@@ -17,9 +17,9 @@ typedef enum {
 CborType;
 */
 
-class Cbor: public Bytes,public Packer {
+class Cbor: public Packer {
 public:
-	Cbor(uint8_t* pb, uint32_t size);
+	Cbor(Bytes& dst);
 	Cbor(uint32_t size);
 	virtual ~Cbor();
 
@@ -47,6 +47,7 @@ private:
 	void addHeader(uint8_t major, uint8_t minor);
 	uint64_t getUint64(int length);
 	PackType tokenToString(Str& str);
+	Bytes& _bytes;
 
 };
 

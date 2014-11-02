@@ -52,26 +52,25 @@ Prop::Prop(const char* name, uint64_t& value) {
 
 #include <cstdlib>
 
-void Prop::xdrUint64(void* addr, Cmd cmd, Json& msg) {
-	if (cmd == CMD_GET)
+void Prop::xdrUint64(void* addr, Cmd cmd, Bytes& message) {
+	Cbor msg(message);
+	if (cmd == (CMD_GET)) {
 		msg.add(*((uint64_t*) addr));
-	else if (cmd == CMD_PUT) {
+	} else if (cmd == CMD_PUT) {
 		Variant v;
 		PackType t;
-		msg.readToken(t,v);
+		msg.readToken(t, v);
 		if (t == P_PINT)
 			*((uint64_t*) addr) = v._uint64;
 	}
 }
 
-void Prop::xdrString(void* addr, Cmd cmd, Json& msg) {
-	if (cmd == CMD_GET)
+void Prop::xdrString(void* addr, Cmd cmd, Bytes& message) {
+	Cbor msg(message);
+	if (cmd == (CMD_GET)){
 		msg.add((const char*) addr);
+			}
 	else if (cmd == CMD_PUT) {
-		int i = 0;
-		msg.offset(0);
-		while (msg.hasData())
-			((char*) addr)[i++] = msg.read();
 	}
 }
 
@@ -89,7 +88,7 @@ Prop::findProp(Str& name) {
 extern Str putPrefix;
 extern Str getPrefix;
 
-void Prop::set(Str& topic, Json& message) {
+void Prop::set(Str& topic, Bytes& message) {
 	Str str(30);
 
 	if (topic.startsWith(putPrefix)) {
@@ -167,19 +166,20 @@ void PropMgr::publishing(Msg& event) {
 			_topic = _cursor->_name;
 			_message.clear();
 			_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
-			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+			_mqtt.Publish(_cursor->_flags, Mqtt::nextMessageId(), _topic, _message);
 			timeout(UINT32_MAX);
 		} else if (_cursor->_flags.publishMeta) {
 			_publishMeta = true;
 			_topic = _cursor->_name;
 			_topic << ".META";
 			_message.clear();
-			Json msg(_message);
-			msg.addMap(3);
+			Cbor msg(_message);
+			msg.addMap(-1);
 			msg.add("type").add(sType[_cursor->_flags.type]);
 			msg.add("mode").add(sMode[_cursor->_flags.mode]);
 			msg.add("qos").add(sQos[_cursor->_flags.qos]);
-			_mqtt.Publish(_cursor->_flags, 0xBEAF, _topic, _message);
+			msg.addBreak();
+			_mqtt.Publish(_cursor->_flags, Mqtt::nextMessageId(), _topic, _message);
 			timeout(UINT32_MAX);
 		} else {
 			nextProp();

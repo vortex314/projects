@@ -56,6 +56,7 @@ public:
 
 
 const int Mqtt::RXD=Event::nextEventId("Mqtt::RXD");
+ int Timer::TICK =Event::nextEventId("Timer::TICK");
 
 class EventLogger : public Sequence
 {
