@@ -26,10 +26,10 @@
 #include "driverlib/rom.h"
 #include "driverlib/uart.h"
 
-Uart* gUart0;
+Uart* gUart0=new Uart();
 
 Uart::Uart() :
-		_in(100), _out(100) ,_mqttIn(256){
+		_in(100), _out(256), _mqttIn(256) {
 	gUart0 = this;
 }
 // initialize UART at 1MB 8N1
@@ -63,6 +63,7 @@ Erc Uart::send(Bytes& bytes) {
 	bytes.Encode();
 	bytes.Frame();
 	bytes.offset(0);
+//	if ( _out.space() < bytes.length  ) return E_AGAIN;
 	while (_out.hasSpace() && bytes.hasData()) {
 		_out.write(bytes.read());
 	}
@@ -122,22 +123,22 @@ void Uart::dispatch(Msg& event) {
 		break;
 	}
 	default: {
+		if (_in.hasData())
+			Msg::publish(SIG_LINK_RXD);
 	}
-		;
 	}
 }
-
 
 extern "C" void UART0IntHandler(void) {
 	unsigned long ulStatus;
 
-	ulStatus = ROM_UARTIntStatus(UART0_BASE, true); // Get the interrrupt status.
-	ROM_UARTIntClear(UART0_BASE, ulStatus); // Clear the asserted interrupts.
+	ulStatus = UARTIntStatus(UART0_BASE, true); // Get the interrrupt status.
+	UARTIntClear(UART0_BASE, ulStatus); // Clear the asserted interrupts.
 	if (ulStatus & UART_INT_RX) {
-		while (ROM_UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
-			gUart0->_in.write(ROM_UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
+		while (UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
+			if ( gUart0 ) gUart0->_in.write(UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
 		}
-		Msg::publish(SIG_LINK_RXD);
+//LMR		Msg::publish(SIG_LINK_RXD);
 	}
 	if (ulStatus & UART_INT_TX) {
 		while (UARTSpaceAvail(UART0_BASE) && gUart0->_out.hasData()) {

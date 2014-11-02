@@ -243,8 +243,8 @@ void AdcInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
 	ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
-//	ADCIntEnable(ADC0_BASE, 1);
-//	IntEnable(INT_ADC0SS1);
+	ADCIntEnable(ADC0_BASE, 1);
+	IntEnable(INT_ADC0SS1);
 	ADCSequenceEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 }
@@ -261,7 +261,7 @@ void Board::init() // initialize the board specifics
 	//
 	// Set the clocking to run from the PLL at 50MHz
 	//
-	ROM_SysCtlClockSet(
+	SysCtlClockSet(
 	SYSCTL_SYSDIV_1 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 	IntMasterEnable(); // Enable interrupts to the processor.
 	// Set up the period for the SysTick timer for 1 mS.
