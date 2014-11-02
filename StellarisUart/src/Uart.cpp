@@ -63,7 +63,8 @@ Erc Uart::send(Bytes& bytes) {
 	bytes.Encode();
 	bytes.Frame();
 	bytes.offset(0);
-//	if ( _out.space() < bytes.length  ) return E_AGAIN;
+	if ( _out.space() < bytes.length()  )
+		return E_AGAIN;
 	while (_out.hasSpace() && bytes.hasData()) {
 		_out.write(bytes.read());
 	}
