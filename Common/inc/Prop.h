@@ -13,7 +13,6 @@
 #include "Fsm.h"
 #include "Bytes.h"
 #include "Mqtt.h"
-#include "Cbor.h"
 
 enum Type {
 	T_UINT8,
@@ -63,7 +62,7 @@ typedef struct {
 typedef enum {
 	CMD_GET, CMD_DESC, CMD_PUT
 } Cmd;
-typedef void (*Xdr)(void*, Cmd, Json&);
+typedef void (*Xdr)(void*, Cmd, Bytes&);
 
 class Mqtt;
 
@@ -85,9 +84,9 @@ public:
 	void init(const char* name, void* instance, Xdr xdr, Flags flags);
 
 	static Prop* findProp(Str& name);
-	static void set(Str& topic, Json& message);
-	static void xdrUint64(void* addr, Cmd cmd, Json& strp);
-	static void xdrString(void* addr, Cmd cmd, Json& strp);
+	static void set(Str& topic, Bytes& message);
+	static void xdrUint64(void* addr, Cmd cmd, Bytes& strp);
+	static void xdrString(void* addr, Cmd cmd, Bytes& strp);
 
 	void updated();
 	static void publishAll();
@@ -99,7 +98,7 @@ private:
 	Mqtt& _mqtt;
 	struct pt t;
 	Str _topic;
-	Json _message;
+	Bytes _message;
 	Prop* _cursor;
 	bool _publishMeta;
 

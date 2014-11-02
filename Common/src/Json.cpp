@@ -7,14 +7,14 @@
 
 #include "Json.h"
 
-
+/*
 Json::Json(uint32_t size) :
-		Str(size) {
+		_bytes(size) {
 	_breakIndex=0;
-}
+}*/
 
-Json::Json(uint8_t* pb, uint32_t size) :
-		Str(pb, size) {
+Json::Json(Str& bytes) :
+		_str(bytes) {
 	_breakIndex=0;
 }
 
@@ -32,7 +32,7 @@ uint64_t Json::getUint64(int length) {
 	uint64_t l = 0;
 	while (length) {
 		l <<= 8;
-		l += read();
+		l += _str.read();
 		length--;
 	}
 	return l;
@@ -134,88 +134,88 @@ JsonType Json::parse(JsonListener& listener) {
 }*/
 
 Json& Json::add(int i) {
-	Str::append((long )i);
+	_str.append((long )i);
 	return *this;
 }
 
 Json& Json::add(float fl) {
-	Str::append((uint32_t)fl);
+	_str.append((uint32_t)fl);
 	return *this;
 }
 Json& Json::add(double d) {
-	Str::append((uint64_t)d);
+	_str.append((uint64_t)d);
 	return *this;
 }
 Json& Json::add(Bytes& b) {
-	append("0x");
+	_str.append("0x");
 	b.offset(0);
 	while (b.hasData())
-		Str::appendHex(b.read());
+		_str.appendHex(b.read());
 
 	return *this;
 }
 Json& Json::add(Str& str) {
-	append('"');
+	_str.append('"');
 	str.offset(0);
 	while (str.hasData())
-		write(str.read());
-	append('"');
+		_str.write(str.read());
+	_str.append('"');
 	return *this;
 }
 #include <cstring>
 Json& Json::add(  const char* s) {
 	uint32_t size = strlen(s);
-	append('"');
+	_str.append('"');
 	for (uint32_t i = 0; i < size; i++)
-		append(*s++);
-	append('"');
+		_str.append(*s++);
+	_str.append('"');
 	return *this;
 }
 
 Json& Json::add(uint64_t i64) {
-	append(i64);
+	_str.append(i64);
 	return *this;
 }
 
 Json& Json::add(int64_t i64) {
-	append(i64);
+	_str.append(i64);
 	return *this;
 }
 
 Json& Json::add(bool b) {
 	if (b)
-		append("true");
+		_str.append("true");
 	else
-		append("false");
+		_str.append("false");
 	return *this;
 }
 
 Json& Json::addMap(int size) {
-	append('{');
+	_str.append('{');
 	_break[_breakIndex++]='}';
 	return *this;
 }
 
 Json& Json::addArray(int size) {
-	append('[');
+	_str.append('[');
 	_break[_breakIndex++]=']';
 	return *this;
 }
 
 Json& Json::addTag(int nr) {
-	append('(');
+	_str.append('(');
 	_break[_breakIndex++]=')';
 	return *this;
 }
 
 Json& Json::addBreak() {
-	add(_break[--_breakIndex]);
+	_str.append(_break[--_breakIndex]);
 	return *this;
 }
 
 
 Json& Json::addNull() {
-	add("null");
+	_str.append("null");
 	return *this;
 }
 

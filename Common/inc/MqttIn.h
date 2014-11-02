@@ -26,7 +26,7 @@ public:
     uint8_t _returnCode;
     uint16_t _messageId;
     Str _topic;
-    Json _message;
+    Bytes _message;
 
     enum RecvState
     {
@@ -54,7 +54,7 @@ public:
     void readUtf(Str* str);
     void readBytes(Bytes* b, int length);
      Str* topic();
-     Json* message();
+     Bytes* message();
      void toString(Str& str);
 };
 

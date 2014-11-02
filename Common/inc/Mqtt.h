@@ -70,6 +70,7 @@ public:
 	void sleep(Msg& event);
 	void subscribing(Msg& event);
 	void waitDisconnect(Msg& event);
+	static uint16_t nextMessageId();
 private:
 	void sendSubscribe(uint8_t flags);
 };

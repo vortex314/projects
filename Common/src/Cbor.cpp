@@ -1,12 +1,11 @@
 #include "Cbor.h"
 #include "Packer.h"
 
-Cbor::Cbor(uint32_t size) :
-		Bytes(size) {
-}
+/*Cbor::Cbor(uint32_t size) :
+		_bytes(size) {
+}*/
 
-Cbor::Cbor(uint8_t* pb, uint32_t size) :
-		Bytes(pb, size) {
+Cbor::Cbor(Bytes& bytes ) : _bytes(bytes) {
 }
 
 Cbor::~Cbor() {
@@ -22,9 +21,9 @@ Erc Cbor::readToken(PackType& type, Variant& v) {
 	int length;
 	uint64_t value;
 
-	if (!hasData())
+	if (!_bytes.hasData())
 		return E_NO_DATA;
-	uint8_t hdr = read();
+	uint8_t hdr = _bytes.read();
 	type = (PackType) (hdr >> 5);
 	minor = hdr & 0x1F;
 	if (minor < 24) {
@@ -81,7 +80,7 @@ uint64_t Cbor::getUint64(int length) {
 	uint64_t l = 0;
 	while (length) {
 		l <<= 8;
-		l += read();
+		l += _bytes.read();
 		length--;
 	}
 	return l;
@@ -105,16 +104,16 @@ PackType Cbor::tokenToString(Str& str) {
 		str << "0x";
 		int i;
 		for (i = 0; i < v._length; i++)
-			if (hasData())
-				str.appendHex(read());
+			if (_bytes.hasData())
+				str.appendHex(_bytes.read());
 		return P_BYTES;
 	}
 	case P_STRING: {
 		str << "\"";
 		int i;
 		for (i = 0; i < v._length; i++)
-			if (hasData())
-				str.append((char) read());
+			if (_bytes.hasData())
+				str.append((char) _bytes.read());
 		str << "\"";
 		return P_STRING;
 	}
@@ -199,12 +198,12 @@ PackType Cbor::tokenToString(Str& str) {
 }
 Erc Cbor::toString(Str& str) {
 	PackType ct;
-	offset(0);
-	while (hasData()) {
+	_bytes.offset(0);
+	while (_bytes.hasData()) {
 		ct = tokenToString(str);
 		if (ct == P_BREAK || ct == P_ERROR)
 			return E_INVAL;
-		if (hasData())
+		if (_bytes.hasData())
 			str << ",";
 	};
 	return E_OK;
@@ -317,7 +316,7 @@ Cbor& Cbor::add(float fl) {
 	f = fl;
 	addHeader(P_SPECIAL, 26);
 	for (int i = 3; i >= 0; i--)
-		write(b[i]);
+		_bytes.write(b[i]);
 	return *this;
 }
 Cbor& Cbor::add(double d) {
@@ -328,14 +327,14 @@ Cbor& Cbor::add(double d) {
 	dd = d;
 	addHeader(P_SPECIAL, 27);
 	for (int i = 7; i >= 0; i--)
-		write(b[i]);
+		_bytes.write(b[i]);
 	return *this;
 }
 Cbor& Cbor::add(Bytes& b) {
 	addToken(P_BYTES, b.length());
 	b.offset(0);
 	while (b.hasData())
-		write(b.read());
+		_bytes.write(b.read());
 
 	return *this;
 }
@@ -343,7 +342,7 @@ Cbor& Cbor::add(Str& str) {
 	addToken(P_STRING, str.length());
 	str.offset(0);
 	while (str.hasData())
-		write(str.read());
+		_bytes.write(str.read());
 
 	return *this;
 }
@@ -352,7 +351,7 @@ Cbor& Cbor::add(const char* s) {
 	uint32_t size = strlen(s);
 	addToken(P_STRING, size);
 	for (uint32_t i = 0; i < size; i++)
-		write(*s++);
+		_bytes.write(*s++);
 	return *this;
 }
 
@@ -403,36 +402,41 @@ Cbor& Cbor::addBreak() {
 	return *this;
 }
 
+Cbor& Cbor::addNull() {
+	addHeader(P_SPECIAL, 22);
+	return *this;
+}
+
 void Cbor::addToken(PackType ctype, uint64_t value) {
 	uint8_t majorType = (uint8_t) (ctype << 5);
 	if (value < 24ULL) {
-		write(majorType | value);
+		_bytes.write(majorType | value);
 	} else if (value < 256ULL) {
-		write(majorType | 24);
-		write(value);
+		_bytes.write(majorType | 24);
+		_bytes.write(value);
 	} else if (value < 65536ULL) {
-		write(majorType | 25);
-		write(value >> 8);
+		_bytes.write(majorType | 25);
+		_bytes.write(value >> 8);
 	} else if (value < 4294967296ULL) {
-		write(majorType | 26);
-		write(value >> 24);
-		write(value >> 16);
-		write(value >> 8);
-		write(value);
+		_bytes.write(majorType | 26);
+		_bytes.write(value >> 24);
+		_bytes.write(value >> 16);
+		_bytes.write(value >> 8);
+		_bytes.write(value);
 	} else {
-		write(majorType | 27);
-		write(value >> 56);
-		write(value >> 48);
-		write(value >> 40);
-		write(value >> 32);
-		write(value >> 24);
-		write(value >> 16);
-		write(value >> 8);
-		write(value);
+		_bytes.write(majorType | 27);
+		_bytes.write(value >> 56);
+		_bytes.write(value >> 48);
+		_bytes.write(value >> 40);
+		_bytes.write(value >> 32);
+		_bytes.write(value >> 24);
+		_bytes.write(value >> 16);
+		_bytes.write(value >> 8);
+		_bytes.write(value);
 	}
 }
 
 inline void Cbor::addHeader(uint8_t major, uint8_t minor) {
-	write((major << 5) | minor);
+	_bytes.write((major << 5) | minor);
 }
 
