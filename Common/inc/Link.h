@@ -10,8 +10,8 @@ class Link
 //	static const int CONNECTED,DISCONNECTED,RXD,MESSAGE,ERROR;
         Link();
         virtual ~Link();
-        bool isConnected() { return _isConnected; }
-        void isConnected(bool val) { _isConnected = val; }
+        virtual bool isConnected() { return _isConnected; }
+        virtual void isConnected(bool val) { _isConnected = val; }
 
         virtual uint8_t read()=0;
         virtual uint32_t hasData()=0;

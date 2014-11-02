@@ -107,16 +107,18 @@ Erc Usb::send(Bytes& bytes) {
 	bytes.Encode();
 	bytes.Frame();
 	bytes.offset(0);
-	while (bytes.hasData() && _out.hasSpace()) {
-		_out.write(bytes.read());
-	};
-	USBDCDCTxPacketAvailable((tUSBBuffer *) &g_sTxBuffer);
-	/*	while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
-	 && bytes.hasData()) {
-	 uint8_t b;
-	 b = bytes.read();
-	 USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b, 1);
-	 }*/
+	/*	while (bytes.hasData() && _out.hasSpace()) {
+	 _out.write(bytes.read());
+	 };
+	 USBDCDCTxPacketAvailable((tUSBBuffer *) &g_sTxBuffer);*/
+	Board::disableInterrupts();
+	while (USBBufferSpaceAvailable((tUSBBuffer *) &g_sTxBuffer)
+			&& bytes.hasData()) {
+		uint8_t b;
+		b = bytes.read();
+		USBBufferWrite((tUSBBuffer *) &g_sTxBuffer, (unsigned char *) &b, 1);
+	}
+	Board::enableInterrupts();
 	if (bytes.hasData() == false)
 		return E_OK;
 	return EAGAIN;
@@ -128,9 +130,9 @@ Erc Usb::recv(Bytes& bytes) {
 
 uint8_t Usb::read() {
 	return _in.read();
-/*	uint8_t b;
-	USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1);
-	return b;*/
+	/*	uint8_t b;
+	 USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1);
+	 return b;*/
 }
 
 uint32_t Usb::hasData() {
@@ -141,18 +143,18 @@ uint32_t Usb::hasData() {
 void Usb::dispatch(Msg& event) {
 	switch (event.sig()) {
 
-	case SIG_USB_CONNECTED: {
+	case SIG_LINK_CONNECTED: {
 		reset();
 		isConnected(true);
 //      publish(Link::CONNECTED);
 		break;
 	}
-	case SIG_USB_DISCONNECTED: {
+	case SIG_LINK_DISCONNECTED: {
 		isConnected(false);
 //      publish(Link::DISCONNECTED);
 		break;
 	}
-	case (SIG_USB_RXD):
+	case (SIG_LINK_RXD):
 
 	{
 		uint8_t b;
@@ -247,9 +249,9 @@ __error__(char *pcFilename, unsigned long ulLine)
 static void SetControlLineState(unsigned short usState) {
 	if (usState & USB_CDC_ACTIVATE_CARRIER) {
 
-		Msg::publish(SIG_USB_CONNECTED);
+		Msg::publish(SIG_LINK_CONNECTED);
 	} else
-		Msg::publish(SIG_USB_DISCONNECTED);
+		Msg::publish(SIG_LINK_DISCONNECTED);
 
 }
 
@@ -487,7 +489,7 @@ extern "C" unsigned long RxHandler(void *pvCBData, unsigned long ulEvent,
 		 }*/
 		while (USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1))
 			gUsb->_in.write(b);
-		Msg::publish(SIG_USB_RXD);
+		Msg::publish(SIG_LINK_RXD);
 		break;
 	}
 
