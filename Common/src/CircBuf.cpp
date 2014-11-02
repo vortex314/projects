@@ -55,6 +55,11 @@ uint32_t CircBuf::size() {
         return writePos - readPos - 1;
 }
 
+uint32_t CircBuf::space() {
+    return limit-size();
+}
+
+
 bool CircBuf::hasSpace() {
     return ((writePos + 1) % limit) != readPos;
 }

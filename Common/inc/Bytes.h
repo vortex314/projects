@@ -52,6 +52,7 @@ public:
 	bool hasData(int size);
 	bool hasSpace();
 
+
 	uint8_t read();
 
 	Erc read(uint8_t* data);

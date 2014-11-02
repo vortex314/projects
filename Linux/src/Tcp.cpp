@@ -10,7 +10,8 @@
 #include <iostream>
 #include <signal.h>
 #include "MqttIn.h"
-#include "Log.h"
+#include "Logger.h"
+static Logger logger(256);
 
 EventId Tcp::RXD=Event::nextEventId(( char* const )"TCP::RXD");
 EventId Tcp::CONNECTED=Event::nextEventId(( char* const )"TCP::CONNECTED");
@@ -21,6 +22,7 @@ EventId Tcp::ERROR=Event::nextEventId(( char* const )"TCP::ERROR");
 
 Tcp::Tcp( const char *host,uint16_t port) : msg(100) {
 //   signal(SIGPIPE, SIG_IGN);
+logger.module("Tcp");
     _host=host;
     _port=port;
     _connected=false;
@@ -42,8 +44,8 @@ bool Tcp::isConnected() {
     }
 
 Erc Tcp::connect() {
-    Log::log() << " TCP Connecting to " << _host << " : " << _port << " ...";
-    Log::log().flush();
+    logger.info() << " TCP Connecting to " << _host << " : " << _port << " ...";
+    logger.flush();
     struct sockaddr_in serv_addr;
     struct hostent *server;
     /* Create a socket point */
@@ -65,13 +67,12 @@ Erc Tcp::connect() {
 
     /* Now connect to the server */
     if (::connect(_sockfd,(const sockaddr*)&serv_addr,sizeof(serv_addr)) < 0) {
-        Log::log() << " socket connect() : " << strerror(errno) ;
-        Log::log().flush();
+        logger.error().perror(" socket connect()  " ).flush() ;
         return E_CONN_LOSS;
         }
     _connected=true;
-    Log::log() <<  "Tcp connect: connected to " << _host << " : " << _port;
-    Log::log().flush();
+    logger.info() <<  "Tcp connect: connected to " << _host << " : " << _port;
+    logger.flush();
     return E_OK;
     }
 
@@ -93,7 +94,7 @@ uint8_t Tcp::read() {
     n=::read(_sockfd,&b,1) ;
     if (n <= 0) {
         _connected=false;
-        perror("read failure");
+        logger.perror("read failure");
         return -1;
         }
     return b;
@@ -105,7 +106,7 @@ Erc Tcp::send(Bytes& bytes) {
  //   Log::log().message("TCP send : " ,bytes);
     n=write(_sockfd,bytes.data(),bytes.length()) ;
     if (n < 0) {
-        perror("write failed");
+        logger.perror("write failed");
         _connected=false;
         return E_CONN_LOSS;
         }
@@ -117,7 +118,7 @@ uint32_t Tcp::hasData(){
     int count;
     int rc = ioctl(_sockfd, FIONREAD, (char *) &count);
     if (rc < 0) {
-        perror("ioctl failed");
+        logger.perror("ioctl failed");
         _connected=false;
         return E_CONN_LOSS;
         }
@@ -136,7 +137,7 @@ int Tcp::handler ( Event* event ) {
                     b=read();
                     msg.add(b);
                     if (  msg.complete() ) {
-                        Log::log().message("TCP -> USB : " ,msg);
+                        logger.debug()<<"TCP -> USB : " <<msg; logger.flush();
                         msg.parse();
                         publish(MESSAGE);
                         publish(FREE);

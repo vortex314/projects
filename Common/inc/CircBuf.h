@@ -30,6 +30,7 @@ public:
         bool hasData();
         void clear();
 	uint32_t size();
+    uint32_t space();
 };
 
 #endif /* CIRCBUF_H_ */

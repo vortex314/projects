@@ -8,8 +8,12 @@ const int Usb::FREE=Event::nextEventId("USB::FREE");
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <cstring>
 #include <termios.h>
-#include "Log.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "Logger.h"
+static Logger logger(256);
 
 typedef struct
 {
@@ -52,6 +56,7 @@ BAUDRATE BAUDRATES[]=
 
 Usb::Usb(const char* device) : msg(100),inBuffer(256)
 {
+    logger.module("USB");
     _device =  device;
     isConnected(false);
     _fd=0;
@@ -68,34 +73,28 @@ void Usb::setBaudrate(uint32_t baudrate)
 {
     _baudrate =  baudrate;
 }
-#include <stdio.h>
-#include <stdlib.h>
+
 uint32_t baudSymbol(uint32_t value)
 {
-    char buffer[30];
-    int structSize=sizeof(BAUDRATE);
-    for(int i=0; i<sizeof(BAUDRATES)/sizeof(BAUDRATE); i++)
+    for(uint32_t i=0; i<sizeof(BAUDRATES)/sizeof(BAUDRATE); i++)
         if ( BAUDRATES[i].baudrate == value) return BAUDRATES[i].symbol;
-    Log::log() <<  "USB connect: baudrate " ;
-    sprintf(buffer,"%d",value);
-    Log::log() << buffer;
-    Log::log() << " not found, default to 115200.";
-    Log::log().flush();
+    logger.level(Logger::INFO)<< "connect: baudrate " << value << " not found, default to 115200.";
+    logger.flush();
     return B115200;
 }
 
 Erc Usb::connect()
 {
     struct termios options;
-    Log::log() << " USB Connecting to " << _device  << " ...";
-    Log::log().flush();
+    logger.info() << "Connecting to " << _device  << " ...";
+    logger.flush();
 
     _fd = ::open(_device, O_RDWR | O_NOCTTY | O_NDELAY);
 
     if (_fd == -1)
     {
-        Log::log() <<  "USB connect: Unable to open " << _device << " : "<< strerror(errno);
-        Log::log().flush();
+        logger.error() <<  "connect: Unable to open " << _device << " : "<< strerror(errno);
+        logger.flush();
         return E_AGAIN;
     }
     fcntl(_fd, F_SETFL, FNDELAY);
@@ -117,12 +116,10 @@ Erc Usb::connect()
 
 
     tcsetattr(_fd, TCSANOW, &options);
-    char buffer[100];
-    sprintf(buffer," USB set baudrate to %d ",_baudrate);
-    Log::log() << buffer ;
-    Log::log().flush();
-    Log::log() << "USB open " << _device << " succeeded.";
-    Log::log().flush();
+    logger.level(Logger::INFO)<<"set baudrate to "<<_baudrate;
+    logger.flush();
+    logger.level(Logger::INFO) << "open " << _device << " succeeded.";
+    logger.flush();
     isConnected(true);
     return E_OK;
 }
@@ -136,12 +133,13 @@ Erc Usb::disconnect()
 
 Erc Usb::send(Bytes& bytes)
 {
-    Log::log().message("USB send : ",bytes);
+//   Log::log().message("USB send : ",bytes);
     bytes.AddCrc();
     bytes.Encode();
     bytes.Frame();
-//    Log::log().message("USB send full : ",bytes);
-    int count = ::write(_fd,bytes.data(),bytes.length());
+    logger.level(Logger::DEBUG)<<"send full : "<<bytes;
+    logger.flush();
+    uint32_t count = ::write(_fd,bytes.data(),bytes.length());
     if ( count != bytes.length())
     {
         disconnect();
@@ -155,11 +153,12 @@ uint8_t Usb::read()
     uint8_t b;
     if (::read(_fd,&b,1)<0)
     {
-        perror(" Usb read failed");
+        logger.level(Logger::WARN).module("USB")<<"read failed : "<<strerror(errno);
+        logger.flush();
         return 0;
     }
-    fprintf(stdout,".");
-    fflush(stdout);
+//   fprintf(stdout,".");
+//   fflush(stdout);
     return b;
 }
 
@@ -170,7 +169,8 @@ uint32_t Usb::hasData()
     int rc = ioctl(_fd, FIONREAD, (char *) &count);
     if (rc < 0)
     {
-        perror("ioctl failed");
+        logger.level(Logger::WARN)<<"ioctl failed : "<<strerror(errno);
+        logger.flush();
         isConnected(false);
         return 0;
     }
@@ -215,12 +215,14 @@ int Usb::handler ( Event* event )
                 {
                     if ( msg.Feed(inBuffer.read()))
                     {
-                        Log::log().message("USB recv : " ,msg);
+                        logger.level(Logger::DEBUG)<< "recv : " << msg;
+                        logger.flush();
                         msg.Decode();
                         if ( msg.isGoodCrc() )
                         {
                             msg.RemoveCrc();
-//                            Log::log().message("USB -> TCP : " ,msg);
+                            logger.level(Logger::INFO)<<"-> TCP : " <<msg;
+                            logger.flush();
                             publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
                             _isComplete=true;
@@ -228,6 +230,9 @@ int Usb::handler ( Event* event )
                         }
                         else
                         {
+                            logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
+                            logger.flush();
+                            msg.isGoodCrc();
                             msg.clear(); // throw away bad data
                         }
                     }

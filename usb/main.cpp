@@ -14,7 +14,6 @@ using namespace std;
 #include "Str.h"
 #include <time.h>
 #include "Timer.h"
-#include "Log.h"
 #include "MqttOut.h"
 #include "MqttIn.h"
 #include <stdio.h>
@@ -28,6 +27,11 @@ using namespace std;
 #include "Sequence.h"
 #include "Tcp.h"
 #include "Usb.h"
+#include <time.h>
+#include "Logger.h"
+
+
+Logger logger(256);
 
 struct
 {
@@ -35,7 +39,8 @@ struct
     uint16_t port;
     uint32_t baudrate;
     const char* device;
-} context= {"localhost",1883,115200,"/dev/ttyACM0"};
+    Logger::Level logLevel;
+} context= {"localhost",1883,115200,"/dev/ttyACM0",Logger::INFO};
 
 Usb usb("/dev/ttyACM0");
 Tcp tcp("localhost",1883);
@@ -62,9 +67,11 @@ public:
     {
         if ( event->id() != Timer::TICK )
         {
-            Log::log() << " EVENT : " ;
-            event->toString(Log::log());
-            Log::log().flush();
+            logger.debug() << " EVENT : " ;
+            Str str(100);
+            event->toString(str);
+            logger << str;
+            logger.flush();
         }
         return 0;
     };
@@ -140,7 +147,7 @@ public:
 
         if (retval < 0 )
         {
-            perror("select()");
+            logger.perror("select()");
             sleep(1);
         }
         else if (retval>0)   // one of the fd was set
@@ -209,10 +216,11 @@ public:
                             tcp.connect();
                             tcp.send(*msg);
                         }
-                        else {
+                        else
+                        {
                             MqttOut m(10);
                             m.ConnAck(0);
- //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
+//                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
                             usb.send(m);
                         }
                     }
@@ -270,7 +278,7 @@ public:
 void loadOptions(int argc,char* argv[])
 {
     int c;
-    while ((c = getopt (argc, argv, "h:p:d:")) != -1)
+    while ((c = getopt (argc, argv, "h:p:d:b:")) != -1)
         switch (c)
         {
         case 'h':
@@ -282,7 +290,7 @@ void loadOptions(int argc,char* argv[])
         case 'd':
             context.device = optarg;
             break;
-         case 'b':
+        case 'b':
             context.baudrate= atoi(optarg);
             break;
         case '?':
@@ -300,11 +308,32 @@ void loadOptions(int argc,char* argv[])
         }
 }
 
+#include <signal.h>
+
+void SignalHandler(int signal_number)
+{
+    printf("Received signal: %s\n", strsignal(signal_number));
+    sleep(1000000);
+}
+
+void interceptAllSignals()
+{
+    signal(SIGFPE, SignalHandler);
+    signal(SIGILL, SignalHandler);
+    signal(SIGINT, SignalHandler);
+    signal(SIGSEGV, SignalHandler);
+    signal(SIGTERM, SignalHandler);
+}
+
+extern bool testBytes();
+
 int main(int argc, char *argv[] )
 {
 
-    Log::log() << "Start " << argv[0] << " version : " << __DATE__ << " " << __TIME__ ;
-    Log::log().flush();
+    if ( testBytes()!=true) exit(1);
+    logger.module("Main");
+    logger.level(Logger::INFO)<<"Start "<<argv[0]<<" version : "<<__DATE__ << " " << __TIME__ ;
+    logger.flush();
 
     loadOptions(argc,argv);
 
