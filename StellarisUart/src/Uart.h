@@ -19,6 +19,7 @@ public:
 	uint8_t read();
 	uint32_t hasData();
 	Erc send(Bytes&);
+	void toFifo();
 	Erc connect();
 	Erc disconnect();
 	bool isConnected(){ return true;};
