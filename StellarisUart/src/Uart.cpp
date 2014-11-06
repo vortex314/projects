@@ -1,4 +1,3 @@
-
 /*
  * Uart.cpp
  *
@@ -32,6 +31,8 @@ Uart* gUart0 = new Uart();
 Uart::Uart() :
 		_in(100), _out(256), _mqttIn(256) {
 	gUart0 = this;
+	_overrunErrors=0;
+	_crcErrors=0;
 }
 // initialize UART at 1MB 8N1
 void Uart::init() {
@@ -40,7 +41,7 @@ void Uart::init() {
 	GPIOPinConfigure(GPIO_PA0_U0RX);
 	GPIOPinConfigure(GPIO_PA1_U0TX);
 	GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-	UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 1000000,
+	UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
 			(UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
 			UART_CONFIG_PAR_NONE));
 	// Enable the UART interrupt.
@@ -80,6 +81,7 @@ Erc Uart::send(Bytes& bytes) {
 	bytes.Frame();
 	bytes.offset(0);
 	if (_out.space() < bytes.length()) { // not enough space in circbuf
+		_overrunErrors++;
 		toFifo();
 		return E_AGAIN;
 	}
@@ -130,10 +132,10 @@ void Uart::dispatch(Msg& event) {
 					_mqttIn.parse();
 					Msg m;
 					m.create(100).sig(SIG_MQTT_MESSAGE).add(_mqttIn).send();
-
 				} else {
-					_mqttIn.clear();
+					_crcErrors++;
 				}
+				_mqttIn.clear();
 			}
 		}
 		break;
@@ -156,7 +158,7 @@ extern "C" void UART0IntHandler(void) {
 				if (gUart0->_in.hasSpace())
 					gUart0->_in.write(UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
 				else
-					circbufOverflow++;
+					gUart0->_overrunErrors++;
 			}
 		}
 //LMR		Msg::publish(SIG_LINK_RXD);

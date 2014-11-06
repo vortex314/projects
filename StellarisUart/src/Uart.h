@@ -29,7 +29,10 @@ public:
 	CircBuf _in;
 	CircBuf _out;
 	MqttIn _mqttIn;
+	uint32_t _crcErrors;
+		uint32_t _overrunErrors;
 private:
+
 
 };
 
