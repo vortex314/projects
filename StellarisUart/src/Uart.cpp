@@ -161,7 +161,7 @@ extern "C" void UART0IntHandler(void) {
 					gUart0->_overrunErrors++;
 			}
 		}
-//LMR		Msg::publish(SIG_LINK_RXD);
+//		Msg::publish(SIG_LINK_RXD); // publish is not thread-safe !!!!
 	}
 	if (ulStatus & UART_INT_TX) {
 		gUart0->toFifo();

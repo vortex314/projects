@@ -50,6 +50,7 @@ private:
 	MqttPing* mqttPing;
 	MqttPub* _mqttPub;
 	MqttSub* _mqttSub;
+	uint32_t _retries;
 
 public:
 
@@ -84,6 +85,7 @@ private:
 	Flags _flags;
 	uint32_t _id;
 	Mqtt& _mqtt;
+	uint32_t _retries;
 public :
 	MqttPub(Mqtt& mqtt);
 	~MqttPub(){};
@@ -100,6 +102,7 @@ class MqttPing :public Fsm {
 private:
 	uint32_t _retryCount;
 	Mqtt& _mqtt;
+	uint32_t _retries;
 public :
 	MqttPing(Mqtt& mqtt);
 	~MqttPing(){};

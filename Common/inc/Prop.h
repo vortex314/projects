@@ -46,12 +46,14 @@ enum Interface {
 };
 
 
+
 typedef struct {
 	enum Type type :5;
 	enum Mode mode :2;
 	enum Qos qos :2;
 	enum Interface interface :2;
 	bool retained :1;
+	int frequency:3;// 0=1 msec -> 7=10^7 msec=10000sec=2,777 hr
 	bool publishValue :1;
 	bool publishMeta :1;
 } Flags;

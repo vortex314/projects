@@ -39,6 +39,7 @@ private:
 	uint8_t _header;
 	int _id;
 	uint32_t _retryCount;
+	uint32_t _retries;
 public:
 	MqttSub(Mqtt& mqtt);
 
@@ -231,6 +232,7 @@ Mqtt::Mqtt(Link & link) :
 	mqttPing = new MqttPing(*this);
 	_mqttPub = new MqttPub(*this);
 	_mqttSub = new MqttSub(*this);
+	_retries=0;
 	init(static_cast<SF>(&Mqtt::connecting));
 
 //	PT_INIT(&t);
@@ -352,6 +354,7 @@ MqttPub::MqttPub(Mqtt & mqtt) :
 	_messageId = 1000;
 	_retryCount = 0;
 	_id = 0;
+	_retries=0;
 	init(static_cast<SF>(&MqttPub::sleep));
 }
 
@@ -424,6 +427,7 @@ void MqttPub::qos1Pub(Msg& event) {
 			timeout(TIME_WAIT_REPLY);
 			Publish();
 			_retryCount++;
+			_retries++;
 		} else {
 			Msg::publish(SIG_MQTT_PUBLISH_FAILED, _id);
 			TRAN(MqttPub::ready);
@@ -461,6 +465,7 @@ void MqttPub::qos2Pub(Msg& event) {
 			timeout(TIME_WAIT_REPLY);
 			Publish();
 			_retryCount++;
+			_retries++;
 		} else {
 			Msg::publish(SIG_MQTT_PUBLISH_FAILED, _id);
 			TRAN(MqttPub::ready);
@@ -611,6 +616,7 @@ void MqttSub::qos2Sub(Msg& event) {
 			mqttOut.PubRec(_messageId);
 			_mqtt.send(mqttOut);
 			_retryCount++;
+			_retries++;
 		} else {
 			TRAN(MqttSub::ready);
 		}
