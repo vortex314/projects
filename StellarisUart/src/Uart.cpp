@@ -156,7 +156,7 @@ extern "C" void UART0IntHandler(void) {
 		while (UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
 			if (gUart0) {
 				if (gUart0->_in.hasSpace())
-					gUart0->_in.write(UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
+					gUart0->_in.writeFromIsr(UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
 				else
 					gUart0->_overrunErrors++;
 			}
@@ -164,7 +164,10 @@ extern "C" void UART0IntHandler(void) {
 //		Msg::publish(SIG_LINK_RXD); // publish is not thread-safe !!!!
 	}
 	if (ulStatus & UART_INT_TX) {
-		gUart0->toFifo();
+		while (!UARTFIFOFull(UART0_BASE) && gUart0->_out.hasData()) {
+				if (UARTCharPutNonBlocking(UART0_BASE, gUart0->_out.readFromIsr()) == false)
+					break;
+			}
 	}
 }
 

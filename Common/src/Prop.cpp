@@ -42,7 +42,7 @@ void Prop::init(const char* name, void* instance, Xdr xdr, Flags flags) {
 }
 
 Prop::Prop(const char* name, const char* value) {
-	init(name, (void*) value, xdrString, (Flags ) { T_FLOAT, M_READ, QOS_0,
+	init(name, (void*) value, xdrString, (Flags ) { T_STR, M_READ, QOS_0,
 					I_ADDRESS, false, true, true });
 }
 Prop::Prop(const char* name, uint64_t& value) {

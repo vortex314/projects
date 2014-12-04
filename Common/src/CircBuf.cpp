@@ -7,6 +7,7 @@
 //#include "base.h"
 #include "CircBuf.h"
 #include "Sys.h"
+
 //#include "Message.h"
 //#include "assert.h"
 
@@ -26,8 +27,19 @@ void CircBuf::clear() {
 CircBuf::~CircBuf() {
     delete[] start;
 }
-
+#include "Board.h"
 int CircBuf::write(uint8_t b) {
+    uint16_t newPos = (writePos + 1) % limit;
+    if (newPos == readPos)
+        return -EAGAIN;
+    Board::disableInterrupts();
+    start[writePos] = b;
+    writePos = newPos; // last operation ( hopefully atomic to ISR)
+    Board::enableInterrupts();
+    return 0;
+}
+
+int CircBuf::writeFromIsr(uint8_t b) {
     uint16_t newPos = (writePos + 1) % limit;
     if (newPos == readPos)
         return -EAGAIN;
@@ -36,7 +48,7 @@ int CircBuf::write(uint8_t b) {
     return 0;
 }
 
-int CircBuf::read() {
+int CircBuf::readFromIsr() {
     uint16_t newPos = (readPos + 1) % limit;
     int value;
     if (newPos == writePos)
@@ -44,6 +56,20 @@ int CircBuf::read() {
     else {
         value = start[newPos];
         readPos = newPos; // last operation ( hopefully atomic to ISR)
+        return value;
+    }
+}
+
+int CircBuf::read() {
+    uint16_t newPos = (readPos + 1) % limit;
+    int value;
+    if (newPos == writePos)
+        return -EAGAIN;
+    else {
+    	 Board::disableInterrupts();
+        value = start[newPos];
+        readPos = newPos; // last operation ( hopefully atomic to ISR)
+        Board::enableInterrupts();
         return value;
     }
 }
