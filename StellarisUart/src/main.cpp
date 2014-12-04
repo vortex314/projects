@@ -20,7 +20,7 @@ void ftoa(float n, char *res, int afterpoint);
 
 void getTemp(void* addr, Cmd cmd, Bytes& message) {
 
-	if (cmd == ( CMD_GET)) {
+	if (cmd == (CMD_GET)) {
 		Cbor msg(message);
 		msg.add(Board::getTemp());
 	}
@@ -123,7 +123,6 @@ void eventPump() {
 #include "Uart.h"
 
 #include "Cbor.h"
-
 
 extern Uart *gUart0;
 
