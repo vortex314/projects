@@ -251,7 +251,7 @@ int Usb::handler ( Event* event )
                         {
                             logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
                             logger.flush();
-                            logStats();
+ //                           logStats();
                             msg.isGoodCrc();
                             msg.clear(); // throw away bad data
                         }

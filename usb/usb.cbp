@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-d /dev/ttyACM0 -b 115200 -h test.mosquitto.org" />
+				<Option parameters="-d /dev/ttyACM0 -b 1000000 -h test.mosquitto.org" />
 				<Compiler>
 					<Add option="-g" />
 					<Add directory="../Common/inc" />

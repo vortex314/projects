@@ -94,8 +94,8 @@ static Msg timeout(SIG_TIMEOUT);
 void eventPump() {
 	while (true) {
 		msg.open();	// get message from queue
-		if (msg.sig() == SIG_IDLE)
-			break;
+//		if (msg.sig() == SIG_IDLE)
+//			break;
 		for (fsm = Fsm::first(); fsm != 0; fsm = Fsm::next(fsm)) {
 			if ((msg.sig() == SIG_TIMER_TICK)) {
 				if (fsm->timeout())

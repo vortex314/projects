@@ -52,7 +52,7 @@ int CircBuf::readFromIsr() {
     uint16_t newPos = (readPos + 1) % limit;
     int value;
     if (newPos == writePos)
-        return -EAGAIN;
+        return -1;
     else {
         value = start[newPos];
         readPos = newPos; // last operation ( hopefully atomic to ISR)
@@ -64,7 +64,7 @@ int CircBuf::read() {
     uint16_t newPos = (readPos + 1) % limit;
     int value;
     if (newPos == writePos)
-        return -EAGAIN;
+        return -1;
     else {
     	 Board::disableInterrupts();
         value = start[newPos];
