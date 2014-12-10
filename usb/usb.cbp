@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-d /dev/ttyACM0 -b 1000000 -h test.mosquitto.org" />
+				<Option parameters="-d /dev/ttyACM1 -b 115200 -h localhost" />
 				<Compiler>
 					<Add option="-g" />
 					<Add directory="../Common/inc" />
@@ -107,6 +107,9 @@
 		<Unit filename="../Linux/src/Tcp.cpp" />
 		<Unit filename="../Linux/src/Thread.cpp" />
 		<Unit filename="../Linux/src/Usb.cpp" />
+		<Unit filename="Board.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />
 		<Extensions>
