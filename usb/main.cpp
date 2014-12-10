@@ -56,7 +56,7 @@ public:
 
 
 const int Mqtt::RXD=Event::nextEventId("Mqtt::RXD");
- int Timer::TICK =Event::nextEventId("Timer::TICK");
+int Timer::TICK =Event::nextEventId("Timer::TICK");
 
 class EventLogger : public Sequence
 {
@@ -212,26 +212,36 @@ public:
                     mqttIn->parse();
                     Str str(100);
                     mqttIn->toString(str);
-                    logger.info()<< str;
-                    logger.flush();
-                    if ( mqttIn->type() == MQTT_MSG_CONNECT )
+
+                    if ( tcp.isConnected() )
                     {
-                        if ( !tcp.isConnected())   // ignore connect mqqt messages when already connected
-                        {
-                            tcp.connect();
-                            tcp.send(*msg);
-                        }
-                        else
+                        if ( mqttIn->type() == MQTT_MSG_CONNECT ) // simulate a reply
                         {
                             MqttOut m(10);
                             m.ConnAck(0);
 //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
                             usb.send(m);
                         }
+                        else
+                        {
+                            tcp.send(*msg);
+                        }
                     }
                     else
-                        tcp.send(*msg);
+                    {
+                        if ( mqttIn->type() == MQTT_MSG_CONNECT )
+                        {
+                            tcp.connect();
+                            tcp.send(*msg);
+                        }
+                        else
+                        {
+                            logger.info()<< "dropped packet, not connected.";
+                            logger.flush();
+                        }
+                    }
                 }
+
             }
             PT_YIELD ( &t );
         }
@@ -355,6 +365,7 @@ int main(int argc, char *argv[] )
 //   sleep(100000);
     poller.run();
 }
+
 
 
 
