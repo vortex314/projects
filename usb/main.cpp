@@ -199,6 +199,11 @@ public:
             if ( event->is(Tcp::MESSAGE))
             {
                 MqttIn* msg = tcp.recv();
+                msg->parse();
+                Str str(256);
+                msg->toString(str);
+                logger.info()<< str;
+                logger.flush();
                 assert(msg!=NULL);
                 usb.send(*msg);
             }
@@ -210,8 +215,10 @@ public:
                 if ( mqttIn->length() >1 )   // sometimes bad message
                 {
                     mqttIn->parse();
-                    Str str(100);
+                    Str str(256);
                     mqttIn->toString(str);
+                    logger.info()<< str;
+                    logger.flush();
 
                     if ( tcp.isConnected() )
                     {
@@ -365,6 +372,7 @@ int main(int argc, char *argv[] )
 //   sleep(100000);
     poller.run();
 }
+
 
 
 
