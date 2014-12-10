@@ -25,7 +25,9 @@ public:
 	CircBuf(int size);
 	~CircBuf();
 	int write(uint8_t b);
+	int writeFromIsr(uint8_t b);
 	int read();
+	int readFromIsr();
         bool hasSpace();
         bool hasData();
         void clear();

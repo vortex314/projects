@@ -31,8 +31,8 @@ Uart* gUart0 = new Uart();
 Uart::Uart() :
 		_in(100), _out(256), _mqttIn(256) {
 	gUart0 = this;
-	_overrunErrors=0;
-	_crcErrors=0;
+	_overrunErrors = 0;
+	_crcErrors = 0;
 }
 // initialize UART at 1MB 8N1
 void Uart::init() {
@@ -47,7 +47,8 @@ void Uart::init() {
 	// Enable the UART interrupt.
 	//
 	UARTFIFOEnable(UART0_BASE);
-	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX4_8, UART_FIFO_RX1_8);
+	UARTFIFODisable(UART0_BASE);
+//	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX1_8, UART_FIFO_RX1_8);
 	UARTTxIntModeSet(UART0_BASE, UART_TXINT_MODE_FIFO);
 	IntEnable(INT_UART0);
 	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX);
@@ -67,13 +68,18 @@ bool UARTFIFOFull(uint32_t uart_base) {
 	uint32_t fr = *((uint32_t*) (UART0_BASE + UART_O_FR));
 	return (fr & UART_FR_TXFF) != 0;
 }
-
-void Uart::toFifo() {
-	while (!UARTFIFOFull(UART0_BASE) && _out.hasData()) {
-		if (UARTCharPutNonBlocking(UART0_BASE, _out.read()) == false)
-			break;
-	}
-}
+/*
+ void Uart::toFifo() {
+ while (!UARTFIFOFull(UART0_BASE) && _out.hasData()) {
+ int b = gUart0->_out.read();
+ if (b >= 0) {
+ if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
+ break;
+ } else
+ break;
+ }
+ }
+ */
 
 Erc Uart::send(Bytes& bytes) {
 	bytes.AddCrc();
@@ -82,14 +88,17 @@ Erc Uart::send(Bytes& bytes) {
 	bytes.offset(0);
 	if (_out.space() < bytes.length()) { // not enough space in circbuf
 		_overrunErrors++;
-		toFifo();
+		if (!UARTBusy(UART0_BASE)) { // fire off first bytes
+			UARTCharPutNonBlocking(UART0_BASE, _out.read());
+		}
 		return E_AGAIN;
 	}
-
 	while (_out.hasSpace() && bytes.hasData()) {
 		_out.write(bytes.read());
 	}
-	toFifo();
+	if (!UARTBusy(UART0_BASE)) { // fire off first bytes
+		UARTCharPutNonBlocking(UART0_BASE, _out.read());
+	}
 	return E_OK;
 }
 
@@ -147,6 +156,7 @@ void Uart::dispatch(Msg& event) {
 	}
 }
 uint32_t circbufOverflow = 0;
+uint32_t uart0TxInt = 0;
 extern "C" void UART0IntHandler(void) {
 	unsigned long ulStatus;
 
@@ -156,7 +166,8 @@ extern "C" void UART0IntHandler(void) {
 		while (UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
 			if (gUart0) {
 				if (gUart0->_in.hasSpace())
-					gUart0->_in.write(UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
+					gUart0->_in.writeFromIsr(
+							UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
 				else
 					gUart0->_overrunErrors++;
 			}
@@ -164,7 +175,14 @@ extern "C" void UART0IntHandler(void) {
 //		Msg::publish(SIG_LINK_RXD); // publish is not thread-safe !!!!
 	}
 	if (ulStatus & UART_INT_TX) {
-		gUart0->toFifo();
+		while (!UARTFIFOFull(UART0_BASE) && gUart0->_out.hasData()) {
+			int b = gUart0->_out.readFromIsr();
+			if (b >= 0) {
+				if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
+					break;
+			} else
+				break;
+		}
 	}
 }
 

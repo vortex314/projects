@@ -38,10 +38,10 @@ uint64_t Board::processorRevision() {
 }
 
 void Board::disableInterrupts() {
-//	IntMasterDisable();
+	IntMasterDisable();
 }
 void Board::enableInterrupts() {
-//	 IntMasterEnable();
+	 IntMasterEnable();
 }
 
 //*****************************************************************************
