@@ -13,44 +13,146 @@
 #include "Cbor.h"
 
 #include <malloc.h>
+/*
 
+
+ class LedTopic {
+
+ LedTopic(const char* name,int led) {
+ Str s(20);
+ s << name;
+ s << "/on";
+ Prop p(s, (void* )led, LedInterval, (Flags ) { T_BOOL, M_WRITE, QOS_1, I_OBJECT, false,
+ true, true }) ;
+ }
+ static bool LedInterval(Cmd cmd, void *instance, Cbor msg) {
+ int ledNr;
+ if (cmd == CMD_GET) {
+ msg.add(Board::getLed(ledNr));
+ } else if (cmd == CMD_PUT) {
+ bool on;
+ PackType pt;
+ Variant v;
+ msg.readToken(pt,v);
+ if (msg.getBool(on))
+ Board::setLedOn(ledNr, on);
+ } else if (cmd == CMD_DESC) {
+ msg.add((int) (Flags ) { T_BOOL, M_WRITE, QOS_1, I_OBJECT, false,
+ true, true });
+ }
+ return true;
+ }
+ };
+
+ LedTopic ledTopic("ledBlue",Board::LED_BLUE);
+ */
 //typedef void (*Xdr)(void*, Cmd, Bytes&);
-
 void ftoa(float n, char *res, int afterpoint);
 
-void getTemp(void* addr, Cmd cmd, Bytes& message) {
-
-	if (cmd == (CMD_GET)) {
-		Cbor msg(message);
+class TempTopic: public Prop {
+public:
+	TempTopic() :
+			Prop("system/temp", (Flags ) { T_FLOAT, M_READ, T_1SEC, QOS_0,
+							NO_RETAIN }) {
+	}
+	void toBytes(Bytes& bytes) {
+		Cbor msg(bytes);
 		msg.add(Board::getTemp());
 	}
-}
+};
 
-void getHardware(void* addr, Cmd cmd, Bytes& message) {
+//TempTopic tt;
 
-	if (cmd == (CMD_GET)) {
+class HardwareTopic: public Prop {
+public:
+	HardwareTopic() :
+			Prop("system/hardware", (Flags ) { T_OBJECT, M_READ, T_10SEC, QOS_1,
+							NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
 		Cbor msg(message);
-		msg.addMap(3);
+		msg.addMap(4);
 		msg.add("cpuRevision");
-		msg.add(Board::processorRevision());
+		Bytes b(8);
+		Board::processorRevision(b);
+		msg.add(b);
 		msg.add("cpu");
 		msg.add("LM4F120H5QR");
 		msg.add("board");
 		msg.add("EK-LM4F120XL");
+		msg.add("bool");
+		msg.add(false);
 	}
-}
+};
 
-uint64_t cpuRev = Board::processorRevision();
+//HardwareTopic hardware;
 
-Prop uptime("system/uptime", Sys::_upTime);
-Prop cpu("hardware/cpu", "LM4F120H5QR");
-Prop board("hardware/board", "EK-LM4F120XL");
-Prop revision("hardware/cpuRevision", cpuRev);
+class UptimeTopic: public Prop {
+public:
+	UptimeTopic() :
+			Prop("system/uptime", (Flags ) { T_UINT64, M_READ, T_10SEC, QOS_0,
+							NO_RETAIN }) {
+	}
 
-Prop temp("system/temperature", (void*) 0, getTemp, (Flags ) { T_FLOAT, M_READ,
-				QOS_0, I_OBJECT, false, true, true });
-Prop rev("system/hardware", (void*) 0, getHardware, (Flags ) { T_OBJECT, M_READ,
-				QOS_0, I_OBJECT, false, true, true });
+	void toBytes(Bytes& message) {
+		Cbor msg(message);
+		msg.add(Sys::upTime());
+	}
+};
+
+UptimeTopic uptime;
+
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
+//#include "inc/lm4f112h5qc.h"
+#include "inc/hw_types.h"
+#include "inc/lm4f120h5qr.h"
+#include "inc/hw_gpio.h"
+
+#include "driverlib/debug.h"
+#include "driverlib/fpu.h"
+#include "driverlib/gpio.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/pin_map.h"
+
+class GpioOutTopic: public Prop {
+	uint32_t _gpio_port;
+	uint8_t _gpio_pin;
+	bool _value;
+public:
+	GpioOutTopic(const char *name, uint32_t base, uint8_t pin) :
+			Prop(name,
+					(Flags ) { T_BOOL, M_RW, T_10SEC, QOS_2,
+									NO_RETAIN }) {
+		_gpio_port = base;
+		_gpio_pin = pin;
+		_value = false;
+//		GPIOPinTypeGPIOOutput(_gpio_port, _gpio_pin); // Enable the GPIO pins
+//		GPIOPinWrite(_gpio_port, _gpio_pin, 0); // DON'T INITIALIZE PIN in STATIC , PORT IS NOT INIT YET
+	}
+
+	void fromBytes(Bytes& message) {
+		Cbor msg(message);
+		bool bl;
+		if (msg.getBool(bl)) {
+			_value = bl;
+			if (bl)
+				GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
+			else
+				GPIOPinWrite(_gpio_port, _gpio_pin, 0);
+		}
+	}
+	void toBytes(Bytes& message) {
+		Cbor msg(message);
+		if (GPIOPinRead(_gpio_port, _gpio_pin))
+			msg.add((bool)true);
+		else
+			msg.add((bool)false);
+	}
+};
+
+GpioOutTopic gpio("GPIO/F/2", GPIO_PORTF_BASE, GPIO_PIN_2);
 
 #include "Fsm.h"
 
@@ -74,7 +176,7 @@ public:
 			Board::setLedOn(Board::LED_GREEN, _isOn);
 			_isOn = !_isOn;
 			timeout(_msecInterval);
-			Prop::publishAll();
+//			Prop::publishAll();
 			break;
 		}
 		case SIG_MQTT_CONNECTED: {

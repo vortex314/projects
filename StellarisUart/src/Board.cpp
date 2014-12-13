@@ -27,21 +27,26 @@
 #include <stdio.h>
 #include <string.h>
 
-
 char *Board::processor() {
 	return (char *) "LM4F120H5QR";
 }
 
-uint64_t Board::processorRevision() {
-	uint64_t l = SYSCTL_DID1_R;
-	return (l << 32) + SYSCTL_DID0_R;
+void Board::processorRevision(Bytes& b) {
+	union {
+		uint32_t i32;
+		uint8_t b[4];
+	} v;
+	v.i32=SYSCTL_DID0_R;
+	b.write(v.b, 0, 4);
+	v.i32=SYSCTL_DID1_R;
+	b.write(v.b, 0, 4);
 }
 
 void Board::disableInterrupts() {
 	IntMasterDisable();
 }
 void Board::enableInterrupts() {
-	 IntMasterEnable();
+	IntMasterEnable();
 }
 
 //*****************************************************************************

@@ -17,19 +17,16 @@ const char* sType[] = { "UINT8", "UINT16", "UINT32", "UINT64", "INT8", "INT16",
 
 const char* sMode[] = { "READ", "WRITE" };
 
-const char* sQos[] = { "0", "1", "2" };
 
-Prop::Prop(const char* name, void* instance, Xdr xdr, Flags flags) {
-	init(name, instance, xdr, flags);
+Prop::Prop(const char* name,  Flags flags) {
+	init(name,  flags);
 }
 
-void Prop::init(const char* name, void* instance, Xdr xdr, Flags flags) {
+void Prop::init(const char* name, Flags flags) {
 	_name = name;
-	_instance = instance;
-	_xdr = xdr;
 	_flags = flags;
-	_flags.publishValue = true;
-	_flags.publishMeta = true;
+	_flags.doPublish=true;
+	_lastPublished=0;
 	if (_first == 0)
 		_first = this;
 	else {
@@ -40,14 +37,38 @@ void Prop::init(const char* name, void* instance, Xdr xdr, Flags flags) {
 		cursor->_next = this;
 	}
 }
-
-Prop::Prop(const char* name, const char* value) {
-	init(name, (void*) value, xdrString, (Flags ) { T_STR, M_READ, QOS_0,
-					I_ADDRESS, false, true, true });
+static int pow10[10] = {
+        1, 10, 100, 1000, 10000,
+        100000, 1000000, 10000000, 100000000, 1000000000
+    };
+bool Prop::hasToBePublished() {
+	if ( _flags.mode == M_WRITE) return false;
+	uint32_t x= pow10[_flags.interval];
+	if ( Sys::upTime() > (_lastPublished + pow10[_flags.interval])) return true;
+	return _flags.doPublish;
 }
-Prop::Prop(const char* name, uint64_t& value) {
-	init(name, (void*) &value, xdrUint64, (Flags ) { T_UINT64, M_READ, QOS_1,
-					I_ADDRESS, false, true, true });
+
+void Prop::doPublish(){
+	_flags.doPublish=true;
+}
+
+void Prop::isPublished(){
+	_flags.doPublish=false;
+	_lastPublished = Sys::upTime();
+}
+
+void Prop::metaToBytes(Bytes& message){
+	Cbor msg(message);
+	msg.addMap(-1);
+	msg.add("type");
+	msg.add(sType[_flags.type]);
+	msg.add("mode");
+	msg.add(sMode[_flags.mode]);
+	msg.add("qos");
+	msg.add(_flags.qos);
+	msg.add("interval");
+	msg.add(1000/(10^_flags.interval));
+	msg.addBreak();
 }
 
 #include <cstdlib>
@@ -67,10 +88,9 @@ void Prop::xdrUint64(void* addr, Cmd cmd, Bytes& message) {
 
 void Prop::xdrString(void* addr, Cmd cmd, Bytes& message) {
 	Cbor msg(message);
-	if (cmd == (CMD_GET)){
+	if (cmd == (CMD_GET)) {
 		msg.add((const char*) addr);
-			}
-	else if (cmd == CMD_PUT) {
+	} else if (cmd == CMD_PUT) {
 	}
 }
 
@@ -87,30 +107,33 @@ Prop::findProp(Str& name) {
 
 extern Str putPrefix;
 extern Str getPrefix;
+extern Str  headPrefix;
 
 void Prop::set(Str& topic, Bytes& message) {
 	Str str(30);
 
-	if (topic.startsWith(putPrefix)) {
+	if (topic.startsWith(putPrefix)) { // "PUT/<device>/<topic>
 		str.substr(topic, putPrefix.length());
 		Prop* p = findProp(str);
 		if (p) {
-			if (p->_xdr)
-				p->_xdr(p->_instance, CMD_PUT, message);
-			p->_flags.publishValue = true;
+				message.offset(0);
+				p->fromBytes(message);
+			p->doPublish();
 		}
 		Msg::publish(SIG_PROP_CHANGED);
-	} else if (topic.startsWith(getPrefix)) {
+	} else if (topic.startsWith(getPrefix)) { // "GET/<device>/<topic>
 		str.substr(topic, getPrefix.length());
 		Prop* p = findProp(str);
 		if (p) {
-			p->_flags.publishValue = true;
+			p->doPublish();
 			Msg::publish(SIG_PROP_CHANGED);
 		}
 
-	}
+	} else if (topic.startsWith(headPrefix)) { // "HEAD/<device>/<topic>
 
-}
+		}
+
+	}
 
 PropMgr::PropMgr(Mqtt& mqtt) :
 		_mqtt(mqtt), _topic(30), _message(100) {
@@ -136,6 +159,8 @@ void PropMgr::nextProp() {
 		_cursor = Prop::_first;
 }
 
+
+
 void PropMgr::publishing(Msg& event) {
 	switch (event.sig()) {
 	case SIG_PROP_CHANGED: { //TODO
@@ -152,34 +177,18 @@ void PropMgr::publishing(Msg& event) {
 		break;
 	}
 	case SIG_MQTT_PUBLISH_OK: {
-		if (_publishMeta)
-			_cursor->_flags.publishMeta = false;
-		else
-			_cursor->_flags.publishValue = false;
+		_cursor->isPublished();
 		nextProp();
 		timeout(1);
 		break;
 	}
 	case SIG_TIMEOUT: {
-		if (_cursor->_flags.publishValue) {
-			_publishMeta = false;
+		if (_cursor->hasToBePublished()) {
 			_topic = _cursor->_name;
 			_message.clear();
-			_cursor->_xdr(_cursor->_instance, CMD_GET, _message);
-			_mqtt.Publish(_cursor->_flags, Mqtt::nextMessageId(), _topic, _message);
-			timeout(UINT32_MAX);
-		} else if (_cursor->_flags.publishMeta) {
-			_publishMeta = true;
-			_topic = _cursor->_name;
-			_topic << ".META";
-			_message.clear();
-			Cbor msg(_message);
-			msg.addMap(-1);
-			msg.add("type").add(sType[_cursor->_flags.type]);
-			msg.add("mode").add(sMode[_cursor->_flags.mode]);
-			msg.add("qos").add(sQos[_cursor->_flags.qos]);
-			msg.addBreak();
-			_mqtt.Publish(_cursor->_flags, Mqtt::nextMessageId(), _topic, _message);
+			_cursor->toBytes( _message);
+			_mqtt.Publish(_cursor->_flags, Mqtt::nextMessageId(), _topic,
+					_message);
 			timeout(UINT32_MAX);
 		} else {
 			nextProp();
@@ -202,15 +211,10 @@ void PropMgr::publishing(Msg& event) {
 
 }
 
-void Prop::updated() {
-	_flags.publishValue = true;
-}
-
 void Prop::publishAll() {
 	Prop* cursor = Prop::_first;
 	while (cursor->_next != 0) {
-		cursor->_flags.publishValue = true;
-		cursor->_flags.publishMeta = true;
+		cursor->doPublish();
 		cursor = cursor->_next;
 	}
 }
