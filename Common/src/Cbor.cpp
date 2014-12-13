@@ -16,6 +16,20 @@ Cbor::~Cbor() {
 // if minor<24 => length=0
 int tokenSize[] = { 1, 2, 4, 8 };
 
+
+
+bool Cbor::getBool(bool& bl){
+	Variant v;
+	PackType type;
+	if (readToken(type, v) != E_OK)
+		return false;
+	if ( type == P_BOOL) {
+		bl = v._bool;
+		return true;
+	}
+	return false;
+}
+
 Erc Cbor::readToken(PackType& type, Variant& v) {
 	int minor;
 	int length;

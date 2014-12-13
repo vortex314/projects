@@ -34,7 +34,7 @@ enum Type {
 };
 
 enum Mode {
-	M_READ, M_WRITE
+	M_READ, M_WRITE,M_RW
 };
 
 enum Qos {
@@ -44,18 +44,23 @@ enum Qos {
 enum Interface {
 	I_ADDRESS, I_INTERFACE, I_SETTER, I_OBJECT
 };
+enum Interval {
+	T_1MSEC,T_10MSEC,T_100MSEC,T_1SEC,T_10SEC,T_100SEC,T_1KSEC,T_10KSEC
+};
+
+enum Retained {
+	NO_RETAIN,RETAIN
+};
 
 
 
 typedef struct {
 	enum Type type :5;
 	enum Mode mode :2;
+	enum Interval interval:3;// 0=1 msec -> 7=10^7 msec=10000sec=2,777 hr
 	enum Qos qos :2;
-	enum Interface interface :2;
-	bool retained :1;
-	int frequency:3;// 0=1 msec -> 7=10^7 msec=10000sec=2,777 hr
-	bool publishValue :1;
-	bool publishMeta :1;
+	enum Retained retained :1;
+	bool doPublish:1;
 } Flags;
 
 //Flags flags={T_INT32,M_READ,QOS_0,I_ADDRESS,false,true,true};
@@ -64,6 +69,7 @@ typedef struct {
 typedef enum {
 	CMD_GET, CMD_DESC, CMD_PUT
 } Cmd;
+
 typedef void (*Xdr)(void*, Cmd, Bytes&);
 
 class Mqtt;
@@ -72,25 +78,32 @@ class Prop {
 public:
 
 	const char* _name;
-	void* _instance;
-	Xdr _xdr;
 	Flags _flags;
+	uint64_t _lastPublished;
 	Prop* _next;
+
 	static Prop* _first;
 
 public:
 	Prop();
-	Prop(const char* name, void* instance, Xdr xdr, Flags flags);
+	Prop(const char* name, Flags flags);
 	Prop(const char* name,const char* value);
 	Prop(const char* name,uint64_t&  value);
-	void init(const char* name, void* instance, Xdr xdr, Flags flags);
+	void init(const char* name, Flags flags);
 
 	static Prop* findProp(Str& name);
 	static void set(Str& topic, Bytes& message);
 	static void xdrUint64(void* addr, Cmd cmd, Bytes& strp);
 	static void xdrString(void* addr, Cmd cmd, Bytes& strp);
 
+	virtual void toBytes(Bytes& msg) {};
+	virtual void fromBytes(Bytes& msg) {};
+	void metaToBytes(Bytes& msg);
+
 	void updated();
+	bool hasToBePublished();
+	void doPublish();
+	void isPublished();
 	static void publishAll();
 };
 

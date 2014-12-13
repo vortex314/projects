@@ -38,6 +38,8 @@ public:
 	Cbor& addBreak();
 	Cbor& addNull();
 
+	bool getBool(bool& bl);
+
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);
 

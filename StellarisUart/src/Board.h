@@ -8,6 +8,7 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 #include <stdint.h>
+#include <Bytes.h>
 #ifdef __cplusplus
 class Board {
 public:
@@ -25,7 +26,7 @@ public:
 	static bool getButton(Button button);
 	static bool getLed(int32_t led);
 	static char* processor();
-	static uint64_t processorRevision();
+	static void processorRevision(Bytes& b);
 	static float getTemp();
 	static void disableInterrupts();
 	static void enableInterrupts();

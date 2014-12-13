@@ -13,8 +13,9 @@ Log log;
 
 MqttIn mqttIn(MAX_MSG_SIZE);
 MqttOut mqttOut(MAX_MSG_SIZE);
-Str putPrefix(20);
-Str getPrefix(20);
+Str putPrefix(30);
+Str getPrefix(30);
+Str headPrefix(30);
 Str prefix(20);
 
 uint16_t gMessageId = 1;
@@ -69,7 +70,7 @@ void GlobalInit() {
 	mqttOut.prefix(prefix);
 	getPrefix << "GET/" << prefix;
 	putPrefix << "PUT/" << prefix;
-
+	headPrefix << "HEAD/" << prefix;
 }
 ;
 /*****************************************************************************
