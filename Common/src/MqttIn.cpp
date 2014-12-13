@@ -151,6 +151,9 @@ void MqttIn::toString(Str& str)
     str.append("mqttIn : { type : ").append(MqttNames[type() >> 4]);
     str.append(", qos : ").append(QosNames[(_header & MQTT_QOS_MASK) >> 1]);
     str.append(", retain : ").append((_header & 0x1) > 0);
+    str << " messageId : ";
+    str << _messageId;
+
     if (type() == MQTT_MSG_PUBLISH)
     {
         str << (const char*)", topic : ";
