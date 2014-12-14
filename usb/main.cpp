@@ -201,6 +201,7 @@ public:
                 MqttIn* msg = tcp.recv();
                 msg->parse();
                 Str str(256);
+                str << "MQTT TCP->USB:";
                 msg->toString(str);
                 logger.info()<< str;
                 logger.flush();
@@ -216,6 +217,7 @@ public:
                 {
                     mqttIn->parse();
                     Str str(256);
+                    str << "MQTT USB->TCP:";
                     mqttIn->toString(str);
                     logger.info()<< str;
                     logger.flush();
