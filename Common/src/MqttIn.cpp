@@ -148,10 +148,12 @@ bool MqttIn::addRemainingLength(uint8_t data)
 
 void MqttIn::toString(Str& str)
 {
-    str.append("mqttIn : { type : ").append(MqttNames[type() >> 4]);
-    str.append(", qos : ").append(QosNames[(_header & MQTT_QOS_MASK) >> 1]);
-    str.append(", retain : ").append((_header & 0x1) > 0);
-    str << " messageId : ";
+    parse();
+    str.append(MqttNames[type() >> 4]);
+    str.append(":").append(QosNames[(_header & MQTT_QOS_MASK) >> 1]);
+    if (_header & 0x1) str.append(",RETAIN");
+    if ( _header & MQTT_DUP_FLAG ) str.append(",DUP");
+    str << ", messageId : ";
     str << _messageId;
 
     if (type() == MQTT_MSG_PUBLISH)
@@ -198,11 +200,11 @@ void MqttIn::parse()
         readUtf(&clientId);
         if ( connectFlags & MQTT_WILL_FLAG)
         {
-            uint16_t length;
-            readUint16(&length);
-            _topic.map(data() + offset(), length);
-            readUint16(&length);
-            _message.map(data() + offset(), length);
+            uint16_t l;
+            readUint16(&l);
+            _topic.map(data() + offset(), l);
+            readUint16(&l);
+            _message.map(data() + offset(), length()-offset());
         }
         Str userName(100);
         Str password(100);
@@ -228,6 +230,8 @@ void MqttIn::parse()
         {
             readUint16(&_messageId);
             rest -= 2;
+        } else {
+        _messageId=0;
         }
         _message.map(data() + offset(), rest); // map message to rest of payload
         break;
