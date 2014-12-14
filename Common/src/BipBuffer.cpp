@@ -6,6 +6,7 @@
  */
 
 #include <BipBuffer.h>
+#include "Sys.h"
 
 
 /*
@@ -133,8 +134,10 @@ uint8_t* BipBuffer::Reserve(int size, int& reserved) {
 		if (size < freespace)
 			freespace = size;
 
-		if (freespace == 0)
+		if (freespace == 0) {
+			Sys::warn(EOVERFLOW,"BIP");
 			return NULL;
+		}
 
 		szResrv = freespace;
 		reserved = freespace;

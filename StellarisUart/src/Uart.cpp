@@ -30,7 +30,6 @@ Uart* gUart0 = new Uart();
 
 Uart::Uart() :
 		_in(100), _out(256), _mqttIn(256) {
-	gUart0 = this;
 	_overrunErrors = 0;
 	_crcErrors = 0;
 }
@@ -51,17 +50,17 @@ void Uart::init() {
 	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX1_8, UART_FIFO_RX1_8);
 	UARTTxIntModeSet(UART0_BASE, UART_TXINT_MODE_EOT);// UART_TXINT_MODE_EOT, UART_TXINT_MODE_FIFO
 	IntEnable(INT_UART0);
-	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX);
+	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX | UART_INT_OE);
 }
 
 Uart::~Uart() {
 }
 
 uint8_t Uart::read() {
-	return gUart0->_in.read();
+	return _in.read();
 }
 uint32_t Uart::hasData() {
-	return gUart0->_in.hasData();
+	return _in.hasData();
 }
 
 bool UARTFIFOFull(uint32_t uart_base) {
@@ -88,6 +87,7 @@ Erc Uart::send(Bytes& bytes) {
 	bytes.offset(0);
 	if (_out.space() < bytes.length()) { // not enough space in circbuf
 		_overrunErrors++;
+		Sys::warn(EOVERFLOW,"UART_SEND");
 		if (!UARTBusy(UART0_BASE)) { // fire off first bytes
 			UARTCharPutNonBlocking(UART0_BASE, _out.read());
 		}
@@ -143,6 +143,7 @@ void Uart::dispatch(Msg& event) {
 					m.create(100).sig(SIG_MQTT_MESSAGE).add(_mqttIn).send();
 				} else {
 					_crcErrors++;
+					Sys::warn(EIO,"UART_CRC");
 				}
 				_mqttIn.clear();
 			}
@@ -168,11 +169,12 @@ extern "C" void UART0IntHandler(void) {
 				if (gUart0->_in.hasSpace())
 					gUart0->_in.writeFromIsr(
 							UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
-				else
+				else {
 					gUart0->_overrunErrors++;
+					Sys::warn(EOVERFLOW,"UART_RX");
+				}
 			}
 		}
-//		Msg::publish(SIG_LINK_RXD); // publish is not thread-safe !!!!
 	}
 	if (ulStatus & UART_INT_TX) {
 		while (!UARTFIFOFull(UART0_BASE) && gUart0->_out.hasData()) {
@@ -180,9 +182,14 @@ extern "C" void UART0IntHandler(void) {
 			if (b >= 0) {
 				if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
 					break;
-			} else
+			} else {
+				Sys::warn(ENODATA,"UART_TX");
 				break;
+			}
 		}
 	}
+	if (ulStatus & UART_INT_OE) {
+		Sys::warn(ENODATA,"UART_RX_OE");
+		}
 }
 

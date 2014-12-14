@@ -276,7 +276,7 @@ void MqttIn::parse()
     }
     default:
     {
-//		ASSERT(false); // invalid message type, ignore noise
+    	Sys::warn(EINVAL,"MQTTIN_TYPE");
         break;// ignore bad package
     }
     }
