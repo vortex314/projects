@@ -229,6 +229,8 @@ public:
                             MqttOut m(10);
                             m.ConnAck(0);
 //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
+                            logger.info()<< "CONNACK virtual,already tcp connected";
+                            logger.flush();
                             usb.send(m);
                         }
                         else

@@ -158,7 +158,7 @@ Erc Usb::send(Bytes& bytes)
     if ( count != bytes.length())
     {
         disconnect();
-        logger.perror("send() failed");
+        logger.perror("send() failed !");
         logger.flush();
         return E_AGAIN;
     }
