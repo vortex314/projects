@@ -458,7 +458,10 @@ void MqttPub::qos2Pub(Msg& event) {
 	case SIG_MQTT_MESSAGE: {
 		if (_mqtt.isEvent(event, MQTT_MSG_PUBREC, _messageId, 0)) {
 			TRAN(MqttPub::qos2Comp);
-		} // else ignore
+		} else {
+			if (_mqtt.isEvent(event, MQTT_MSG_PUBREC, 0, 0))
+				Sys::warn(EINVAL,"QOS2PUB_TYPE");// else ignore
+		}
 		break;
 	}
 	case SIG_TIMEOUT: {
@@ -559,12 +562,12 @@ void MqttSub::ready(Msg& event) {
 		break;
 	}
 	case SIG_MQTT_MESSAGE: {
-		if (_mqtt.isEvent(event, MQTT_MSG_PUBLISH, 0, 0)) {
-			event.rewind();
-			event.sig();
-			MqttIn mqttIn(100);
-			event.get(mqttIn);
-			mqttIn.parse();
+		event.rewind();
+		event.sig();
+		MqttIn mqttIn(100);
+		event.get(mqttIn);
+		mqttIn.parse();
+		if ( mqttIn.type()==MQTT_MSG_PUBLISH) {
 			uint8_t qos = mqttIn._header & MQTT_QOS_MASK;
 			if (qos == MQTT_QOS0_FLAG) {
 				Prop::set(mqttIn._topic, mqttIn._message);
@@ -579,6 +582,8 @@ void MqttSub::ready(Msg& event) {
 				_messageId = mqttIn._messageId;
 				_header = mqttIn._header;
 				TRAN(MqttSub::qos2Sub);
+			} else {
+				Sys::warn(EINVAL,"QOS_ERR");
 			}
 		}
 		break;
@@ -608,7 +613,10 @@ void MqttSub::qos2Sub(Msg& event) {
 			_mqtt.send(mqttOut);
 			Prop::set(_topic, _message);
 			TRAN(MqttSub::ready);
-		} // else ignore
+		}  else if (_mqtt.isEvent(event, MQTT_MSG_PUBREL, 0, 0)) {
+
+			Sys::warn(EINVAL,"");// else ignore
+		}
 		break;
 	}
 	case SIG_TIMEOUT: {

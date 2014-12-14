@@ -101,7 +101,7 @@ public:
 	}
 };
 
-UptimeTopic uptime;
+//UptimeTopic uptime;
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
@@ -152,7 +152,7 @@ public:
 	}
 };
 
-GpioOutTopic gpio("GPIO/F/2", GPIO_PORTF_BASE, GPIO_PIN_2);
+GpioOutTopic gpio("GPIO/F2", GPIO_PORTF_BASE, GPIO_PIN_2);
 
 #include "Fsm.h"
 
@@ -248,5 +248,7 @@ int main(void) {
 			clock += 10;
 			Msg::publish(SIG_TIMER_TICK);
 		}
+		if ( gUart0->hasData())
+			Msg::publish(SIG_LINK_RXD);
 	}
 }
