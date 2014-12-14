@@ -61,12 +61,12 @@ public:
 	}
 };
 
-//TempTopic tt;
+TempTopic tt;
 
 class HardwareTopic: public Prop {
 public:
 	HardwareTopic() :
-			Prop("system/hardware", (Flags ) { T_OBJECT, M_READ, T_10SEC, QOS_1,
+			Prop("system/hardware", (Flags ) { T_OBJECT, M_READ, T_1KSEC, QOS_1,
 							NO_RETAIN }) {
 	}
 
@@ -86,12 +86,12 @@ public:
 	}
 };
 
-//HardwareTopic hardware;
+HardwareTopic hardware;
 
 class UptimeTopic: public Prop {
 public:
 	UptimeTopic() :
-			Prop("system/uptime", (Flags ) { T_UINT64, M_READ, T_10SEC, QOS_0,
+			Prop("system/uptime", (Flags ) { T_UINT64, M_READ, T_1SEC, QOS_0,
 							NO_RETAIN }) {
 	}
 
@@ -101,7 +101,7 @@ public:
 	}
 };
 
-//UptimeTopic uptime;
+UptimeTopic uptime;
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"

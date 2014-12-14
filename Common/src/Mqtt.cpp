@@ -387,6 +387,7 @@ void MqttPub::ready(Msg& event) {
 	case SIG_MQTT_DO_PUBLISH: {
 		_messageId = Mqtt::nextMessageId();
 		if (_flags.qos == QOS_0) {
+			_retryCount=0;
 			Publish();
 			TRAN(MqttPub::ready);
 			Msg::publish(SIG_MQTT_PUBLISH_OK);
