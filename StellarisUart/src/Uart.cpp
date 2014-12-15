@@ -139,8 +139,9 @@ void Uart::dispatch(Msg& event) {
 				if (_mqttIn.isGoodCrc()) {
 					_mqttIn.RemoveCrc();
 					_mqttIn.parse();
-					Msg m;
-					m.create(100).sig(SIG_MQTT_MESSAGE).add(_mqttIn).send();
+					Msg m(100);
+					m.add(SIG_MQTT_MESSAGE).add(_mqttIn);
+					m.send();
 				} else {
 					_crcErrors++;
 					Sys::warn(EIO,"UART_CRC");

@@ -11,16 +11,29 @@ typedef struct {
 	Signal signal :8;
 } Envelope;
 
-Msg::Msg() :
-		Bytes(0) {
+BipBuffer Msg::bb;
+
+#define ENVELOPE_SIZE	sizeof(Envelope)
+
+Msg::Msg()  {
 	_start = 0;
 	_signal = SIG_IDLE;
 }
 
-#define ENVELOPE_SIZE	sizeof(Envelope)
+Msg::Msg(int size)   {
+	if (!bb.IsInitialized())
+		bb.AllocateBuffer(1024);
+	int reserved;
+	_start = bb.Reserve(size + ENVELOPE_SIZE, reserved);
+	map(_start + ENVELOPE_SIZE, reserved - ENVELOPE_SIZE);
 
-Msg::Msg(Signal sig) :
-		Bytes(1) {
+	_start = 0;
+	_signal = SIG_IDLE;
+}
+
+
+
+Msg::Msg(Signal sig)  {
 	_start = 0;
 	_signal = sig;
 	map(0, 0);
@@ -62,38 +75,38 @@ void Msg::recv() {
 void Msg::send() {
 	Envelope env = { length() + ENVELOPE_SIZE, _signal };
 	::memcpy(_start, &env, ENVELOPE_SIZE);
-	bb.Commit(length() + +ENVELOPE_SIZE);
+	bb.Commit(length()  +ENVELOPE_SIZE);
 }
 
-Msg& Msg::add(uint8_t v) {
-	uint8_t* pb = (uint8_t*) &v;
-	write(pb, 0, sizeof(v));
-	return *this;
-}
+/*Msg& Msg::add(uint8_t v) {
+ uint8_t* pb = (uint8_t*) &v;
+ write(pb, 0, sizeof(v));
+ return *this;
+ }
 
-Msg& Msg::add(uint16_t v) {
-	uint8_t* pb = (uint8_t*) &v;
-	write(pb, 0, sizeof(v));
-	return *this;
-}
+ Msg& Msg::add(uint16_t v) {
+ uint8_t* pb = (uint8_t*) &v;
+ write(pb, 0, sizeof(v));
+ return *this;
+ }
 
-Msg& Msg::add(int v) {
-	uint8_t* pb = (uint8_t*) &v;
-	write(pb, 0, sizeof(v));
-	return *this;
-}
+ Msg& Msg::add(int v) {
+ uint8_t* pb = (uint8_t*) &v;
+ write(pb, 0, sizeof(v));
+ return *this;
+ }
 
-Msg& Msg::add(Bytes& v) {
-	uint16_t length = v.length();
-	uint8_t* pb = (uint8_t*) &length;
-	write(pb[0]);
-	write(pb[1]);
-	v.offset(0);
-	while (v.hasData())
-		write(v.read());
-	return *this;
-}
-
+ Msg& Msg::add(Bytes& v) {
+ uint16_t length = v.length();
+ uint8_t* pb = (uint8_t*) &length;
+ write(pb[0]);
+ write(pb[1]);
+ v.offset(0);
+ while (v.hasData())
+ write(v.read());
+ return *this;
+ }*/
+/*
 Msg& Msg::get(Bytes& v) {
 	uint16_t length = v.length();
 	uint8_t* pb = (uint8_t*) &length;
@@ -125,7 +138,7 @@ Msg& Msg::get(int& v) {
 		*pb++ = read();
 	return *this;
 }
-
+*/
 Msg& Msg::rewind() {
 	offset(0);
 	return *this;
@@ -136,13 +149,18 @@ bool Msg::isEmpty() {
 }
 
 void Msg::publish(Signal sig) {
-	Msg msg;
-	msg.create(0).sig(sig).send();
+	Msg msg(0);
+	msg.sig(sig);
+	msg.send();
 }
 
 void Msg::publish(Signal sig, uint16_t detail) {
-	Msg msg;
-	msg.create(2).sig(sig).add(detail).send();
+	Msg msg(2);
+	Cbor cbor(msg);
+//	cbor.add(sig);
+	cbor.add((uint64_t)detail);
+	msg.send();
+//	msg.sig(sig).add(detail).send();
 }
 
 Msg& Msg::sig(Signal sig) {
@@ -154,4 +172,4 @@ Signal Msg::sig() {
 	return _signal;
 }
 
-BipBuffer Msg::bb;
+

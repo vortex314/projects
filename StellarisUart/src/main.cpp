@@ -13,41 +13,6 @@
 #include "Cbor.h"
 
 #include <malloc.h>
-/*
-
-
- class LedTopic {
-
- LedTopic(const char* name,int led) {
- Str s(20);
- s << name;
- s << "/on";
- Prop p(s, (void* )led, LedInterval, (Flags ) { T_BOOL, M_WRITE, QOS_1, I_OBJECT, false,
- true, true }) ;
- }
- static bool LedInterval(Cmd cmd, void *instance, Cbor msg) {
- int ledNr;
- if (cmd == CMD_GET) {
- msg.add(Board::getLed(ledNr));
- } else if (cmd == CMD_PUT) {
- bool on;
- PackType pt;
- Variant v;
- msg.readToken(pt,v);
- if (msg.getBool(on))
- Board::setLedOn(ledNr, on);
- } else if (cmd == CMD_DESC) {
- msg.add((int) (Flags ) { T_BOOL, M_WRITE, QOS_1, I_OBJECT, false,
- true, true });
- }
- return true;
- }
- };
-
- LedTopic ledTopic("ledBlue",Board::LED_BLUE);
- */
-//typedef void (*Xdr)(void*, Cmd, Bytes&);
-void ftoa(float n, char *res, int afterpoint);
 
 class TempTopic: public Prop {
 public:
@@ -61,7 +26,7 @@ public:
 	}
 };
 
-TempTopic tt;
+//TempTopic tt;
 
 class HardwareTopic: public Prop {
 public:
@@ -69,6 +34,7 @@ public:
 			Prop("system/hardware", (Flags ) { T_OBJECT, M_READ, T_1KSEC, QOS_1,
 							NO_RETAIN }) {
 	}
+	virtual ~HardwareTopic();
 
 	void toBytes(Bytes& message) {
 		Cbor msg(message);
@@ -86,7 +52,7 @@ public:
 	}
 };
 
-HardwareTopic hardware;
+// HardwareTopic hardware;
 
 class UptimeTopic: public Prop {
 public:
@@ -101,11 +67,10 @@ public:
 	}
 };
 
-UptimeTopic uptime;
+// UptimeTopic uptime;
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
-//#include "inc/lm4f112h5qc.h"
 #include "inc/hw_types.h"
 #include "inc/lm4f120h5qr.h"
 #include "inc/hw_gpio.h"
@@ -135,7 +100,7 @@ public:
 	void fromBytes(Bytes& message) {
 		Cbor msg(message);
 		bool bl;
-		if (msg.getBool(bl)) {
+		if (msg.get(bl)) {
 			_value = bl;
 			if (bl)
 				GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
@@ -241,7 +206,6 @@ int main(void) {
 	uint64_t clock = Sys::upTime() + 100;
 	Msg::publish(SIG_INIT);
 	Msg::publish(SIG_ENTRY);
-	Msg msg;
 	while (1) {
 		eventPump();
 		if (Sys::upTime() > clock) {

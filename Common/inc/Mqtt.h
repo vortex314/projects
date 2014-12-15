@@ -41,7 +41,7 @@ class MqttSub;
 class Mqtt: public Fsm {
 
 private:
-	struct pt t;
+	struct pt pt;
 	uint16_t _messageId;
 	bool _isConnected;
 	Str str;
@@ -56,7 +56,7 @@ public:
 
  // const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
 
-
+	int handler(Msg& msg);
 	Mqtt(Link& link);
 	~Mqtt(){};
 	int handler(Msg* event);

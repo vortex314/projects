@@ -1,12 +1,9 @@
 #include "Cbor.h"
 #include "Packer.h"
 
-/*Cbor::Cbor(uint32_t size) :
-		_bytes(size) {
-}*/
-
 Cbor::Cbor(Bytes& bytes ) : _bytes(bytes) {
 }
+
 
 Cbor::~Cbor() {
 	//dtor
@@ -18,13 +15,38 @@ int tokenSize[] = { 1, 2, 4, 8 };
 
 
 
-bool Cbor::getBool(bool& bl){
+bool Cbor::get(bool& bl){
 	Variant v;
 	PackType type;
 	if (readToken(type, v) != E_OK)
 		return false;
 	if ( type == P_BOOL) {
 		bl = v._bool;
+		return true;
+	}
+	return false;
+}
+
+bool Cbor::get(uint32_t& i){
+	Variant v;
+	PackType type;
+	if (readToken(type, v) != E_OK)
+		return false;
+	if ( type == P_PINT) {
+		i = v._uint64;
+		return true;
+	}
+	return false;
+}
+
+bool Cbor::get(Bytes& bytes){
+	Variant v;
+	PackType type;
+	if (readToken(type, v) != E_OK)
+		return false;
+	if ( type == P_BYTES) {
+		bytes.map( _bytes.data()+_bytes.offset(),v._length);
+		for(int i=0;i<v._length;i++) _bytes.read();	// skip data
 		return true;
 	}
 	return false;

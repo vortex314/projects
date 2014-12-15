@@ -20,8 +20,8 @@ CborType;
 class Cbor: public Packer {
 public:
 	Cbor(Bytes& dst);
-	Cbor(uint32_t size);
-	virtual ~Cbor();
+	Cbor();
+	~Cbor();
 
 	Cbor& add(int i);
 	Cbor& add(float f);
@@ -38,10 +38,13 @@ public:
 	Cbor& addBreak();
 	Cbor& addNull();
 
-	bool getBool(bool& bl);
+	bool get(bool& bl);
+	bool get(uint32_t& i);
+	bool get(Bytes& bytes);
 
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);
+	Bytes& bytes(){return _bytes;};
 
 protected:
 private:

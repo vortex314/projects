@@ -249,7 +249,7 @@ void AdcInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
 	ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 	ADCIntEnable(ADC0_BASE, 1);
-	IntEnable(INT_ADC0SS1);
+//	IntEnable(INT_ADC0SS1); //DISABLED
 	ADCSequenceEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 }

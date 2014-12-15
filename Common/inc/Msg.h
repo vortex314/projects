@@ -11,20 +11,30 @@
 #include "Bytes.h"
 #include "BipBuffer.h"
 #include "Event.h"
+#include "Cbor.h"
 
-class Msg: public Bytes {
+class Msg : public Bytes {
 private:
 	static BipBuffer bb;
 	Signal _signal:8;
 	uint8_t* _start;
 public:
 	Msg();
+	Msg(int size);
 	Msg(Signal sig);
 	Msg& create(int size);
 	Msg& open();
 	void recv();
 	void send();
 	Signal sig();
+	Msg& sig(Signal sig);
+	Msg& rewind();
+	Msg& send(void* str);
+	Msg& recv(void* str);
+	bool isEmpty();
+	static void publish(Signal sig);
+	static void publish(Signal signal,uint16_t detail);
+	/*
 	Msg& sig(Signal sig);
 	Msg& add(uint8_t v);
 	Msg& add(uint16_t v);
@@ -33,13 +43,8 @@ public:
 	Msg& get(Bytes& bytes);
 	Msg& add(int v);
 	Msg& get(int& v);
-	Msg& get(uint8_t& v);
-	Msg& rewind();
-	Msg& send(void* str);
-	Msg& recv(void* str);
-	bool isEmpty();
-	static void publish(Signal sig);
-	static void publish(Signal signal,uint16_t detail);
+	Msg& get(uint8_t& v);*/
+
 	static void push(uint8_t* pb,uint32_t length);
 
 };

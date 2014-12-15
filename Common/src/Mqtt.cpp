@@ -146,7 +146,7 @@ void Mqtt::connecting(Msg& event) {
 		break;
 	}
 	case SIG_LINK_DISCONNECTED:
-	case SIG_MQTT_DISCONNECTED :{
+	case SIG_MQTT_DISCONNECTED: {
 		TRAN(Mqtt::sleep);
 		break;
 	}
@@ -201,7 +201,7 @@ void Mqtt::subscribing(Msg& event) {
 		break;
 	}
 	case SIG_LINK_DISCONNECTED:
-		case SIG_MQTT_DISCONNECTED :{
+	case SIG_MQTT_DISCONNECTED: {
 		TRAN(Mqtt::sleep);
 		break;
 	}
@@ -218,7 +218,7 @@ void Mqtt::subscribing(Msg& event) {
 void Mqtt::waitDisconnect(Msg& event) {
 	switch (event.sig()) {
 	case SIG_LINK_DISCONNECTED:
-		case SIG_MQTT_DISCONNECTED :{
+	case SIG_MQTT_DISCONNECTED: {
 		Msg::publish(SIG_MQTT_DISCONNECTED);
 		TRAN(Mqtt::sleep);
 		break;
@@ -233,7 +233,7 @@ Mqtt::Mqtt(Link & link) :
 	mqttPing = new MqttPing(*this);
 	_mqttPub = new MqttPub(*this);
 	_mqttSub = new MqttSub(*this);
-	_retries=0;
+	_retries = 0;
 	init(static_cast<SF>(&Mqtt::connecting));
 
 //	PT_INIT(&t);
@@ -355,7 +355,7 @@ MqttPub::MqttPub(Mqtt & mqtt) :
 	_messageId = 1000;
 	_retryCount = 0;
 	_id = 0;
-	_retries=0;
+	_retries = 0;
 	init(static_cast<SF>(&MqttPub::sleep));
 }
 
@@ -387,7 +387,7 @@ void MqttPub::ready(Msg& event) {
 	case SIG_MQTT_DO_PUBLISH: {
 		_messageId = Mqtt::nextMessageId();
 		if (_flags.qos == QOS_0) {
-			_retryCount=0;
+			_retryCount = 0;
 			Publish();
 			TRAN(MqttPub::ready);
 			Msg::publish(SIG_MQTT_PUBLISH_OK);
@@ -461,7 +461,7 @@ void MqttPub::qos2Pub(Msg& event) {
 			TRAN(MqttPub::qos2Comp);
 		} else {
 			if (_mqtt.isEvent(event, MQTT_MSG_PUBREC, 0, 0))
-				Sys::warn(EINVAL,"QOS2PUB_TYPE");// else ignore
+				Sys::warn(EINVAL, "QOS2PUB_TYPE"); // else ignore
 		}
 		break;
 	}
@@ -568,7 +568,7 @@ void MqttSub::ready(Msg& event) {
 		MqttIn mqttIn(100);
 		event.get(mqttIn);
 		mqttIn.parse();
-		if ( mqttIn.type()==MQTT_MSG_PUBLISH) {
+		if (mqttIn.type() == MQTT_MSG_PUBLISH) {
 			uint8_t qos = mqttIn._header & MQTT_QOS_MASK;
 			if (qos == MQTT_QOS0_FLAG) {
 				Prop::set(mqttIn._topic, mqttIn._message);
@@ -584,7 +584,7 @@ void MqttSub::ready(Msg& event) {
 				_header = mqttIn._header;
 				TRAN(MqttSub::qos2Sub);
 			} else {
-				Sys::warn(EINVAL,"QOS_ERR");
+				Sys::warn(EINVAL, "QOS_ERR");
 			}
 		}
 		break;
@@ -614,9 +614,9 @@ void MqttSub::qos2Sub(Msg& event) {
 			_mqtt.send(mqttOut);
 			Prop::set(_topic, _message);
 			TRAN(MqttSub::ready);
-		}  else if (_mqtt.isEvent(event, MQTT_MSG_PUBREL, 0, 0)) {
+		} else if (_mqtt.isEvent(event, MQTT_MSG_PUBREL, 0, 0)) {
 
-			Sys::warn(EINVAL,"");// else ignore
+			Sys::warn(EINVAL, ""); // else ignore
 		}
 		break;
 	}
@@ -653,4 +653,29 @@ void MqttSub::Publish() {
 	mqttOut.Publish(header, _topic, _message, _messageId);
 	_mqtt.send(mqttOut);
 
+}
+#include "pt.h"
+int Mqtt::handler(Msg& msg) {
+	enum Signal sig = msg.sig();
+	if (sig == SIG_LINK_DISCONNECTED) {
+		PT_INIT(&pt);
+		return PT_YIELDED;
+	}
+	if (sig == SIG_LINK_DISCONNECTED) {
+		_isConnected = true;
+		return PT_YIELDED;
+	}
+
+	PT_BEGIN ( &pt )
+	;
+	while (true) {
+
+		while (isConnected()) {
+			//           PT_YIELD_UNTIL(&_pt,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
+
+			PT_YIELD_UNTIL(&pt, isConnected());
+		}
+	}
+
+PT_END ( &pt );
 }
