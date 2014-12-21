@@ -19,99 +19,96 @@
 #include "Prop.h"
 #include "MqttOut.h"
 
-#include "Fsm.h"
+#include "Handler.h"
 #include "Event.h"
 
-
-
-
 //************************************** CONSTANTS ****************************
-
 #define MAX_MSG_SIZE 100
 #define TIME_KEEP_ALIVE 10000
 #define TIME_WAIT_REPLY 1000
-#define	TIME_PING 3000
+#define	TIME_PING ( TIME_KEEP_ALIVE /3 )
 
-class MqttPing;
-class MqttPub;
-class MqttSub;
+class Subscriber: public Handler {
+public:
+	Subscriber(Mqtt& mqtt);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	// will invoke
+private:
+	Mqtt& _mqtt;
+};
 
+class Publisher: public Handler {
+public:
+	Publisher(Link& link);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	void onOther(Msg& msg);
+	bool publish(Str& topic, Bytes& msg, Flags flags);
+	// will send PUB_OK,PUB_FAIL
+private:
+	void sendPublish();
+	void sendPubRel();
+	Link& _link;
+	enum State {
+		ST_DISCONNECTED,
+		ST_READY,
+		ST_WAIT_PUBACK,
+		ST_WAIT_PUBREC,
+		ST_WAIT_PUBCOMP
+	} _state;
+	Str _topic;
+	Bytes _message;
+	uint16_t _messageId;
+	Flags _flags;
+	uint16_t _retries;
+};
 
+class Subscription: public Handler {
+public:
+	Subscription(Mqtt& mqtt);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+private:
+	Mqtt& _mqtt;
+};
 
-class Mqtt: public Fsm {
+class Pinger: public Handler {
+public:
+	Pinger(Link& link);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	void onOther(Msg& msg);
+private:
+	Link& _link;
+	uint32_t _retries;
+	enum State {
+		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_PINGRESP
+	} _state;
+};
+
+class Mqtt: public Handler {
 
 private:
-	struct pt pt;
-	uint16_t _messageId;
-	bool _isConnected;
-	Str str;
-	Bytes msg;
 	Link& _link;
-	MqttPing* mqttPing;
-	MqttPub* _mqttPub;
-	MqttSub* _mqttSub;
+	Pinger* _pinger;
+	Publisher* _publisher;
 	uint32_t _retries;
-
+	enum State {
+		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_CONNACK
+	} _state;
 public:
-
- // const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
-
-	int handler(Msg& msg);
 	Mqtt(Link& link);
-	~Mqtt(){};
-	int handler(Msg* event);
-	Erc send(Bytes& pb);
-	bool isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos);
-	bool Publish(Flags flags,uint16_t id,Str& topic,Bytes& msg);
-	MqttIn* getBuffer(uint32_t idx);
+	~Mqtt();
+	void onTimeout();
+	void onMqttMessage(MqttIn& mqttIn);
+	void onOther(Msg& msg);
+	static uint16_t nextMessageId();
+	bool publish(Str& topic, Bytes& msg, Flags flags);
 	bool isConnected();
 	Erc disconnect();
-
-	void connecting(Msg& event);
-	void sleep(Msg& event);
-	void subscribing(Msg& event);
-	void waitDisconnect(Msg& event);
-	static uint16_t nextMessageId();
 private:
 	void sendSubscribe(uint8_t flags);
 };
-
-class MqttPub:public Fsm {
-private:
-	uint32_t _retryCount;
-	uint16_t _messageId;
-	Str _topic;
-	Bytes _message;
-	Flags _flags;
-	uint32_t _id;
-	Mqtt& _mqtt;
-	uint32_t _retries;
-public :
-	MqttPub(Mqtt& mqtt);
-	~MqttPub(){};
-	bool send(Flags flags, uint16_t id, Str& topic, Bytes& msg);
-	void Publish();
-	void sleep(Msg& event);
-	void ready(Msg& event);
-	void qos1Pub(Msg& event);
-	void qos2Pub(Msg& event);
-	void qos2Comp(Msg& event);
-};
-
-class MqttPing :public Fsm {
-private:
-	uint32_t _retryCount;
-	Mqtt& _mqtt;
-	uint32_t _retries;
-public :
-	MqttPing(Mqtt& mqtt);
-	~MqttPing(){};
-	void sleep(Msg& event);
-	void sleepBetweenPings(Msg& event);
-	void waitPingResp(Msg& event);
-};
-
-
-
 
 #endif /* MQTT_H_ */

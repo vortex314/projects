@@ -29,7 +29,7 @@
 Uart* gUart0 = new Uart();
 
 Uart::Uart() :
-		_in(100), _out(256), _mqttIn(256) {
+		_in(100), _out(256), _inBuffer(256) {
 	_overrunErrors = 0;
 	_crcErrors = 0;
 }
@@ -134,19 +134,18 @@ void Uart::dispatch(Msg& event) {
 		uint8_t b;
 		while (_in.hasData()) {
 			b = _in.read();
-			if (_mqttIn.Feed(b)) {
-				_mqttIn.Decode();
-				if (_mqttIn.isGoodCrc()) {
-					_mqttIn.RemoveCrc();
-					_mqttIn.parse();
+			if (_inBuffer.Feed(b)) {
+				_inBuffer.Decode();
+				if (_inBuffer.isGoodCrc()) {
+					_inBuffer.RemoveCrc();
 					Msg m(100);
-					m.add(SIG_MQTT_MESSAGE).add(_mqttIn);
+					m.sig(SIG_MQTT_MESSAGE).add(_inBuffer);
 					m.send();
 				} else {
 					_crcErrors++;
 					Sys::warn(EIO,"UART_CRC");
 				}
-				_mqttIn.clear();
+				_inBuffer.clear();
 			}
 		}
 		break;
@@ -166,11 +165,11 @@ extern "C" void UART0IntHandler(void) {
 	UARTIntClear(UART0_BASE, ulStatus); // Clear the asserted interrupts.
 	if (ulStatus & UART_INT_RX) {
 		while (UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
-			if (gUart0) {
+			uint8_t b = UARTCharGetNonBlocking(UART0_BASE);
+			if (gUart0) {						// add data to input ringbuffer
 				if (gUart0->_in.hasSpace())
-					gUart0->_in.writeFromIsr(
-							UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
-				else {
+					gUart0->_in.writeFromIsr(b); // Read the next character from the UART
+				else { // just drop data;
 					gUart0->_overrunErrors++;
 					Sys::warn(EOVERFLOW,"UART_RX");
 				}

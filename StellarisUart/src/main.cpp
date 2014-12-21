@@ -5,7 +5,6 @@
  *      Author: lieven2
  */
 
-#include "Usb.h"
 #include "Board.h"
 #include "Mqtt.h"
 #include "Timer.h"
@@ -13,6 +12,7 @@
 #include "Cbor.h"
 
 #include <malloc.h>
+#include "Handler.h"
 
 class TempTopic: public Prop {
 public:
@@ -67,7 +67,7 @@ public:
 	}
 };
 
-// UptimeTopic uptime;
+UptimeTopic uptime;
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
@@ -87,9 +87,7 @@ class GpioOutTopic: public Prop {
 	bool _value;
 public:
 	GpioOutTopic(const char *name, uint32_t base, uint8_t pin) :
-			Prop(name,
-					(Flags ) { T_BOOL, M_RW, T_10SEC, QOS_2,
-									NO_RETAIN }) {
+			Prop(name, (Flags ) { T_BOOL, M_RW, T_10SEC, QOS_2, NO_RETAIN }) {
 		_gpio_port = base;
 		_gpio_pin = pin;
 		_value = false;
@@ -111,9 +109,9 @@ public:
 	void toBytes(Bytes& message) {
 		Cbor msg(message);
 		if (GPIOPinRead(_gpio_port, _gpio_pin))
-			msg.add((bool)true);
+			msg.add((bool) true);
 		else
-			msg.add((bool)false);
+			msg.add((bool) false);
 	}
 };
 
@@ -121,13 +119,11 @@ GpioOutTopic gpio("GPIO/F2", GPIO_PORTF_BASE, GPIO_PIN_2);
 
 #include "Fsm.h"
 
-class LedBlink: public Fsm {
+class LedBlink: public Handler {
 	bool _isOn;
 	uint32_t _msecInterval;
 public:
 	LedBlink() {
-		init(static_cast<SF>(&LedBlink::blink));
-		timeout(1000);
 		_isOn = false;
 		_msecInterval = 500;
 	}
@@ -135,15 +131,18 @@ public:
 	virtual ~LedBlink() {
 	}
 
-	void blink(Msg& event) {
+	void onEntry(){
+		timeout(_msecInterval);
+	}
+
+	void onTimeout() {
+		Board::setLedOn(Board::LED_GREEN, _isOn);
+		_isOn = !_isOn;
+		timeout(_msecInterval);
+	}
+
+	void onOther(Msg& event) {
 		switch (event.sig()) {
-		case SIG_TIMEOUT: {
-			Board::setLedOn(Board::LED_GREEN, _isOn);
-			_isOn = !_isOn;
-			timeout(_msecInterval);
-//			Prop::publishAll();
-			break;
-		}
 		case SIG_MQTT_CONNECTED: {
 			_msecInterval = 100;
 			break;
@@ -160,22 +159,18 @@ public:
 };
 LedBlink ledBlink;
 Msg msg;
-Fsm* fsm;
+Handler* hdlr;
 static Msg timeout(SIG_TIMEOUT);
 
 void eventPump() {
 	while (true) {
 		msg.open();	// get message from queue
-		if (msg.sig() == SIG_IDLE)
+		if (msg.sig() == SIG_IDLE) // ignore idles, no interest in handlers
 			break;
-		for (fsm = Fsm::first(); fsm != 0; fsm = Fsm::next(fsm)) {
-			if ((msg.sig() == SIG_TIMER_TICK)) {
-				if (fsm->timeout())
-					fsm->dispatch(timeout);
-			} else
-				fsm->dispatch(msg);
+		for (hdlr = Handler::first(); hdlr != 0; hdlr = hdlr->next()) { // dispatch message event to all handlers
+			hdlr->dispatch(msg);
+			msg.rewind();
 		}
-//		Fsm::dispatchToAll(msg);
 		msg.recv();	// confirm reception, remove from queue
 	}
 }
@@ -188,12 +183,9 @@ void eventPump() {
 #include "BipBuffer.h"
 #include "Msg.h"
 #include "Uart.h"
-
 #include "Cbor.h"
 
 extern Uart *gUart0;
-
-extern void uartTest();
 
 int main(void) {
 	Board::init();	// initialize usb
@@ -209,10 +201,10 @@ int main(void) {
 	while (1) {
 		eventPump();
 		if (Sys::upTime() > clock) {
-			clock += 10;
+			clock += 10;		// 10 msec timer tick
 			Msg::publish(SIG_TIMER_TICK);
 		}
-		if ( gUart0->hasData())
+		if (gUart0->hasData())
 			Msg::publish(SIG_LINK_RXD);
 	}
 }

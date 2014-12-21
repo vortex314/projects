@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #include "pt.h"
-#include "Fsm.h"
+#include "Handler.h"
 #include "Bytes.h"
 #include "Mqtt.h"
 
@@ -107,7 +107,7 @@ public:
 	static void publishAll();
 };
 
-class PropMgr: public Fsm {
+class PropMgr: public Handler {
 
 private:
 	Mqtt& _mqtt;
@@ -116,13 +116,12 @@ private:
 	Bytes _message;
 	Prop* _cursor;
 	bool _publishMeta;
-
+	enum State { ST_DISCONNECTED,ST_PUBLISHING,ST_WAIT_PUBRESP} _state;
 
 public:
 	PropMgr(Mqtt& mqtt);
 	~PropMgr(){};
-	void sleep(Msg& event);
-	void publishing(Msg& event);
+	void dispatch(Msg& event);
 	void nextProp();
 };
 

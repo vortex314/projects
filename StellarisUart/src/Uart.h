@@ -9,10 +9,10 @@
 #ifndef UART_H_
 #define UART_H_
 #include "Link.h"
-#include "Fsm.h"
+#include "Handler.h"
 #include "CircBuf.h"
 #include "MqttIn.h"
-class Uart: public Link,public Fsm {
+class Uart: public Link,public Handler {
 public:
 	Uart();
 	virtual ~Uart();
@@ -28,7 +28,7 @@ public:
     void dispatch(Msg& event);
 	CircBuf _in;
 	CircBuf _out;
-	MqttIn _mqttIn;
+	Bytes _inBuffer;
 	uint32_t _crcErrors;
 		uint32_t _overrunErrors;
 private:

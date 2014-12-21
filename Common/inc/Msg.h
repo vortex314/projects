@@ -17,7 +17,7 @@ class Msg : public Bytes {
 private:
 	static BipBuffer bb;
 	Signal _signal:8;
-	uint8_t* _start;
+	uint8_t* _bufferStart;
 public:
 	Msg();
 	Msg(int size);
@@ -27,23 +27,15 @@ public:
 	void recv();
 	void send();
 	Signal sig();
+	void get(Bytes& bytes);
 	Msg& sig(Signal sig);
+	Msg& add(Bytes& bytes);
 	Msg& rewind();
 	Msg& send(void* str);
 	Msg& recv(void* str);
 	bool isEmpty();
 	static void publish(Signal sig);
 	static void publish(Signal signal,uint16_t detail);
-	/*
-	Msg& sig(Signal sig);
-	Msg& add(uint8_t v);
-	Msg& add(uint16_t v);
-	Msg& get(uint16_t& v);
-	Msg& add(Bytes& bytes);
-	Msg& get(Bytes& bytes);
-	Msg& add(int v);
-	Msg& get(int& v);
-	Msg& get(uint8_t& v);*/
 
 	static void push(uint8_t* pb,uint32_t length);
 

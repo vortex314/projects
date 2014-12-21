@@ -1,3 +1,4 @@
+#include "Sys.h"
 #include "new.h"
 #define NEW
 #ifdef NEW
@@ -17,21 +18,7 @@ void operator delete[](void * ptr) {
 	free(ptr);
 }
 #endif
-int __cxa_guard_acquire(__guard *g) {
-	return !*(char *) (g);
-}
-;
-void __cxa_guard_release(__guard *g) {
-	*(char *) g = 1;
-}
-;
-void __cxa_guard_abort(__guard *) {
-}
-;
 
-void __cxa_pure_virtual(void) {
-}
-;
 
 /* A replacement malloc with:
  - Much reduced code size;
@@ -182,6 +169,7 @@ malloc(size_t sz) {
 	 overhead and alignment.  */
 	size_t real_size = REAL_SIZE(sz);
 	m_count_called++;
+	if ( m_count_called > 50) Sys::warn(E2BIG,"malloc");
 
 	/* Look for the first block on the freelist that is large enough.  */
 	for (nextfree = &__malloc_freelist; *nextfree; nextfree =
@@ -770,3 +758,19 @@ int _lseek(int file, int ptr, int dir) {
 #ifdef __cplusplus
 };
 #endif
+
+int __cxa_guard_acquire(__guard *g) {
+	return !*(char *) (g);
+}
+
+void __cxa_guard_release(__guard *g) {
+	*(char *) g = 1;
+}
+
+void __cxa_guard_abort(__guard *) {
+}
+
+
+void __cxa_pure_virtual(void) {
+}
+
