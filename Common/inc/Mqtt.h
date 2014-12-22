@@ -30,12 +30,24 @@
 
 class Subscriber: public Handler {
 public:
-	Subscriber(Mqtt& mqtt);
+	Subscriber(Link& link);
 	void onMqttMessage(MqttIn& msg);
 	void onTimeout();
+	void onOther(Msg& msg);
+	void sendPubRec();
 	// will invoke
 private:
-	Mqtt& _mqtt;
+	Link& _link;
+	Str _topic;
+	Bytes _message;
+	Flags _flags;
+	uint16_t _messageId;
+	uint16_t _retries;
+	enum State {
+			ST_DISCONNECTED,
+			ST_READY,
+			ST_WAIT_PUBREL
+		} _state;
 };
 
 class Publisher: public Handler {
@@ -66,11 +78,22 @@ private:
 
 class Subscription: public Handler {
 public:
-	Subscription(Mqtt& mqtt);
+	Subscription(Link& link);
 	void onMqttMessage(MqttIn& msg);
 	void onTimeout();
+	void onOther(Msg& msg);
+	void sendSubscribePut();
+	void sendSubscribeGet();
 private:
-	Mqtt& _mqtt;
+	Link& _link;
+	enum State {
+			ST_DISCONNECTED,
+			ST_WAIT_SUBACK_PUT,
+			ST_WAIT_SUBACK_GET,
+			ST_SLEEP
+		} _state;
+	uint16_t _retries;
+	uint16_t _messageId;
 };
 
 class Pinger: public Handler {
@@ -93,6 +116,8 @@ private:
 	Link& _link;
 	Pinger* _pinger;
 	Publisher* _publisher;
+	Subscriber* _subscriber;
+	Subscription* _subscription;
 	uint32_t _retries;
 	enum State {
 		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_CONNACK

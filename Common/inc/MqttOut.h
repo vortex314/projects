@@ -27,8 +27,8 @@ private:
     void addBytes(Bytes& bytes);
     void addBytes(uint8_t* bytes,uint32_t length);
 public:
-    void Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag, const char *willTopic,
-            const char *willMsg, const char *username, const char* password, uint16_t keepAlive);
+    void Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag, const char* willTopic,
+            Bytes& willMsg, const char *username, const char* password, uint16_t keepAlive);
     void ConnAck(uint8_t erc);
     void Disconnect();
     void PingReq();

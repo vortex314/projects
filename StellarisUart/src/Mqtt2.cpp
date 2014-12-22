@@ -11,9 +11,7 @@
 
 Log log;
 
-Bytes msgIn(MAX_MSG_SIZE);
-MqttIn mqttIn(msgIn);
-Bytes msgOut(MAX_MSG_SIZE);
+MqttIn mqttIn(new Bytes(MAX_MSG_SIZE));
 MqttOut mqttOut(MAX_MSG_SIZE);
 Str putPrefix(30);
 Str getPrefix(30);
@@ -53,6 +51,8 @@ Mqtt::Mqtt(Link & link) :
 	GlobalInit();
 	_pinger = new Pinger(link);
 	_publisher = new Publisher(link);
+	_subscriber = new Subscriber(link);
+	_subscription = new Subscription(link);
 }
 Mqtt::~Mqtt() {
 }
@@ -64,8 +64,11 @@ bool Mqtt::publish(Str& topic, Bytes& msg, Flags flags) {
 void Mqtt::onTimeout() {
 	if (_state == ST_DISCONNECTED || _state == ST_WAIT_CONNACK) {
 		_link.connect();
+		Bytes msg(8);
+		Cbor cbor(msg);
+		cbor.add(false);
 		mqttOut.Connect(MQTT_QOS2_FLAG, "clientId", MQTT_CLEAN_SESSION,
-				"system/online", "false", "", "",
+				"system/online", msg, "", "",
 				TIME_KEEP_ALIVE / 1000);
 		_link.send(mqttOut);
 		timeout(TIME_WAIT_REPLY);
@@ -115,6 +118,9 @@ void Pinger::onMqttMessage(MqttIn& mqttIn) {
 			timeout(TIME_PING);
 			_retries = 0;
 		}
+	} else {
+		timeout(TIME_PING); // restart timer on any new incoming message;
+		_retries=0;
 	}
 }
 
@@ -232,7 +238,130 @@ void Publisher::onOther(Msg& msg) {
 //____________________________________________________________________________
 //			SUBSCRIBER
 //____________________________________________________________________________
+Subscriber::Subscriber(Link& link) :
+		_link(link), _topic(30), _message(MAX_MSG_SIZE) {
+	_messageId = 0;
+	_retries = 0;
+	_state = ST_DISCONNECTED;
+}
 
+void Subscriber::sendPubRec() {
+	mqttOut.PubRec(_messageId);
+	_link.send(mqttOut);
+	_state = ST_WAIT_PUBREL;
+	timeout(TIME_WAIT_REPLY);
+}
+
+void Subscriber::onTimeout() {
+	if (_retries > 3) {
+		_state = ST_READY;
+		timeout(UINT32_MAX);
+	} else if (_state == ST_WAIT_PUBREL) {
+		_retries++;
+		sendPubRec();
+	}
+}
+
+void Subscriber::onMqttMessage(MqttIn& mqttIn) {
+	if (_state != ST_DISCONNECTED) {
+		if (_state == ST_READY && mqttIn.type() == MQTT_MSG_PUBLISH) {
+			if (mqttIn.qos() == MQTT_QOS0_FLAG) {
+				Prop::set(*mqttIn.topic(), *mqttIn.message());
+			} else if (mqttIn.qos() == MQTT_QOS1_FLAG) {
+				Prop::set(*mqttIn.topic(), *mqttIn.message());
+				mqttOut.PubAck(mqttIn.messageId());
+				_link.send(mqttOut);
+				timeout(TIME_WAIT_REPLY);
+			} else if (mqttIn.qos() == MQTT_QOS2_FLAG) {
+				_retries = 0;
+				_topic = *mqttIn.topic();
+				_message = *mqttIn.message();
+				_messageId = mqttIn.messageId();
+				sendPubRec();
+			}
+		} else if (_state == ST_WAIT_PUBREL && mqttIn.type() == MQTT_MSG_PUBREL
+				&& mqttIn.messageId() == _messageId) {
+			Prop::set(_topic, _message);
+			mqttOut.PubComp(mqttIn.messageId());
+			_link.send(mqttOut);
+			timeout(UINT32_MAX);
+			_state = ST_READY;
+		}
+	}
+}
+
+void Subscriber::onOther(Msg& msg) {
+	if (msg.sig() == SIG_MQTT_DISCONNECTED) {
+		_state = ST_DISCONNECTED;
+		_retries = 0;
+	} else if (msg.sig() == SIG_MQTT_CONNECTED) {
+		_state = ST_READY;
+		timeout(UINT32_MAX);
+		_retries = 0;
+	}
+}
+//____________________________________________________________________________
+//			SUBSCRIPTION
+//____________________________________________________________________________
+Subscription::Subscription(Link& link) :
+		_link(link) {
+	_retries = 0;
+	_state = ST_DISCONNECTED;
+}
+
+void Subscription::sendSubscribePut() {
+	Str topic(100);
+	topic << putPrefix << "/#";
+	mqttOut.Subscribe(MQTT_QOS1_FLAG, topic, _messageId, QOS_2);
+	_link.send(mqttOut);
+	_retries++;
+	timeout(TIME_WAIT_REPLY);
+	_state = ST_WAIT_SUBACK_PUT;
+}
+
+void Subscription::sendSubscribeGet() {
+	Str topic(100);
+	topic << getPrefix << "/#";
+	mqttOut.Subscribe(MQTT_QOS1_FLAG, topic, _messageId, QOS_2);
+	_link.send(mqttOut);
+	_retries++;
+	timeout(TIME_WAIT_REPLY);
+	_state = ST_WAIT_SUBACK_GET;
+}
+
+void Subscription::onTimeout() {
+	if (_state == ST_WAIT_SUBACK_PUT) {
+		sendSubscribePut();
+	} else if (_state == ST_WAIT_SUBACK_GET) {
+		sendSubscribeGet();
+	}
+}
+
+void Subscription::onMqttMessage(MqttIn& mqttIn) {
+	if (_state != ST_DISCONNECTED) {
+		if (_state == ST_WAIT_SUBACK_PUT && mqttIn.type() == MQTT_MSG_SUBACK
+				&& mqttIn.messageId() == _messageId) {
+			_retries = 0;
+			_messageId = Mqtt::nextMessageId();
+			sendSubscribeGet();
+		}
+		if (_state == ST_WAIT_SUBACK_GET && mqttIn.type() == MQTT_MSG_SUBACK
+				&& mqttIn.messageId() == _messageId) {
+			timeout(UINT32_MAX);
+			_state = ST_SLEEP;
+		}
+	}
+}
+
+void Subscription::onOther(Msg& msg) {
+	if (msg.sig() == SIG_MQTT_DISCONNECTED) {
+		_state = ST_DISCONNECTED;
+	} else if (msg.sig() == SIG_MQTT_CONNECTED) {
+		_retries = 0;
+		_messageId = Mqtt::nextMessageId();
+		sendSubscribePut();
+	}
+}
 /*
  bool Mqtt::isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos) {
 

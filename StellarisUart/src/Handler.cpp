@@ -31,7 +31,7 @@ void Handler::dispatch(Msg& msg) {
 	} else if (signal == SIG_MQTT_MESSAGE) {
 		Bytes bytes(0);
 		msg.get(bytes);
-		MqttIn mqttIn(bytes);
+		MqttIn mqttIn(&bytes);
 		bytes.offset(0);
 		if (mqttIn.parse())
 			onMqttMessage(mqttIn);

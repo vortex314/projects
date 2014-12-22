@@ -26,7 +26,7 @@ public:
 	}
 };
 
-//TempTopic tt;
+TempTopic tt;
 
 class HardwareTopic: public Prop {
 public:
@@ -34,7 +34,6 @@ public:
 			Prop("system/hardware", (Flags ) { T_OBJECT, M_READ, T_1KSEC, QOS_1,
 							NO_RETAIN }) {
 	}
-	virtual ~HardwareTopic();
 
 	void toBytes(Bytes& message) {
 		Cbor msg(message);
@@ -52,7 +51,7 @@ public:
 	}
 };
 
-// HardwareTopic hardware;
+HardwareTopic hardware;
 
 class UptimeTopic: public Prop {
 public:
@@ -68,6 +67,21 @@ public:
 };
 
 UptimeTopic uptime;
+
+class SystemOnlineTopic : public Prop {
+public:
+	SystemOnlineTopic() :
+			Prop("system/online", (Flags ) { T_BOOL, M_READ, T_10SEC, QOS_1,
+							NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
+		Cbor msg(message);
+		msg.add(true);
+	}
+};
+SystemOnlineTopic systemOnline;
+
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"

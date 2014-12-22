@@ -77,7 +77,7 @@ void MqttOut::addBytes(uint8_t* bytes, uint32_t length) {
 }
 
 void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
-        const char *willTopic, const char *willMsg, const char *username, const char* password,
+        const char *willTopic, Bytes& willMsg, const char *username, const char* password,
         uint16_t keepAlive) {
             LOG("CONNECT");
     uint8_t connectFlags = connectFlag;
@@ -87,7 +87,7 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     uint16_t passwordlen = strlen(password);
     uint16_t payload_len = clientidlen + 2;
     uint16_t willTopicLen = strlen(willTopic) + _prefix.length();
-    uint16_t willMsgLen = strlen(willMsg);
+    uint16_t willMsgLen = willMsg.length();
 
     // Preparing the connectFlags
     if (usernamelen) {
@@ -127,7 +127,8 @@ void MqttOut::Connect(uint8_t hdr, const char *clientId, uint8_t connectFlag,
     if (willTopicLen) {
         Str wt(willTopic);
         addComposedString(_prefix,wt);
-        addString(willMsg);
+        addUint16(willMsg.length());
+        addBytes(willMsg);
     }
     if (usernamelen) { // Username - UTF encoded
         addString(username);
