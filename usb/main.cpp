@@ -138,7 +138,7 @@ public:
         if ( usbFd ) FD_SET(usbFd, &efds);
         if ( tcpFd )  FD_SET(tcpFd,&efds);
 
-        /* Wait up to five seconds. */
+        /* Wait up to 10 msec. */
         tv.tv_sec = 0;
         tv.tv_usec = 10000;
         int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
@@ -175,14 +175,14 @@ public:
             Sequence::publish(Timer::TICK);
     }
 };
-
-MqttIn mqttIn(120);
+MqttIn mqttIn(new Bytes(256));
 
 
 class Gateway : public Sequence
 {
 private:
     struct pt t;
+    MqttIn* _mqttIn;
 public:
 
     Gateway (  )
@@ -198,7 +198,7 @@ public:
             PT_YIELD_UNTIL(&t,event->is(Tcp::MESSAGE) || event->is(Usb::MESSAGE));
             if ( event->is(Tcp::MESSAGE))
             {
-                MqttIn* msg = tcp.recv();
+                MqttIn* msg= tcp.recv();
                 msg->parse();
                 Str str(256);
                 str << "MQTT TCP->USB:";
@@ -206,25 +206,24 @@ public:
                 logger.info()<< str;
                 logger.flush();
                 assert(msg!=NULL);
-                usb.send(*msg);
+                usb.send(*msg->getBytes());
             }
             else if ( event->is(Usb::MESSAGE))
             {
-                MqttIn* msg = usb.recv();
-                assert(msg!=NULL);
-                MqttIn* mqttIn=(MqttIn*)(msg);
-                if ( mqttIn->length() >1 )   // sometimes bad message
+                MqttIn _mqttIn(usb.recv());
+
+                if ( _mqttIn.getBytes()->length() >1 )   // sometimes bad message
                 {
-                    mqttIn->parse();
+                    _mqttIn.parse();
                     Str str(256);
                     str << "MQTT USB->TCP:";
-                    mqttIn->toString(str);
+                    _mqttIn.toString(str);
                     logger.info()<< str;
                     logger.flush();
 
                     if ( tcp.isConnected() )
                     {
-                        if ( mqttIn->type() == MQTT_MSG_CONNECT ) // simulate a reply
+                        if ( _mqttIn.type() == MQTT_MSG_CONNECT ) // simulate a reply
                         {
                             MqttOut m(10);
                             m.ConnAck(0);
@@ -235,15 +234,15 @@ public:
                         }
                         else
                         {
-                            tcp.send(*msg);
+                            tcp.send(*_mqttIn.getBytes());
                         }
                     }
                     else
                     {
-                        if ( mqttIn->type() == MQTT_MSG_CONNECT )
+                        if ( _mqttIn.type() == MQTT_MSG_CONNECT )
                         {
                             tcp.connect();
-                            tcp.send(*msg);
+                            tcp.send(*_mqttIn.getBytes());
                         }
                         else
                         {
@@ -335,11 +334,20 @@ void loadOptions(int argc,char* argv[])
 }
 
 #include <signal.h>
+#include <execinfo.h>
 
 void SignalHandler(int signal_number)
 {
-    printf("Received signal: %s\n", strsignal(signal_number));
-    sleep(1000000);
+      void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:%s \n", signal_number,strsignal(signal_number));
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
 }
 
 void interceptAllSignals()
@@ -362,6 +370,7 @@ int main(int argc, char *argv[] )
     logger.flush();
 
     loadOptions(argc,argv);
+    interceptAllSignals();
 
     usb.setDevice(context.device);
     usb.setBaudrate(context.baudrate);
@@ -375,6 +384,9 @@ int main(int argc, char *argv[] )
     Gateway gtw;
 //   sleep(100000);
     poller.run();
+
+    logger.level(Logger::INFO)<<"End " ;
+    logger.flush();
 }
 
 

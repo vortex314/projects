@@ -560,20 +560,21 @@
 1410702561 /home/lieven/projects/Common/inc/Bits.h
 	<stdint.h>
 
-1414875471 source:/home/lieven/projects/Common/src/Bytes.cpp
+1419176566 source:/home/lieven/projects/Common/src/Bytes.cpp
 	"Bytes.h"
 	"Str.h"
 
-1417972931 /home/lieven/projects/Common/inc/Bytes.h
+1419176566 /home/lieven/projects/Common/inc/Bytes.h
 	<stdint.h>
 	"Erc.h"
 	"Sys.h"
 	<assert.h>
 
-1410702561 /home/lieven/projects/Common/inc/Erc.h
+1418598408 /home/lieven/projects/Common/inc/Erc.h
 	<stdint.h>
+	<errno.h>
 
-1410702561 /home/lieven/projects/Common/inc/Sys.h
+1419108574 /home/lieven/projects/Common/inc/Sys.h
 	"stdint.h"
 	"Erc.h"
 
@@ -608,7 +609,7 @@
 
 1410707690 /home/lieven/projects/usb//main.h
 
-1414937238 /home/lieven/projects/Common/inc/MqttIn.h
+1419245018 /home/lieven/projects/Common/inc/MqttIn.h
 	"MqttConstants.h"
 	"Event.h"
 	"Str.h"
@@ -635,7 +636,7 @@
 	"Event.h"
 	"MqttIn.h"
 
-1418596529 source:/home/lieven/projects/Common/src/MqttIn.cpp
+1419245035 source:/home/lieven/projects/Common/src/MqttIn.cpp
 	"MqttIn.h"
 	<cstring>
 
@@ -709,7 +710,7 @@
 
 1410702561 /home/lieven/projects/Common/inc/Timer.h
 
-1418239546 source:/home/lieven/projects/Common/src/Str.cpp
+1419236919 source:/home/lieven/projects/Common/src/Str.cpp
 	"Str.h"
 	<string.h>
 	<string.h>
@@ -754,7 +755,7 @@
 	<time.h>
 	<Logger.h>
 
-1410702561 source:/home/lieven/projects/Linux/src/Sys.cpp
+1419108509 source:/home/lieven/projects/Linux/src/Sys.cpp
 	"Sys.h"
 	<malloc.h>
 	<time.h>
@@ -762,7 +763,7 @@
 	<string.h>
 	"Str.h"
 
-1418239546 source:/home/lieven/projects/Linux/src/Tcp.cpp
+1419245453 source:/home/lieven/projects/Linux/src/Tcp.cpp
 	"Tcp.h"
 	<sys/types.h>
 	<sys/socket.h>
@@ -779,7 +780,7 @@
 	<cstdio>
 	<sys/ioctl.h>
 
-1418239546 /home/lieven/projects/Linux/inc/Tcp.h
+1419243028 /home/lieven/projects/Linux/inc/Tcp.h
 	"Bytes.h"
 	"MqttIn.h"
 	"Thread.h"
@@ -799,7 +800,7 @@
 	<malloc.h>
 	"Thread.h"
 
-1418586274 source:/home/lieven/projects/Linux/src/Usb.cpp
+1419238946 source:/home/lieven/projects/Linux/src/Usb.cpp
 	"Usb.h"
 	<stdio.h>
 	<string.h>
@@ -815,14 +816,14 @@
 	<sys/ioctl.h>
 	<sys/ioctl.h>
 
-1418239546 /home/lieven/projects/Linux/inc/Usb.h
+1419238663 /home/lieven/projects/Linux/inc/Usb.h
 	<Sequence.h>
 	"Link.h"
 	"CircBuf.h"
 	"pt.h"
 	"MqttIn.h"
 
-1418573016 source:/home/lieven/projects/usb/main.cpp
+1419245240 source:/home/lieven/projects/usb/main.cpp
 	<iostream>
 	<stdio.h>
 	<string.h>
@@ -853,6 +854,7 @@
 	"Logger.h"
 	"Tcp.h"
 	<signal.h>
+	<execinfo.h>
 
 1418239546 source:/home/lieven/projects/Linux/src/Log.cpp
 	"Log.h"
@@ -860,12 +862,12 @@
 	<sys/time.h>
 	<stdio.h>
 
-1418513021 source:/home/lieven/projects/Common/src/Cbor.cpp
+1419176566 source:/home/lieven/projects/Common/src/Cbor.cpp
 	"Cbor.h"
 	"Packer.h"
 	<cstring>
 
-1418513021 /home/lieven/projects/Common/inc/Cbor.h
+1419176566 /home/lieven/projects/Common/inc/Cbor.h
 	"Bytes.h"
 	"Packer.h"
 	"Str.h"
@@ -883,7 +885,7 @@
 	<errno.h>
 	<string.h>
 
-1418239546 /home/lieven/projects/Common/inc/Packer.h
+1419176566 /home/lieven/projects/Common/inc/Packer.h
 	"Bytes.h"
 	"Str.h"
 

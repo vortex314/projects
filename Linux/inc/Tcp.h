@@ -17,7 +17,7 @@ private:
     bool _connected;
     const char* _host;
     uint16_t _port;
-    MqttIn msg;
+    MqttIn _mqttIn;
     struct pt t;
 public:
 

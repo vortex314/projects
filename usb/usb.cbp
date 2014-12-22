@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-d /dev/ttyACM1 -b 115200 -h localhost" />
+				<Option parameters="-d /dev/ttyACM0 -b 115200 -h localhost" />
 				<Compiler>
 					<Add option="-g" />
 					<Add directory="../Common/inc" />
@@ -37,6 +37,7 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="-g" />
 			<Add option="-fexceptions" />
 			<Add directory="../micro/Common/inc" />
 		</Compiler>

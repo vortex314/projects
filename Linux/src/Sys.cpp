@@ -80,6 +80,9 @@ Str& Sys::getDeviceName() {
     return _hostname;
     }
 
+    void Sys::warn(int err,const char *s){
+    }
+
 
 
 

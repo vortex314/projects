@@ -15,12 +15,25 @@ const char* const MqttNames[] = { "UNKNOWN", "CONNECT", "CONNACK", "PUBLISH",
                                   "UNSUBSCRIBE", "UNSUBACK", "PINGREQ", "PINGRESP", "DISCONNECT"
                                 };
 const char* const QosNames[] = { "QOS0", "QOS1", "QOS2" };
-MqttIn::MqttIn(Bytes& bytes) :
-    _bytes(bytes), _topic(0), _message(0)   //+++ len=0
+MqttIn::MqttIn(Bytes* bytes) :
+    _topic(0), _message(0)   //+++ len=0
 {
+    _bytes =  bytes;
     _remainingLength = 0;
     _header=0;
 }
+
+MqttIn::MqttIn(){
+    _bytes = 0;
+    _remainingLength = 0;
+    _header=0;
+}
+
+void MqttIn::remap(Bytes* bytes){
+_bytes = bytes;
+}
+
+
 /*
 MqttIn::MqttIn(MqttIn& src) :
     Bytes(src.capacity()), _topic(0), _message(0)   //+++ len=0
@@ -63,13 +76,13 @@ Bytes* MqttIn::message()
 void MqttIn::reset()
 {
     _recvState = ST_HEADER;
-    _bytes.clear();
+    _bytes->clear();
 
 }
-/*
-void MqttIn::add(uint8_t data)
+
+void MqttIn::Feed(uint8_t data)
 {
-    _write(data);
+    _bytes->write(data);
     if (_recvState == ST_HEADER)
     {
         _header = data;
@@ -80,7 +93,6 @@ void MqttIn::add(uint8_t data)
     {
         if (addRemainingLength(data) == false)   // last byte read for length
         {
-
             _recvState = ST_PAYLOAD;
             _lengthToRead = _remainingLength;
             if (_remainingLength == 0)
@@ -96,10 +108,9 @@ void MqttIn::add(uint8_t data)
         }
     }
     else if (_recvState == ST_COMPLETE)
-        while (1)
-            ;
+        Sys::warn(EINVAL,"");
 }
-*/
+
 
 bool MqttIn::complete()
 {
@@ -114,8 +125,8 @@ void MqttIn::complete(bool b)
 
 void MqttIn::readUint16(uint16_t* pi)
 {
-    *pi = _bytes.read() << 8;
-    *pi += _bytes.read();
+    *pi = _bytes->read() << 8;
+    *pi += _bytes->read();
 }
 
 void MqttIn::readUtf(Str* str)
@@ -126,7 +137,7 @@ void MqttIn::readUtf(Str* str)
     readUint16(&length);
     for (i = 0; i < length; i++)
     {
-        str->write(_bytes.read());
+        str->write(_bytes->read());
     }
 }
 
@@ -136,7 +147,7 @@ void MqttIn::readBytes(Bytes* b, int length)
     b->clear();
     for (i = 0; i < length; i++)
     {
-        b->write(_bytes.read());
+        b->write(_bytes->read());
     }
 }
 
@@ -151,7 +162,8 @@ void MqttIn::toString(Str& str)
 {
     parse();
     str.append(MqttNames[type() >> 4]);
-    str.append(":").append(QosNames[(_header & MQTT_QOS_MASK) >> 1]);
+    str.append(":");
+    str.append(QosNames[(_header & MQTT_QOS_MASK) >> 1]);
     if (_header & 0x1) str.append(",RETAIN");
     if ( _header & MQTT_DUP_FLAG ) str.append(",DUP");
     str << ", messageId : ";
@@ -181,15 +193,15 @@ void MqttIn::toString(Str& str)
 
 bool MqttIn::parse()
 {
-    if(_bytes.length() <  2) {
+    if(_bytes->length() <  2) {
     	Sys::warn(EINVAL,"MQTT_LEN");
     	return false;
     }
-    _bytes.offset(0);
-    _header = _bytes.read();
+    _bytes->offset(0);
+    _header = _bytes->read();
     _remainingLength = 0;
     _messageId=0;
-    while (addRemainingLength(_bytes.read()))
+    while (addRemainingLength(_bytes->read()))
         ;
     switch (_header & 0xF0)
     {
@@ -197,8 +209,8 @@ bool MqttIn::parse()
     {
         Str protocol(8);
         readUtf(&protocol);
-        _bytes.read(); // version
-        uint8_t  connectFlags=_bytes.read();
+        _bytes->read(); // version
+        uint8_t  connectFlags=_bytes->read();
         uint16_t keepAliveTimer;
         readUint16(&keepAliveTimer);
         Str clientId(23);
@@ -207,9 +219,9 @@ bool MqttIn::parse()
         {
             uint16_t l;
             readUint16(&l);
-            _topic.map(_bytes.data() + _bytes.offset(), l);
+            _topic.map(_bytes->data() + _bytes->offset(), l);
             readUint16(&l);
-            _message.map(_bytes.data() + _bytes.offset(), _bytes.length()-_bytes.offset());
+            _message.map(_bytes->data() + _bytes->offset(), _bytes->length()-_bytes->offset());
         }
         Str userName(100);
         Str password(100);
@@ -220,16 +232,16 @@ bool MqttIn::parse()
     }
     case MQTT_MSG_CONNACK:
     {
-    	_bytes.read();
-        _returnCode = _bytes.read();
+    	_bytes->read();
+        _returnCode = _bytes->read();
         break;
     }
     case MQTT_MSG_PUBLISH:
     {
         uint16_t length;
         readUint16(&length);
-        _topic.map(_bytes.data() + _bytes.offset(), length); // map topic Str to this part of payload
-        _bytes.move(length);							// skip topic length
+        _topic.map(_bytes->data() + _bytes->offset(), length); // map topic Str to this part of payload
+        _bytes->move(length);							// skip topic length
         int rest = _remainingLength - length - 2;
         if (_header & MQTT_QOS_MASK)   // if QOS > 0 load messageID from payload
         {
@@ -238,7 +250,7 @@ bool MqttIn::parse()
         } else {
         _messageId=0;
         }
-        _message.map(_bytes.data() + _bytes.offset(), rest); // map message to rest of payload
+        _message.map(_bytes->data() + _bytes->offset(), rest); // map message to rest of payload
         break;
     }
     case MQTT_MSG_SUBSCRIBE:
@@ -246,7 +258,7 @@ bool MqttIn::parse()
         readUint16(&_messageId);
         uint16_t length;
         readUint16(&length);
-        _topic.map(_bytes.data()+_bytes.offset(),length);
+        _topic.map(_bytes->data()+_bytes->offset(),length);
         break;
     }
     case MQTT_MSG_SUBACK:
@@ -285,6 +297,7 @@ bool MqttIn::parse()
         break;// ignore bad package
     }
     }
+    return true;
 }
 
 // put Active Objects global

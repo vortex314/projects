@@ -37,6 +37,7 @@ class Sys {
         static Str&  lastLog();
         static Str& logFlush();
         static Str& getDeviceName();
+
     private :
         static Str _logLine;
         static Str _lastLogLine;

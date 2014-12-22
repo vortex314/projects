@@ -54,8 +54,9 @@ BAUDRATE BAUDRATES[]=
     {4000000,  B4000000 }
 };
 
-Usb::Usb(const char* device) : msg(100),inBuffer(256)
+Usb::Usb(const char* device) : inBuffer(256)
 {
+    _inBytes=new Bytes(256);
     logger.module("Usb");
     _device =  device;
     isConnected(false);
@@ -89,7 +90,7 @@ Erc Usb::connect()
     logger.info() << "Connecting to " << _device  << " ...";
     logger.flush();
 
-    _fd = ::open(_device, O_RDWR | O_NOCTTY | O_NDELAY);
+    _fd = ::open(_device, O_EXCL | O_RDWR | O_NOCTTY | O_NDELAY);
 
     if (_fd == -1)
     {
@@ -226,21 +227,25 @@ int Usb::handler ( Event* event )
             else if ( event->is(FREE))   // re-use buffer after message handled
             {
                 _isComplete=false;
-                msg.clear();
+                _inBytes->offset(0);
             };
             if ( inBuffer.hasData() && (_isComplete==false) )
             {
                 while( inBuffer.hasData() )
                 {
-                    if ( msg.Feed(inBuffer.read()))
+                    if ( _inBytes->Feed(inBuffer.read()))
                     {
-                        logger.level(Logger::DEBUG)<< "recv : " << msg;
+                        Str l(256);
+                        _inBytes->toString(l);
+                        logger.level(Logger::DEBUG)<< "recv : " << l;
                         logger.flush();
-                        msg.Decode();
-                        if ( msg.isGoodCrc() )
+                        _inBytes->Decode();
+                        if ( _inBytes->isGoodCrc() )
                         {
-                            msg.RemoveCrc();
-                            logger.level(Logger::INFO)<<"-> TCP : " <<msg;
+                            _inBytes->RemoveCrc();
+                            Str l(256);
+                            _inBytes->toString(l);
+                            logger.level(Logger::INFO)<<"-> TCP : " <<l;
                             logger.flush();
                             publish(MESSAGE);
                             publish(FREE); // re-use buffer after message handled
@@ -251,9 +256,9 @@ int Usb::handler ( Event* event )
                         {
                             logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
                             logger.flush();
- //                           logStats();
-                            msg.isGoodCrc();
-                            msg.clear(); // throw away bad data
+//                           logStats();
+                            _inBytes->isGoodCrc();
+                            _inBytes->clear(); // throw away bad data
                         }
                     }
                 }
@@ -266,11 +271,11 @@ int Usb::handler ( Event* event )
     PT_END ( &t );
 }
 
-MqttIn* Usb::recv()
+Bytes* Usb::recv()
 {
     if ( _isComplete )
     {
-        return &msg;
+        return _inBytes;
     }
     return 0;
 }
