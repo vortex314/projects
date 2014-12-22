@@ -23,10 +23,11 @@
 #include "Event.h"
 
 //************************************** CONSTANTS ****************************
-#define MAX_MSG_SIZE 100
 #define TIME_KEEP_ALIVE 10000
 #define TIME_WAIT_REPLY 1000
 #define	TIME_PING ( TIME_KEEP_ALIVE /3 )
+#define TOPIC_MAX_SIZE	40
+#define MSG_MAX_SIZE	256
 
 class Subscriber: public Handler {
 public:

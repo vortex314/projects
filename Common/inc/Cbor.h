@@ -41,6 +41,7 @@ public:
 	bool get(bool& bl);
 	bool get(uint32_t& i);
 	bool get(Bytes& bytes);
+	bool get(uint64_t& l);
 
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);

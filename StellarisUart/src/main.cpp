@@ -67,8 +67,32 @@ public:
 };
 
 UptimeTopic uptime;
+uint64_t bootTime;
 
-class SystemOnlineTopic : public Prop {
+
+class RealTimeTopic: public Prop {
+public:
+	RealTimeTopic() :
+			Prop("system/now", (Flags ) { T_UINT64, M_RW, T_1SEC, QOS_0,
+							NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
+		Cbor msg(message);
+		msg.add(bootTime + Sys::upTime());
+	}
+	void fromBytes(Bytes& message) {
+		Cbor msg(message);
+		uint64_t now;
+		if (msg.get(now)) {
+			bootTime = now - Sys::upTime();
+		}
+	}
+};
+
+RealTimeTopic now;
+
+class SystemOnlineTopic: public Prop {
 public:
 	SystemOnlineTopic() :
 			Prop("system/online", (Flags ) { T_BOOL, M_READ, T_10SEC, QOS_1,
@@ -81,7 +105,6 @@ public:
 	}
 };
 SystemOnlineTopic systemOnline;
-
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
@@ -129,7 +152,9 @@ public:
 	}
 };
 
-GpioOutTopic gpio("GPIO/F2", GPIO_PORTF_BASE, GPIO_PIN_2);
+GpioOutTopic gpioF2("GPIO/F2", GPIO_PORTF_BASE, GPIO_PIN_2);
+GpioOutTopic gpioF1("GPIO/F1", GPIO_PORTF_BASE, GPIO_PIN_1);
+GpioOutTopic gpioF3("GPIO/F3", GPIO_PORTF_BASE, GPIO_PIN_3);
 
 #include "Fsm.h"
 
@@ -145,7 +170,7 @@ public:
 	virtual ~LedBlink() {
 	}
 
-	void onEntry(){
+	void onEntry() {
 		timeout(_msecInterval);
 	}
 
@@ -200,6 +225,7 @@ void eventPump() {
 #include "Cbor.h"
 
 extern Uart *gUart0;
+PropMgr propMgr;
 
 int main(void) {
 	Board::init();	// initialize usb
@@ -207,8 +233,8 @@ int main(void) {
 //	Usb usb;	// usb active object
 //	Uart uart0;
 	Mqtt mqtt(*gUart0);	// mqtt active object
+	propMgr.mqtt(mqtt);
 
-	PropMgr propertyListener(mqtt);
 	uint64_t clock = Sys::upTime() + 100;
 	Msg::publish(SIG_INIT);
 	Msg::publish(SIG_ENTRY);

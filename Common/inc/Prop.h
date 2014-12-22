@@ -92,9 +92,9 @@ public:
 	void init(const char* name, Flags flags);
 
 	static Prop* findProp(Str& name);
-	static void set(Str& topic, Bytes& message);
-	static void xdrUint64(void* addr, Cmd cmd, Bytes& strp);
-	static void xdrString(void* addr, Cmd cmd, Bytes& strp);
+
+//	static void xdrUint64(void* addr, Cmd cmd, Bytes& strp);
+//	static void xdrString(void* addr, Cmd cmd, Bytes& strp);
 
 	virtual void toBytes(Bytes& msg) {};
 	virtual void fromBytes(Bytes& msg) {};
@@ -110,19 +110,23 @@ public:
 class PropMgr: public Handler {
 
 private:
-	Mqtt& _mqtt;
+	Mqtt* _mqtt;
 	struct pt t;
 	Str _topic;
 	Bytes _message;
 	Prop* _cursor;
+	Prop* _next;
 	bool _publishMeta;
 	enum State { ST_DISCONNECTED,ST_PUBLISHING,ST_WAIT_PUBRESP} _state;
 
 public:
-	PropMgr(Mqtt& mqtt);
+	PropMgr();
 	~PropMgr(){};
 	void dispatch(Msg& event);
 	void nextProp();
+	void nextProp(Prop* p);
+	void set(Str& topic, Bytes& message);
+	void mqtt(Mqtt& mqtt);
 };
 
 #endif /* PROP_H_ */

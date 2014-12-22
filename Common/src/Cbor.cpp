@@ -38,6 +38,17 @@ bool Cbor::get(uint32_t& i){
 	}
 	return false;
 }
+bool Cbor::get(uint64_t& l){
+	Variant v;
+	PackType type;
+	if (readToken(type, v) != E_OK)
+		return false;
+	if ( type == P_PINT) {
+		l = v._uint64;
+		return true;
+	}
+	return false;
+}
 
 bool Cbor::get(Bytes& bytes){
 	Variant v;
@@ -453,6 +464,7 @@ void Cbor::addToken(PackType ctype, uint64_t value) {
 	} else if (value < 65536ULL) {
 		_bytes.write(majorType | 25);
 		_bytes.write(value >> 8);
+		_bytes.write(value);
 	} else if (value < 4294967296ULL) {
 		_bytes.write(majorType | 26);
 		_bytes.write(value >> 24);
