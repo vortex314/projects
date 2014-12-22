@@ -23,14 +23,16 @@ MqttIn::MqttIn(Bytes* bytes) :
     _header=0;
 }
 
-MqttIn::MqttIn(){
+MqttIn::MqttIn()
+{
     _bytes = 0;
     _remainingLength = 0;
     _header=0;
 }
 
-void MqttIn::remap(Bytes* bytes){
-_bytes = bytes;
+void MqttIn::remap(Bytes* bytes)
+{
+    _bytes = bytes;
 }
 
 
@@ -186,16 +188,18 @@ void MqttIn::toString(Str& str)
     {
         str << ", willTopic : " << _topic;
         str << ", willMessage : " ;
-        _message.toString(str);
+        Cbor cbor(_message);
+        cbor.toString(str);
     }
     str.append(" }");
 }
 
 bool MqttIn::parse()
 {
-    if(_bytes->length() <  2) {
-    	Sys::warn(EINVAL,"MQTT_LEN");
-    	return false;
+    if(_bytes->length() <  2)
+    {
+        Sys::warn(EINVAL,"MQTT_LEN");
+        return false;
     }
     _bytes->offset(0);
     _header = _bytes->read();
@@ -220,8 +224,10 @@ bool MqttIn::parse()
             uint16_t l;
             readUint16(&l);
             _topic.map(_bytes->data() + _bytes->offset(), l);
+            _bytes->move(l);                    // skip topic data
             readUint16(&l);
             _message.map(_bytes->data() + _bytes->offset(), _bytes->length()-_bytes->offset());
+            _bytes->move(l);            // skip message data
         }
         Str userName(100);
         Str password(100);
@@ -232,7 +238,7 @@ bool MqttIn::parse()
     }
     case MQTT_MSG_CONNACK:
     {
-    	_bytes->read();
+        _bytes->read();
         _returnCode = _bytes->read();
         break;
     }
@@ -247,8 +253,10 @@ bool MqttIn::parse()
         {
             readUint16(&_messageId);
             rest -= 2;
-        } else {
-        _messageId=0;
+        }
+        else
+        {
+            _messageId=0;
         }
         _message.map(_bytes->data() + _bytes->offset(), rest); // map message to rest of payload
         break;
@@ -293,7 +301,7 @@ bool MqttIn::parse()
     }
     default:
     {
-    	Sys::warn(EINVAL,"MQTTIN_TYPE");
+        Sys::warn(EINVAL,"MQTTIN_TYPE");
         break;// ignore bad package
     }
     }
