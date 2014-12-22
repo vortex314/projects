@@ -223,13 +223,21 @@ void eventPump() {
 #include "Msg.h"
 #include "Uart.h"
 #include "Cbor.h"
+#include "I2C.h"
+
+#define L3GD20_ADDR  0b1101010
 
 extern Uart *gUart0;
 PropMgr propMgr;
+I2C i2c1(1);
 
 int main(void) {
 	Board::init();	// initialize usb
 	Uart::init();
+	Bytes bytes(10);
+	bytes.write(0x12);
+	i2c1.init();
+	i2c1.send(L3GD20_ADDR,bytes);
 //	Usb usb;	// usb active object
 //	Uart uart0;
 	Mqtt mqtt(*gUart0);	// mqtt active object
