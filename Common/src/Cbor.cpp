@@ -215,8 +215,8 @@ PackType Cbor::tokenToString(Str& str) {
 			float f;
 			uint32_t i;
 		};
-		i = v._float;
-		str << f;
+		i = v._uint64;
+		str << v._float;
 		return P_FLOAT;
 	}
 	case P_DOUBLE: {
@@ -225,7 +225,7 @@ PackType Cbor::tokenToString(Str& str) {
 			uint64_t i;
 		};
 		i = v._double;
-		str << "DOUBLE";
+		str << v._double;
 //                str << f;
 		return P_DOUBLE;
 	}
