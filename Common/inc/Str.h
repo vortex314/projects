@@ -25,6 +25,7 @@ public:
     Str& operator<<(int i);
     Str& operator<<(Str& s);
     Str& operator<<(float f);
+    Str& operator<<(double d);
     Str& append(int64_t val)
     {
         if ( val < 0 ) append('-');

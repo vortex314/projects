@@ -106,6 +106,12 @@ Str& Str::operator<<(float f) {
 	append(sFloat);
 	return *this;
 }
+Str& Str::operator<<(double d) {
+	char sFloat[30];
+	sprintf(sFloat,"%lf",d);
+	append(sFloat);
+	return *this;
+}
 Str& Str::operator=(Str& s) {
 	clear();
 	s.offset(0);
