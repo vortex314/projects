@@ -15,8 +15,6 @@ typedef union Variant {
 		int64_t _int64;
 		double _double;
 		float _float;
-		Bytes* _bytes;
-		Str* _str;
 		bool _bool;
 		int _length;
 } Variant;

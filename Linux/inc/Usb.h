@@ -17,7 +17,7 @@ class Usb :public Link,public Sequence  {
         Erc connect() ;
         Erc disconnect() ;
         Erc send(Bytes& bytes) ;
-        MqttIn* recv() ;
+        Bytes* recv() ;
 
         int handler(Event* event);
 
@@ -33,7 +33,7 @@ class Usb :public Link,public Sequence  {
         const char* _device;
         uint32_t _baudrate;
         bool _isComplete;
-        MqttIn msg;
+        Bytes* _inBytes;
         CircBuf inBuffer;
     };
 ;

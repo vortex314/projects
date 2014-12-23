@@ -8,6 +8,7 @@
 #ifndef ERC_H_
 #define ERC_H_
 #include <stdint.h>
+#include <errno.h>
 #define E_OK				0
 #define E_INVAL 			(1<<0)		// Inavlid arguments
 #define E_LACK_RESOURCE  	(1<<1)		// missing resource or capacity

@@ -20,6 +20,7 @@
 
 class Bytes {
 public:
+	Bytes();
 	Bytes(uint32_t size);
 	Bytes(uint8_t* start, uint32_t size);
 	void map(uint8_t* start, uint32_t size);
@@ -63,7 +64,7 @@ public:
 
 	void AddCrc();
 	void RemoveCrc();
-	uint16_t Fletcher16(uint8_t *begin, int length);
+	static uint16_t Fletcher16(uint8_t *begin, int length);
 	void Encode();
 	void Decode();
 	bool isGoodCrc();

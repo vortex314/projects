@@ -19,96 +19,122 @@
 #include "Prop.h"
 #include "MqttOut.h"
 
-#include "Fsm.h"
+#include "Handler.h"
 #include "Event.h"
 
-
-
-
 //************************************** CONSTANTS ****************************
-
-#define MAX_MSG_SIZE 100
 #define TIME_KEEP_ALIVE 10000
 #define TIME_WAIT_REPLY 1000
-#define	TIME_PING 3000
+#define	TIME_PING ( TIME_KEEP_ALIVE /3 )
+#define TOPIC_MAX_SIZE	40
+#define MSG_MAX_SIZE	256
 
-class MqttPing;
-class MqttPub;
-class MqttSub;
-
-
-
-class Mqtt: public Fsm {
-
-private:
-	struct pt t;
-	uint16_t _messageId;
-	bool _isConnected;
-	Str str;
-	Bytes msg;
-	Link& _link;
-	MqttPing* mqttPing;
-	MqttPub* _mqttPub;
-	MqttSub* _mqttSub;
-
+class Subscriber: public Handler {
 public:
-
- // const static int DISCONNECTED, CONNECTED, IN,RXD,MESSAGE,DO_PUBLISH;
-
-
-	Mqtt(Link& link);
-	~Mqtt(){};
-	int handler(Msg* event);
-	Erc send(Bytes& pb);
-	bool isEvent(Msg& event, uint8_t type, uint16_t messageId, uint8_t qos);
-	bool Publish(Flags flags,uint16_t id,Str& topic,Bytes& msg);
-	MqttIn* getBuffer(uint32_t idx);
-	bool isConnected();
-	Erc disconnect();
-
-	void connecting(Msg& event);
-	void sleep(Msg& event);
-	void subscribing(Msg& event);
-	void waitDisconnect(Msg& event);
-	static uint16_t nextMessageId();
+	Subscriber(Link& link);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	void onOther(Msg& msg);
+	void sendPubRec();
+	// will invoke
 private:
-	void sendSubscribe(uint8_t flags);
-};
-
-class MqttPub:public Fsm {
-private:
-	uint32_t _retryCount;
-	uint16_t _messageId;
+	Link& _link;
 	Str _topic;
 	Bytes _message;
 	Flags _flags;
-	uint32_t _id;
-	Mqtt& _mqtt;
-public :
-	MqttPub(Mqtt& mqtt);
-	~MqttPub(){};
-	bool send(Flags flags, uint16_t id, Str& topic, Bytes& msg);
-	void Publish();
-	void sleep(Msg& event);
-	void ready(Msg& event);
-	void qos1Pub(Msg& event);
-	void qos2Pub(Msg& event);
-	void qos2Comp(Msg& event);
+	uint16_t _messageId;
+	uint16_t _retries;
+	enum State {
+			ST_DISCONNECTED,
+			ST_READY,
+			ST_WAIT_PUBREL
+		} _state;
 };
 
-class MqttPing :public Fsm {
+class Publisher: public Handler {
+public:
+	Publisher(Link& link);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	void onOther(Msg& msg);
+	bool publish(Str& topic, Bytes& msg, Flags flags);
+	// will send PUB_OK,PUB_FAIL
 private:
-	uint32_t _retryCount;
-	Mqtt& _mqtt;
-public :
-	MqttPing(Mqtt& mqtt);
-	~MqttPing(){};
-	void sleep(Msg& event);
-	void sleepBetweenPings(Msg& event);
-	void waitPingResp(Msg& event);
+	void sendPublish();
+	void sendPubRel();
+	Link& _link;
+	enum State {
+		ST_DISCONNECTED,
+		ST_READY,
+		ST_WAIT_PUBACK,
+		ST_WAIT_PUBREC,
+		ST_WAIT_PUBCOMP
+	} _state;
+	Str _topic;
+	Bytes _message;
+	uint16_t _messageId;
+	Flags _flags;
+	uint16_t _retries;
 };
 
+class Subscription: public Handler {
+public:
+	Subscription(Link& link);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	void onOther(Msg& msg);
+	void sendSubscribePut();
+	void sendSubscribeGet();
+private:
+	Link& _link;
+	enum State {
+			ST_DISCONNECTED,
+			ST_WAIT_SUBACK_PUT,
+			ST_WAIT_SUBACK_GET,
+			ST_SLEEP
+		} _state;
+	uint16_t _retries;
+	uint16_t _messageId;
+};
 
+class Pinger: public Handler {
+public:
+	Pinger(Link& link);
+	void onMqttMessage(MqttIn& msg);
+	void onTimeout();
+	void onOther(Msg& msg);
+private:
+	Link& _link;
+	uint32_t _retries;
+	enum State {
+		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_PINGRESP
+	} _state;
+};
 
+class Mqtt: public Handler {
+
+private:
+	Link& _link;
+	Pinger* _pinger;
+	Publisher* _publisher;
+	Subscriber* _subscriber;
+	Subscription* _subscription;
+	uint32_t _retries;
+	enum State {
+		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_CONNACK
+	} _state;
+public:
+	Mqtt(Link& link);
+	~Mqtt();
+	void onTimeout();
+	void onMqttMessage(MqttIn& mqttIn);
+	void onOther(Msg& msg);
+	static uint16_t nextMessageId();
+	bool publish(Str& topic, Bytes& msg, Flags flags);
+	bool isConnected();
+	Erc disconnect();
+private:
+	void sendSubscribe(uint8_t flags);
+};
 
 #endif /* MQTT_H_ */

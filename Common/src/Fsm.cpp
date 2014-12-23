@@ -48,13 +48,6 @@ bool Fsm::isInState(SF f) {
 	return false;
 }
 
-void Fsm::timeout(uint32_t msec) {
-	_timeout = Sys::upTime() + msec;
-}
-bool Fsm::timeout() {
-	return _timeout < Sys::upTime();
-}
-
 void Fsm::reg() {
 	if (_first == 0)
 		_first = this;
@@ -73,17 +66,6 @@ void Fsm::dispatchToAll(Msg& msg) {
 		cursor->dispatch(msg);
 		cursor = cursor->_next;
 	}
-}
-/*
-void Fsm::publish(int sig) {
-	Msg ev((Signal)sig);
-//	ASSERT(Msg::publish(ev)==E_OK);
-}*/
-
-void Fsm::publish(int sig, int detail) {
-	while(1);
-//	Msg ev(sig, detail);
-//	ASSERT(Msg::publish(ev)==E_OK);
 }
 
 

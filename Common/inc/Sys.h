@@ -33,12 +33,15 @@ class Sys {
         static void interruptDisable();
 
         static Str&  log();
+        static void warn(int err,const char* s);
         static Str&  lastLog();
         static Str& logFlush();
         static Str& getDeviceName();
+
     private :
         static Str _logLine;
         static Str _lastLogLine;
+        static uint32_t _errorCount;
 
     };
 

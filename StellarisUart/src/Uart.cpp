@@ -29,10 +29,9 @@
 Uart* gUart0 = new Uart();
 
 Uart::Uart() :
-		_in(100), _out(256), _mqttIn(256) {
-	gUart0 = this;
-	_overrunErrors=0;
-	_crcErrors=0;
+		_in(100), _out(256), _inBuffer(256) {
+	_overrunErrors = 0;
+	_crcErrors = 0;
 }
 // initialize UART at 1MB 8N1
 void Uart::init() {
@@ -41,39 +40,45 @@ void Uart::init() {
 	GPIOPinConfigure(GPIO_PA0_U0RX);
 	GPIOPinConfigure(GPIO_PA1_U0TX);
 	GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-	UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
+	UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 1000000,
 			(UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
 			UART_CONFIG_PAR_NONE));
 	// Enable the UART interrupt.
 	//
 	UARTFIFOEnable(UART0_BASE);
-	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX4_8, UART_FIFO_RX1_8);
-	UARTTxIntModeSet(UART0_BASE, UART_TXINT_MODE_FIFO);
+//	UARTFIFODisable(UART0_BASE);
+	UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX1_8, UART_FIFO_RX1_8);
+	UARTTxIntModeSet(UART0_BASE, UART_TXINT_MODE_EOT);// UART_TXINT_MODE_EOT, UART_TXINT_MODE_FIFO
 	IntEnable(INT_UART0);
-	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX);
+	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX | UART_INT_OE);
 }
 
 Uart::~Uart() {
 }
 
 uint8_t Uart::read() {
-	return gUart0->_in.read();
+	return _in.read();
 }
 uint32_t Uart::hasData() {
-	return gUart0->_in.hasData();
+	return _in.hasData();
 }
 
 bool UARTFIFOFull(uint32_t uart_base) {
 	uint32_t fr = *((uint32_t*) (UART0_BASE + UART_O_FR));
 	return (fr & UART_FR_TXFF) != 0;
 }
-
-void Uart::toFifo() {
-	while (!UARTFIFOFull(UART0_BASE) && _out.hasData()) {
-		if (UARTCharPutNonBlocking(UART0_BASE, _out.read()) == false)
-			break;
-	}
-}
+/*
+ void Uart::toFifo() {
+ while (!UARTFIFOFull(UART0_BASE) && _out.hasData()) {
+ int b = gUart0->_out.read();
+ if (b >= 0) {
+ if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
+ break;
+ } else
+ break;
+ }
+ }
+ */
 
 Erc Uart::send(Bytes& bytes) {
 	bytes.AddCrc();
@@ -82,14 +87,18 @@ Erc Uart::send(Bytes& bytes) {
 	bytes.offset(0);
 	if (_out.space() < bytes.length()) { // not enough space in circbuf
 		_overrunErrors++;
-		toFifo();
+		Sys::warn(EOVERFLOW,"UART_SEND");
+		if (!UARTBusy(UART0_BASE)) { // fire off first bytes
+			UARTCharPutNonBlocking(UART0_BASE, _out.read());
+		}
 		return E_AGAIN;
 	}
-
 	while (_out.hasSpace() && bytes.hasData()) {
 		_out.write(bytes.read());
 	}
-	toFifo();
+	if (!UARTBusy(UART0_BASE)) { // fire off first bytes
+		UARTCharPutNonBlocking(UART0_BASE, _out.read());
+	}
 	return E_OK;
 }
 
@@ -125,17 +134,18 @@ void Uart::dispatch(Msg& event) {
 		uint8_t b;
 		while (_in.hasData()) {
 			b = _in.read();
-			if (_mqttIn.Feed(b)) {
-				_mqttIn.Decode();
-				if (_mqttIn.isGoodCrc()) {
-					_mqttIn.RemoveCrc();
-					_mqttIn.parse();
-					Msg m;
-					m.create(100).sig(SIG_MQTT_MESSAGE).add(_mqttIn).send();
+			if (_inBuffer.Feed(b)) {
+				_inBuffer.Decode();
+				if (_inBuffer.isGoodCrc()) {
+					_inBuffer.RemoveCrc();
+					Msg m(100);
+					m.sig(SIG_MQTT_MESSAGE).add(_inBuffer);
+					m.send();
 				} else {
 					_crcErrors++;
+					Sys::warn(EIO,"UART_CRC");
 				}
-				_mqttIn.clear();
+				_inBuffer.clear();
 			}
 		}
 		break;
@@ -147,6 +157,7 @@ void Uart::dispatch(Msg& event) {
 	}
 }
 uint32_t circbufOverflow = 0;
+uint32_t uart0TxInt = 0;
 extern "C" void UART0IntHandler(void) {
 	unsigned long ulStatus;
 
@@ -154,17 +165,31 @@ extern "C" void UART0IntHandler(void) {
 	UARTIntClear(UART0_BASE, ulStatus); // Clear the asserted interrupts.
 	if (ulStatus & UART_INT_RX) {
 		while (UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
-			if (gUart0) {
+			uint8_t b = UARTCharGetNonBlocking(UART0_BASE);
+			if (gUart0) {						// add data to input ringbuffer
 				if (gUart0->_in.hasSpace())
-					gUart0->_in.write(UARTCharGetNonBlocking(UART0_BASE)); // Read the next character from the UART
-				else
+					gUart0->_in.writeFromIsr(b); // Read the next character from the UART
+				else { // just drop data;
 					gUart0->_overrunErrors++;
+					Sys::warn(EOVERFLOW,"UART_RX");
+				}
 			}
 		}
-//LMR		Msg::publish(SIG_LINK_RXD);
 	}
 	if (ulStatus & UART_INT_TX) {
-		gUart0->toFifo();
+		while (!UARTFIFOFull(UART0_BASE) && gUart0->_out.hasData()) {
+			int b = gUart0->_out.readFromIsr();
+			if (b >= 0) {
+				if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
+					break;
+			} else {
+				Sys::warn(ENODATA,"UART_TX");
+				break;
+			}
+		}
 	}
+	if (ulStatus & UART_INT_OE) {
+		Sys::warn(ENODATA,"UART_RX_OE");
+		}
 }
 
