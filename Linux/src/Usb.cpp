@@ -114,7 +114,7 @@ Erc Usb::connect()
 
 
     options.c_lflag &= ~(ICANON | ECHO | ISIG);
-
+    cfmakeraw(&options);
 
     tcsetattr(_fd, TCSANOW, &options);
     logger.level(Logger::INFO)<<"set baudrate to "<<_baudrate;
