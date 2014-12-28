@@ -1,8 +1,4 @@
 #include "Usb.h"
-const int Usb::RXD=Event::nextEventId("USB::RXD");
-const int Usb::ERROR=Event::nextEventId("USB::ERROR");
-const int Usb::MESSAGE=Event::nextEventId("USB::MESSAGE");
-const int Usb::FREE=Event::nextEventId("USB::FREE");
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -122,6 +118,7 @@ Erc Usb::connect()
     logger.level(Logger::INFO) << "open " << _device << " succeeded.";
     logger.flush();
     isConnected(true);
+    Msg::publish(SIG_USB_CONNECTED);
     return E_OK;
 }
 #include <linux/serial.h>
@@ -143,6 +140,7 @@ Erc Usb::disconnect()
     isConnected(false);
     _isComplete=false;
     if ( ::close(_fd) < 0 )   return errno;
+    Msg::publish(SIG_USB_DISCONNECTED);
     return E_OK;
 }
 
@@ -195,13 +193,18 @@ uint32_t Usb::hasData()
     return count;
 }
 
-int Usb::handler ( Event* event )
+void Usb::dispatch(Msg& msg)
+{
+    ptRun(msg);
+}
+
+int Usb::ptRun ( Msg& msg )
 {
     uint8_t b;
     uint32_t i;
     uint32_t count;
 
-    if ( event->is(Usb::ERROR ))
+    if ( msg.sig() == SIG_USB_ERROR )
     {
         logger.level(Logger::WARN) << " error occured. Reconnecting.";
         logger.flush();
@@ -212,10 +215,13 @@ int Usb::handler ( Event* event )
     PT_BEGIN ( &t );
     while(true)
     {
-        while( isConnected())
+        listen(SIG_USB_CONNECTED);
+        PT_YIELD ( &t );
+        while( true )
         {
-            PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
-            if ( event->is(RXD) &&  hasData())
+            listen(SIG_USB_RXD | SIG_USB_DISCONNECTED );
+            PT_YIELD(&t);//event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
+            if ( msg.sig()==SIG_USB_RXD  &&  hasData())
             {
                 count =hasData();
                 for(i=0; i<count; i++)
@@ -223,49 +229,47 @@ int Usb::handler ( Event* event )
                     b=read();
                     inBuffer.write(b);
                 }
-            }
-            else if ( event->is(FREE))   // re-use buffer after message handled
-            {
-                _isComplete=false;
-                _inBytes->offset(0);
-            };
-            if ( inBuffer.hasData() && (_isComplete==false) )
-            {
-                while( inBuffer.hasData() )
+                if ( inBuffer.hasData() )
                 {
-                    if ( _inBytes->Feed(inBuffer.read()))
+                    while( inBuffer.hasData() )
                     {
-                        Str l(256);
-                        _inBytes->toString(l);
-                        logger.level(Logger::DEBUG)<< "recv : " << l;
-                        logger.flush();
-                        _inBytes->Decode();
-                        if ( _inBytes->isGoodCrc() )
+                        if ( _inBytes->Feed(inBuffer.read()))
                         {
-                            _inBytes->RemoveCrc();
                             Str l(256);
                             _inBytes->toString(l);
-                            logger.level(Logger::INFO)<<"-> TCP : " <<l;
+                            logger.level(Logger::DEBUG)<< "recv : " << l;
                             logger.flush();
-                            publish(MESSAGE);
-                            publish(FREE); // re-use buffer after message handled
-                            _isComplete=true;
-                            break;
-                        }
-                        else
-                        {
-                            logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
-                            logger.flush();
-//                           logStats();
-                            _inBytes->isGoodCrc();
-                            _inBytes->clear(); // throw away bad data
+                            _inBytes->Decode();
+                            if ( _inBytes->isGoodCrc() )
+                            {
+                                _inBytes->RemoveCrc();
+                                Str l(256);
+                                _inBytes->toString(l);
+                                logger.level(Logger::INFO)<<"-> TCP : " <<l;
+                                logger.flush();
+                                Msg msg;
+                                msg.create(256).sig(SIG_USB_MESSAGE).add(*_inBytes).send();
+                                _inBytes->clear();
+                                break;
+                            }
+                            else
+                            {
+                                logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
+                                logger.flush();
+                                _inBytes->clear(); // throw away bad data
+                            }
                         }
                     }
                 }
             }
+            else if ( msg.sig() == SIG_USB_DISCONNECTED )
+            {
+                break;
+            }
+
             PT_YIELD ( &t );
         }
-        PT_YIELD_UNTIL ( &t,isConnected() );
+
     }
 
     PT_END ( &t );

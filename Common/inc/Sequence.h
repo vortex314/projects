@@ -13,7 +13,6 @@ class Sequence
 public:
     static Sequence* activeSequence[MAX_SEQ];
     static uint32_t activeSequenceCount;
-private:
     uint64_t _timeout;
 public:
     Sequence();

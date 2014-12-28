@@ -5,12 +5,12 @@
 #include "MqttIn.h"
 #include "Thread.h"
 #include "EventSource.h"
-#include "Sequence.h"
+#include "Handler.h"
 #include "Link.h"
 #include "pt.h"
 
 
-class Tcp : public Link,public Sequence
+class Tcp : public Link,public Handler
 {
 private:
     int _sockfd;
@@ -38,7 +38,8 @@ public:
 
 
     void mqttRead(int32_t b);
-    int handler(Event*event);
+    void dispatch(Msg& msg);
+    int ptRun(Msg& msg);
     int fd();
 };
 

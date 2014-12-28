@@ -6,9 +6,11 @@
 #include "CircBuf.h"
 #include "pt.h"
 #include "MqttIn.h"
+#include "Msg.h"
+#include "Handler.h"
 
 
-class Usb :public Link,public Sequence  {
+class Usb :public Link,public Handler  {
 
     public:
         const static int CONNECTED,DISCONNECTED,RXD,ERROR,MESSAGE,FREE;
@@ -19,7 +21,8 @@ class Usb :public Link,public Sequence  {
         Erc send(Bytes& bytes) ;
         Bytes* recv() ;
 
-        int handler(Event* event);
+        void dispatch(Msg& msg);
+        int ptRun(Msg& msg);
 
         void setDevice(const char* device) ;
         void setBaudrate(uint32_t baud);

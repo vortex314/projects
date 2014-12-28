@@ -29,6 +29,7 @@ using namespace std;
 #include "Usb.h"
 #include <time.h>
 #include "Logger.h"
+#include "Handler.h"
 
 
 Logger logger(256);
@@ -48,137 +49,82 @@ Tcp tcp("localhost",1883);
 //
 // simulates RTOS generating events into queue : Timer::TICK,Usb::RXD,Usb::CONNECTED,...
 //_______________________________________________________________________________________
-class Mqtt
+
+
+void poller(int usbFd,int tcpFd,uint64_t sleepTill)
 {
-public:
-    static const int RXD;
-};
+    fd_set rfds;
+    fd_set wfds;
+    fd_set efds;
+    struct timeval tv;
+    int retval;
+    uint64_t start;
 
+    /* Watch stdin (fd 0) to see when it has input. */
+    FD_ZERO(&rfds);
+    FD_ZERO(&wfds);
+    FD_ZERO(&efds);
+    if ( usbFd ) FD_SET(usbFd, &rfds);
+    if ( tcpFd ) FD_SET(tcpFd,&rfds);
+    if ( usbFd ) FD_SET(usbFd, &efds);
+    if ( tcpFd )  FD_SET(tcpFd,&efds);
 
-const int Mqtt::RXD=Event::nextEventId("Mqtt::RXD");
-int Timer::TICK =Event::nextEventId("Timer::TICK");
-
-class EventLogger : public Sequence
-{
-public:
-    EventLogger()
+    /* Wait up to 1000 msec. */
+    uint64_t delta=1000;
+    if ( sleepTill > Sys::upTime())
     {
-    }
-    int handler ( Event* event )
-    {
-        if ( event->id() != Timer::TICK )
-        {
-            logger.debug() << " EVENT : " ;
-            Str str(100);
-            event->toString(str);
-            logger << str;
-            logger.flush();
-        }
-        return 0;
-    };
-
-};
-
-void eventPump()
-{
-    Event event;
-    while ( Sequence::get ( event ) == E_OK )
-    {
-        int i;
-        for ( i = 0; i < MAX_SEQ; i++ )
-            if ( Sequence::activeSequence[i] )
-            {
-                if ( Sequence::activeSequence[i]->handler ( &event ) == PT_ENDED )
-                {
-                    Sequence* seq = Sequence::activeSequence[i];
-                    seq->unreg();
-                    delete seq;
-                };
-            }
+        delta = sleepTill- Sys::upTime();
     }
 
-};
+    tv.tv_sec = delta/1000;
+    tv.tv_usec = (delta*1000)%1000000;
 
+    int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
+    maxFd+=1;
 
+    start=Sys::upTime();
 
-class PollerThread : public Thread , public Sequence
-{
-public:
-    PollerThread ( const char *name, unsigned short stackDepth, char priority ) : Thread ( name, stackDepth, priority )
+    retval = select(maxFd, &rfds, NULL, &efds, &tv);
+
+    if (retval < 0 )
     {
-        Sys::upTime();
-    };
-    int handler ( Event* ev )
+        logger.perror("select()");
+        sleep(1);
+    }
+    else if (retval>0)   // one of the fd was set
     {
-        return 0;
-    };
-    void run()
-    {
-        while(true)
+        if ( FD_ISSET(usbFd,&rfds) )
         {
-            poller(usb.fd(),tcp.fd());
-            eventPump();
+            Msg::publish(SIG_USB_RXD);
+        }
+        if ( FD_ISSET(tcpFd,&rfds) )
+        {
+            Msg::publish(SIG_TCP_RXD);
+        }
+        if ( FD_ISSET(usbFd,&efds) )
+        {
+            Msg::publish(SIG_USB_ERROR);
+        }
+        if ( FD_ISSET(tcpFd,&efds) )
+        {
+            Msg::publish(SIG_TCP_ERROR);
         }
     }
-
-    void poller(int usbFd,int tcpFd)
+    else
+        //TODO publish TIMER_TICK
+        Msg::publish(SIG_TIMEOUT);
+    uint64_t waitTime=Sys::upTime()-start;
+    if ( waitTime > 1 )
     {
-        fd_set rfds;
-        fd_set wfds;
-        fd_set efds;
-        struct timeval tv;
-        int retval;
-
-        /* Watch stdin (fd 0) to see when it has input. */
-        FD_ZERO(&rfds);
-        FD_ZERO(&wfds);
-        FD_ZERO(&efds);
-        if ( usbFd ) FD_SET(usbFd, &rfds);
-        if ( tcpFd ) FD_SET(tcpFd,&rfds);
-        if ( usbFd ) FD_SET(usbFd, &efds);
-        if ( tcpFd )  FD_SET(tcpFd,&efds);
-
-        /* Wait up to 10 msec. */
-        tv.tv_sec = 0;
-        tv.tv_usec = 10000;
-        int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
-        maxFd+=1;
-
-        retval = select(maxFd, &rfds, NULL, &efds, &tv);
-
-        if (retval < 0 )
-        {
-            logger.perror("select()");
-            sleep(1);
-        }
-        else if (retval>0)   // one of the fd was set
-        {
-            if ( FD_ISSET(usbFd,&rfds) )
-            {
-                publish(Usb::RXD);
-            }
-            if ( FD_ISSET(tcpFd,&rfds) )
-            {
-                publish(Tcp::RXD);
-            }
-            if ( FD_ISSET(usbFd,&efds) )
-            {
-                publish(Usb::ERROR);
-            }
-            if ( FD_ISSET(tcpFd,&efds) )
-            {
-                publish(Tcp::ERROR);
-            }
-        }
-        else
-            //TODO publish TIMER_TICK
-            Sequence::publish(Timer::TICK);
+        logger.info() << "waited " << waitTime << " / "<< delta << " msec.";
+        logger.flush();
     }
-};
+}
+
 MqttIn mqttIn(new Bytes(256));
 
 
-class Gateway : public Sequence
+class Gateway : public Handler
 {
 private:
     struct pt t;
@@ -190,59 +136,70 @@ public:
         PT_INIT ( &t );
     }
 
-    int handler ( Event* event )
+    void dispatch(Msg& msg)
+    {
+        handler(msg);
+    }
+
+    int handler ( Msg& msg )
     {
         PT_BEGIN ( &t );
         while(true)
         {
-            PT_YIELD_UNTIL(&t,event->is(Tcp::MESSAGE) || event->is(Usb::MESSAGE));
-            if ( event->is(Tcp::MESSAGE))
+            listen(SIG_TCP_MESSAGE | SIG_USB_MESSAGE);
+            PT_YIELD(&t);
+            if ( msg.sig()==SIG_TCP_MESSAGE )
             {
-                MqttIn* msg= tcp.recv();
-                msg->parse();
-                Str str(256);
-                str << "MQTT TCP->USB:";
-                msg->toString(str);
-                logger.info()<< str;
-                logger.flush();
-                assert(msg!=NULL);
-                usb.send(*msg->getBytes());
-            }
-            else if ( event->is(Usb::MESSAGE))
-            {
-                MqttIn _mqttIn(usb.recv());
-
-                if ( _mqttIn.getBytes()->length() >1 )   // sometimes bad message
+                Bytes bytes(0);
+                msg.get(bytes);
+                MqttIn mqttIn(&bytes);
+                bytes.offset(0);
+                if (mqttIn.parse())
                 {
-                    _mqttIn.parse();
+                    Str str(256);
+                    str << "MQTT TCP->USB:";
+                    mqttIn.toString(str);
+                    logger.info()<< str;
+                    logger.flush();
+                    usb.send(*mqttIn.getBytes());
+                }
+            }
+            else if ( msg.sig()==SIG_USB_MESSAGE )
+            {
+                Bytes bytes(0);
+                msg.get(bytes);
+                MqttIn mqttIn(&bytes);
+                bytes.offset(0);
+                if (mqttIn.parse())
+                {
                     Str str(256);
                     str << "MQTT USB->TCP:";
-                    _mqttIn.toString(str);
+                    mqttIn.toString(str);
                     logger.info()<< str;
                     logger.flush();
 
                     if ( tcp.isConnected() )
                     {
-                        if ( _mqttIn.type() == MQTT_MSG_CONNECT ) // simulate a reply
+                        if ( mqttIn.type() == MQTT_MSG_CONNECT ) // simulate a reply
                         {
                             MqttOut m(10);
                             m.ConnAck(0);
-//                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
+                            //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
                             logger.info()<< "CONNACK virtual,already tcp connected";
                             logger.flush();
                             usb.send(m);
                         }
                         else
                         {
-                            tcp.send(*_mqttIn.getBytes());
+                            tcp.send(*mqttIn.getBytes());
                         }
                     }
                     else
                     {
-                        if ( _mqttIn.type() == MQTT_MSG_CONNECT )
+                        if ( mqttIn.type() == MQTT_MSG_CONNECT )
                         {
                             tcp.connect();
-                            tcp.send(*_mqttIn.getBytes());
+                            tcp.send(*mqttIn.getBytes());
                         }
                         else
                         {
@@ -260,7 +217,7 @@ public:
     }
 };
 
-class UsbConnection : public Sequence
+class UsbConnection : public Handler
 {
 private:
     struct pt t;
@@ -272,23 +229,20 @@ public:
         PT_INIT ( &t );
     }
 
-    int handler ( Event* event )
+    void dispatch ( Msg& msg )
     {
-        Str topic(10);
-        Str data(20);
+
+        ptRun(msg);
+
+    }
+    int ptRun(Msg& msg)
+    {
         PT_BEGIN ( &t );
         while(true)
         {
-            while ( true )
-            {
-                if ( usb.connect() == E_OK ) break;
-                timeout(5000);
-                PT_YIELD_UNTIL ( &t, timeout() );
-            }
-            while ( usb.isConnected() )
-            {
-                PT_YIELD ( &t );
-            }
+            usb.connect();
+            listen(SIG_USB_DISCONNECTED );
+            PT_YIELD ( &t );
             tcp.disconnect();
         }
         PT_END ( &t );
@@ -338,16 +292,16 @@ void loadOptions(int argc,char* argv[])
 
 void SignalHandler(int signal_number)
 {
-      void *array[10];
-  size_t size;
+    void *array[10];
+    size_t size;
 
-  // get void*'s for all entries on the stack
-  size = backtrace(array, 10);
+    // get void*'s for all entries on the stack
+    size = backtrace(array, 10);
 
-  // print out all the frames to stderr
-  fprintf(stderr, "Error: signal %d:%s \n", signal_number,strsignal(signal_number));
-  backtrace_symbols_fd(array, size, STDERR_FILENO);
-  exit(1);
+    // print out all the frames to stderr
+    fprintf(stderr, "Error: signal %d:%s \n", signal_number,strsignal(signal_number));
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    exit(1);
 }
 
 void interceptAllSignals()
@@ -377,17 +331,54 @@ int main(int argc, char *argv[] )
     tcp.setHost(context.host);
     tcp.setPort(context.port);
 
-    PollerThread poller("",0,1);
-//    poller.start();
+    //    poller.start();
     UsbConnection usbConnection;
-//    EventLogger eventLogger;
+    //    EventLogger eventLogger;
     Gateway gtw;
-//   sleep(100000);
-    poller.run();
+    uint64_t sleepTill=Sys::upTime()+1000;
+    Msg initMsg(6);
+    initMsg.sig(SIG_INIT);
+    Msg timeoutMsg(6);
+    timeoutMsg.sig(SIG_TIMEOUT);
+    Msg msg;
+    msg.create(10).sig(SIG_INIT).send();
 
-    logger.level(Logger::INFO)<<"End " ;
-    logger.flush();
+    while(true)
+    {
+        poller(usb.fd(),tcp.fd(),sleepTill);
+        sleepTill = Sys::upTime()+10000;
+        while (true )
+        {
+            msg.open();
+            if ( msg.sig() == SIG_IDLE ) break;
+            for(Handler* hdlr=Handler::first(); hdlr!=0; hdlr=hdlr->next())
+            {
+                if ( hdlr->accept(msg.sig()))
+                {
+                    if ( msg.sig() == SIG_TIMEOUT )
+                    {
+                        if ( hdlr->timeout() )
+                            hdlr->dispatch(timeoutMsg);
+                    }
+                    else
+                        hdlr->dispatch(msg);
+                }
+                if ( hdlr->accept(SIG_TIMEOUT))
+                    if ( hdlr->getTimeout() < sleepTill )
+                        sleepTill=hdlr->getTimeout();
+
+            }
+            msg.recv();
+        }
+
+    }
 }
+
+
+
+
+
+
 
 
 

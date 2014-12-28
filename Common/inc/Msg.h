@@ -16,7 +16,7 @@
 class Msg : public Bytes {
 private:
 	static BipBuffer bb;
-	Signal _signal:8;
+	Signal _signal;
 	uint8_t* _bufferStart;
 public:
 	Msg();

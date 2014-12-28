@@ -24,7 +24,7 @@ typedef int EventId;
 /*class EventData {
  virtual void toString(Str& str)=0;
  };*/
-
+/*
 enum Signal {
 	SIG_IDLE,
 	SIG_ENTRY,
@@ -44,6 +44,8 @@ enum Signal {
 	SIG_MQTT_PUBLISH_OK,
 	SIG_PROP_CHANGED
 };
+*/
+#include "Signal.h"
 
 class Event {
 public:
@@ -60,7 +62,7 @@ public:
 	void toString(Str& line);
 public:
 
-	Signal _id :8;
+	Signal _id ;
 	uint16_t _w :16;
 
 	static uint32_t eventIdCount;

@@ -13,13 +13,6 @@
 #include "Logger.h"
 static Logger logger(256);
 
-EventId Tcp::RXD=Event::nextEventId(( char* const )"TCP::RXD");
-EventId Tcp::CONNECTED=Event::nextEventId(( char* const )"TCP::CONNECTED");
-EventId Tcp::DISCONNECTED=Event::nextEventId(( char* const )"TCP::DISCONNECTED");
-EventId Tcp::MESSAGE=Event::nextEventId(( char* const )"TCP::MESSAGE");
-EventId Tcp::FREE=Event::nextEventId(( char* const )"TCP::FREE");
-EventId Tcp::ERROR=Event::nextEventId(( char* const )"TCP::ERROR");
-
 Tcp::Tcp( const char *host,uint16_t port)
 {
     _mqttIn.remap(new Bytes(256));
@@ -84,6 +77,7 @@ Erc Tcp::connect()
     _connected=true;
     logger.info() <<  "connect() connected to " << _host << " : " << _port;
     logger.flush();
+    Msg::publish(SIG_TCP_CONNECTED);
     return E_OK;
 }
 
@@ -92,6 +86,7 @@ Erc Tcp::disconnect()
     close(_sockfd);
     _connected=false;
     _sockfd = 0;
+    Msg::publish(SIG_TCP_DISCONNECTED);
     return E_OK;
 }
 
@@ -145,16 +140,23 @@ uint32_t Tcp::hasData()
 }
 
 
-int Tcp::handler ( Event* event )
+void Tcp::dispatch ( Msg& msg )
+{
+    ptRun(msg);
+}
+int Tcp::ptRun(Msg& msg)
 {
     int32_t b;
     PT_BEGIN ( &t );
     while(true)
     {
-        while( isConnected())
+        listen(SIG_TCP_CONNECTED);
+        PT_YIELD(&t);
+        while( true)
         {
-            PT_YIELD_UNTIL(&t,event->is(RXD) || event->is(FREE));
-            if ( event->is(RXD) && _mqttIn.complete() == false )
+            listen(SIG_TCP_RXD | SIG_MQTT_DISCONNECTED );
+            PT_YIELD(&t);
+            if ( msg.sig()==SIG_TCP_RXD && _mqttIn.complete() == false )
             {
                 while( hasData() )
                 {
@@ -167,21 +169,16 @@ int Tcp::handler ( Event* event )
                         logger.debug()<<"-> USB : " <<l;
                         logger.flush();
                         _mqttIn.parse();
-                        publish(MESSAGE);
-                        publish(FREE);
-                        publish(RXD);  // maybe pending data
+                        Msg msg;
+                        msg.create(256).sig(SIG_TCP_MESSAGE).add(*_mqttIn.getBytes()).send();
+                        _mqttIn.reset();
                         break;
                     }
-                    PT_YIELD ( &t );
                 }
             }
-            else if ( event->is(FREE))
-            {
-                _mqttIn.reset();
-            }
-            PT_YIELD ( &t );
+            else if( msg.sig()==SIG_MQTT_DISCONNECTED)
+                break;
         }
-        PT_YIELD_UNTIL ( &t,isConnected() );
     }
     PT_END ( &t );
 }
