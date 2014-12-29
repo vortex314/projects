@@ -122,7 +122,7 @@ private:
 public:
 	PropMgr();
 	~PropMgr(){};
-	void dispatch(Msg& event);
+	int ptRun(Msg& msg);
 	void nextProp();
 	void nextProp(Prop* p);
 	void set(Str& topic, Bytes& message);

@@ -59,7 +59,7 @@ Msg& Msg::open()
     int size = 2;
     _bufferStart = bb.GetContiguousBlock(size);
 
-    if (size >= 3)   		// map to these bytes
+    if (size > 2)   		// map to these bytes
     {
         memcpy(&env, _bufferStart, ENVELOPE_SIZE);
         map(_bufferStart + ENVELOPE_SIZE, env.length - ENVELOPE_SIZE);
@@ -108,8 +108,8 @@ void Msg::publish(Signal sig)
 
 void Msg::publish(Signal sig, uint16_t detail)
 {
-    Msg msg(10);
-    msg.sig(sig);
+    Msg msg;
+    msg.create(10).sig(sig);
     Cbor cbor(msg);
     cbor.add(sig);
     cbor.add((uint64_t) detail);
@@ -120,6 +120,12 @@ void Msg::get(Bytes& bytes)
 {
     Cbor cbor(*this);
     cbor.get(bytes);
+}
+
+void Msg::get(uint32_t& i)
+{
+    Cbor cbor(*this);
+    cbor.get(i);
 }
 
 Msg& Msg::add(Bytes& bytes)

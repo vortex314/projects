@@ -28,6 +28,7 @@ public:
 	void send();
 	Signal sig();
 	void get(Bytes& bytes);
+	void get(uint32_t& i);
 	Msg& sig(Signal sig);
 	Msg& add(Bytes& bytes);
 	Msg& rewind();

@@ -21,10 +21,12 @@
 
 #include "Handler.h"
 #include "Event.h"
+#include "Msg.h"
 
 //************************************** CONSTANTS ****************************
 #define TIME_KEEP_ALIVE 10000
-#define TIME_WAIT_REPLY 1000
+#define TIME_WAIT_REPLY 2000
+#define TIME_WAIT_CONNECT 5000
 #define	TIME_PING ( TIME_KEEP_ALIVE /3 )
 #define TOPIC_MAX_SIZE	40
 #define MSG_MAX_SIZE	256
@@ -32,9 +34,7 @@
 class Subscriber: public Handler {
 public:
 	Subscriber(Link& link);
-	void onMqttMessage(MqttIn& msg);
-	void onTimeout();
-	void onOther(Msg& msg);
+	int ptRun(Msg& msg);
 	void sendPubRec();
 	// will invoke
 private:
@@ -44,19 +44,12 @@ private:
 	Flags _flags;
 	uint16_t _messageId;
 	uint16_t _retries;
-	enum State {
-			ST_DISCONNECTED,
-			ST_READY,
-			ST_WAIT_PUBREL
-		} _state;
 };
 
 class Publisher: public Handler {
 public:
 	Publisher(Link& link);
-	void onMqttMessage(MqttIn& msg);
-	void onTimeout();
-	void onOther(Msg& msg);
+	int ptRun(Msg& msg);
 	bool publish(Str& topic, Bytes& msg, Flags flags);
 	// will send PUB_OK,PUB_FAIL
 private:
@@ -64,11 +57,8 @@ private:
 	void sendPubRel();
 	Link& _link;
 	enum State {
-		ST_DISCONNECTED,
 		ST_READY,
-		ST_WAIT_PUBACK,
-		ST_WAIT_PUBREC,
-		ST_WAIT_PUBCOMP
+		ST_BUSY,
 	} _state;
 	Str _topic;
 	Bytes _message;
@@ -80,9 +70,7 @@ private:
 class Subscription: public Handler {
 public:
 	Subscription(Link& link);
-	void onMqttMessage(MqttIn& msg);
-	void onTimeout();
-	void onOther(Msg& msg);
+	int ptRun(Msg& msg);
 	void sendSubscribePut();
 	void sendSubscribeGet();
 private:
@@ -100,15 +88,10 @@ private:
 class Pinger: public Handler {
 public:
 	Pinger(Link& link);
-	void onMqttMessage(MqttIn& msg);
-	void onTimeout();
-	void onOther(Msg& msg);
+	int ptRun(Msg& msg);
 private:
 	Link& _link;
 	uint32_t _retries;
-	enum State {
-		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_PINGRESP
-	} _state;
 };
 
 class Mqtt: public Handler {
@@ -120,19 +103,15 @@ private:
 	Subscriber* _subscriber;
 	Subscription* _subscription;
 	uint32_t _retries;
-	enum State {
-		ST_DISCONNECTED, ST_CONNECTED, ST_WAIT_CONNACK
-	} _state;
 public:
 	Mqtt(Link& link);
 	~Mqtt();
-	void onTimeout();
-	void onMqttMessage(MqttIn& mqttIn);
-	void onOther(Msg& msg);
+	void sendConnect();
+	int ptRun(Msg& msg);
 	static uint16_t nextMessageId();
 	bool publish(Str& topic, Bytes& msg, Flags flags);
 	bool isConnected();
-	Erc disconnect();
+//	Erc disconnect();
 private:
 	void sendSubscribe(uint8_t flags);
 };

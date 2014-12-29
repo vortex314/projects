@@ -9,29 +9,54 @@
 #define HANDLER_H_
 #include "MqttIn.h"
 #include "Msg.h"
-
+#include "pt.h"
 
 class Handler {
-	Handler* _next;
 	static Handler* _first;
-public:
-	virtual void onInit(){};
-	virtual void onEntry(){};
-	virtual void onExit(){};
-	virtual void onTimeout(){};
-	virtual void onMqttMessage(MqttIn& msg){};
-	virtual void onOther(Msg& msg){};
+	Handler* _next;
 	uint64_t _timeout;
-	Handler();
+	uint32_t _sigMask;
+	const char* _name;
+protected:
+	struct pt pt;
+public:
+/*	virtual void onInit() {
+	}
 
-	virtual ~Handler(){};
+	virtual void onEntry() {
+	}
+
+	virtual void onExit() {
+	}
+
+	virtual void onTimeout() {
+	}
+
+	virtual void onMqttMessage(MqttIn& msg) {
+	}
+
+	virtual void onOther(Msg& msg) {
+	}*/
+
+	Handler();
+	Handler(const char* name);
+
+	virtual ~Handler() {
+	}
 
 	void timeout(uint32_t msec);
-	bool timeout() ;
+	bool timeout();
+	uint64_t getTimeout();
 
-	virtual void dispatch(Msg& msg) ;
+	void listen(uint32_t signalMap);
+	void listen(uint32_t signalMap, uint32_t time);
+	bool accept(Signal signal);
 
-	static Handler* first() ;
+	virtual void dispatch(Msg& msg);
+	virtual int ptRun(Msg& msg){ return 0;} ;
+	void restart();
+
+	static Handler* first();
 	Handler* next();
 	void reg();
 };

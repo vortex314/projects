@@ -69,7 +69,6 @@ public:
 UptimeTopic uptime;
 uint64_t bootTime;
 
-
 class RealTimeTopic: public Prop {
 public:
 	RealTimeTopic() :
@@ -162,39 +161,43 @@ class LedBlink: public Handler {
 	bool _isOn;
 	uint32_t _msecInterval;
 public:
-	LedBlink() {
+	LedBlink() :
+			Handler("LedBlink") {
 		_isOn = false;
 		_msecInterval = 500;
+
 	}
 
 	virtual ~LedBlink() {
 	}
 
-	void onEntry() {
-		timeout(_msecInterval);
-	}
+	int ptRun(Msg& msg) {
+		PT_BEGIN(&pt)
+		while (true) {
+			listen(SIG_MQTT_CONNECTED | SIG_MQTT_DISCONNECTED, _msecInterval);
+			PT_YIELD(&pt);
+			switch (msg.sig()) {
+			case SIG_TIMEOUT: {
+				Board::setLedOn(Board::LED_GREEN, _isOn);
+				_isOn = !_isOn;
+				break;
+			}
+			case SIG_MQTT_CONNECTED: {
+				_msecInterval = 100;
+				break;
+			}
+			case SIG_MQTT_DISCONNECTED: {
+				_msecInterval = 500;
+				break;
+			}
+			default:{
+			}
+			}
 
-	void onTimeout() {
-		Board::setLedOn(Board::LED_GREEN, _isOn);
-		_isOn = !_isOn;
-		timeout(_msecInterval);
-	}
+		}
+	PT_END(&pt);
+}
 
-	void onOther(Msg& event) {
-		switch (event.sig()) {
-		case SIG_MQTT_CONNECTED: {
-			_msecInterval = 100;
-			break;
-		}
-		case SIG_MQTT_DISCONNECTED: {
-			_msecInterval = 500;
-			break;
-		}
-		default: {
-			break;
-		}
-		}
-	}
 };
 LedBlink ledBlink;
 Msg msg;
@@ -236,8 +239,8 @@ int main(void) {
 	Uart::init();
 	Bytes bytes(10);
 	bytes.write(0x12);
-	i2c1.init();
-	i2c1.send(L3GD20_ADDR,bytes);
+//	i2c1.init();
+//	i2c1.send(L3GD20_ADDR,bytes);
 //	Usb usb;	// usb active object
 //	Uart uart0;
 	Mqtt mqtt(*gUart0);	// mqtt active object

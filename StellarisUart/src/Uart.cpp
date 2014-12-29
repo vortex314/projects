@@ -138,9 +138,8 @@ void Uart::dispatch(Msg& event) {
 				_inBuffer.Decode();
 				if (_inBuffer.isGoodCrc()) {
 					_inBuffer.RemoveCrc();
-					Msg m(100);
-					m.sig(SIG_MQTT_MESSAGE).add(_inBuffer);
-					m.send();
+					Msg m;
+					m.create(256).sig(SIG_MQTT_MESSAGE).add(_inBuffer).send();
 				} else {
 					_crcErrors++;
 					Sys::warn(EIO,"UART_CRC");
@@ -158,6 +157,7 @@ void Uart::dispatch(Msg& event) {
 }
 uint32_t circbufOverflow = 0;
 uint32_t uart0TxInt = 0;
+
 extern "C" void UART0IntHandler(void) {
 	unsigned long ulStatus;
 
