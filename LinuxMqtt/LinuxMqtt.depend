@@ -1,0 +1,385 @@
+# depslib dependency file v1.0
+1418598408 source:/home/lieven/projects/Common/src/BipBuffer.cpp
+	<BipBuffer.h>
+	"Sys.h"
+
+1418239546 /home/lieven/projects/Common/inc/BipBuffer.h
+	<stdint.h>
+	<malloc.h>
+	<string.h>
+
+1419108574 /home/lieven/projects/Common/inc/Sys.h
+	"stdint.h"
+	"Erc.h"
+
+1418598408 /home/lieven/projects/Common/inc/Erc.h
+	<stdint.h>
+	<errno.h>
+
+1419176566 source:/home/lieven/projects/Common/src/Bytes.cpp
+	"Bytes.h"
+	"Str.h"
+
+1419176566 /home/lieven/projects/Common/inc/Bytes.h
+	<stdint.h>
+	"Erc.h"
+	"Sys.h"
+	<assert.h>
+
+1419279094 /home/lieven/projects/Common/inc/Str.h
+	"Bytes.h"
+	"Erc.h"
+
+1419278907 source:/home/lieven/projects/Common/src/Cbor.cpp
+	"Cbor.h"
+	"Packer.h"
+	<cstring>
+
+1419276429 /home/lieven/projects/Common/inc/Cbor.h
+	"Bytes.h"
+	"Packer.h"
+	"Str.h"
+	"errno.h"
+
+1419176566 /home/lieven/projects/Common/inc/Packer.h
+	"Bytes.h"
+	"Str.h"
+
+1418242744 source:/home/lieven/projects/Common/src/CircBuf.cpp
+	"CircBuf.h"
+	"Sys.h"
+	"Board.h"
+
+1418239546 /home/lieven/projects/Common/inc/CircBuf.h
+	<stdint.h>
+	<errno.h>
+
+1410702561 source:/home/lieven/projects/Common/src/Event.cpp
+	"Event.h"
+	"Sys.h"
+	"Erc.h"
+	"MqttIn.h"
+
+1419788270 /home/lieven/projects/Common/inc/Event.h
+	<stdint.h>
+	"Str.h"
+	"QueueTemplate.h"
+	"Signal.h"
+
+1410702561 /home/lieven/projects/Common/inc/QueueTemplate.h
+	"Erc.h"
+	"Sys.h"
+	"malloc.h"
+
+1419245018 /home/lieven/projects/Common/inc/MqttIn.h
+	"MqttConstants.h"
+	"Event.h"
+	"Str.h"
+	"Cbor.h"
+	"Packer.h"
+	"Json.h"
+
+1419863030 /home/lieven/projects/Common/inc/MqttConstants.h
+	"Str.h"
+
+1414937238 /home/lieven/projects/Common/inc/Json.h
+	"Packer.h"
+
+1410702561 source:/home/lieven/projects/Common/src/EventSource.cpp
+	"EventSource.h"
+
+1410702561 /home/lieven/projects/Common/inc/EventSource.h
+	<stdint.h>
+
+1410702561 source:/home/lieven/projects/Common/src/Link.cpp
+	"Link.h"
+
+1414936664 /home/lieven/projects/Common/inc/Link.h
+	"Event.h"
+	"MqttIn.h"
+
+1414946378 source:/home/lieven/projects/Common/src/Logger.cpp
+	"Logger.h"
+	<iostream>
+	<sys/time.h>
+	<stdio.h>
+
+1419841669 /home/lieven/projects/Common/inc/Logger.h
+	<time.h>
+	<Str.h>
+	<errno.h>
+	<string.h>
+
+1419253866 source:/home/lieven/projects/Common/src/MqttIn.cpp
+	"MqttIn.h"
+	<cstring>
+
+1419253671 source:/home/lieven/projects/Common/src/MqttOut.cpp
+	"MqttOut.h"
+	<string.h>
+
+1419253671 /home/lieven/projects/Common/inc/MqttOut.h
+	<string.h>
+	"Bytes.h"
+	"MqttConstants.h"
+
+1419877512 source:/home/lieven/projects/Common/src/Msg.cpp
+	<stdint.h>
+	<malloc.h>
+	<string.h>
+	"BipBuffer.h"
+	"Msg.h"
+	"Event.h"
+	"Signal.h"
+
+1419877512 /home/lieven/projects/Common/inc/Msg.h
+	"Bytes.h"
+	"BipBuffer.h"
+	"Event.h"
+	"Cbor.h"
+
+1412506652 source:/home/lieven/projects/Common/src/Msgpack.cpp
+	"Msgpack.h"
+	<string.h>
+	<limits.h>
+
+1412506652 /home/lieven/projects/Common/inc/Msgpack.h
+	<stdlib.h>
+	<stdint.h>
+	<stdbool.h>
+	"Bytes.h"
+
+1410702561 source:/home/lieven/projects/Common/src/Node.cpp
+	"Node.h"
+
+1410702561 /home/lieven/projects/Common/inc/Node.h
+	<stdint.h>
+	"Erc.h"
+
+1418239546 source:/home/lieven/projects/Common/src/Property.cpp
+	"Property.h"
+	"Log.h"
+
+1418239546 /home/lieven/projects/Common/inc/Property.h
+	<stdint.h>
+	<errno.h>
+	<string.h>
+	"Sys.h"
+	"Str.h"
+	"Erc.h"
+	"Strpack.h"
+
+1410702561 /home/lieven/projects/Common/inc/Strpack.h
+	"Str.h"
+
+1410702561 /home/lieven/projects/Common/inc/Log.h
+	<Str.h>
+
+1410702561 source:/home/lieven/projects/Common/src/Sequence.cpp
+	"Sequence.h"
+	"QueueTemplate.h"
+	"Timer.h"
+	"pt.h"
+
+1419772768 /home/lieven/projects/Common/inc/Sequence.h
+	"Event.h"
+	"Sys.h"
+	"Queue.h"
+	"pt.h"
+
+1410702561 /home/lieven/projects/Common/inc/Queue.h
+	<stdint.h>
+	"Erc.h"
+	"Event.h"
+
+1410702561 /home/lieven/projects/Common/inc/pt.h
+	"lc.h"
+
+1410702561 /home/lieven/projects/Common/inc/lc.h
+	"lc-switch.h"
+
+1410702561 /home/lieven/projects/Common/inc/lc-switch.h
+
+1410702561 /home/lieven/projects/Common/inc/Timer.h
+
+1419279381 source:/home/lieven/projects/Common/src/Str.cpp
+	"Str.h"
+	<string.h>
+	<string.h>
+	<stdlib.h>
+	<cstdio>
+
+1410702561 source:/home/lieven/projects/Common/src/Strpack.cpp
+	"Strpack.h"
+	<string.h>
+
+1410702561 source:/home/lieven/projects/Common/src/SysQueue.cpp
+	"SysQueue.h"
+	"FreeRTOS.h"
+	"queue.h"
+	"QueueTemplate.h"
+
+1410702561 /home/lieven/projects/Common/inc/SysQueue.h
+	"Erc.h"
+	"Sys.h"
+	"FreeRTOS.h"
+	"Queue.h"
+
+1414937238 source:/home/lieven/projects/Common/src/Timer.cpp
+	"Timer.h"
+	"Event.h"
+
+1410702561 source:/home/lieven/projects/Common/src/printf.c
+	"printf.h"
+
+1410702561 /home/lieven/projects/Common/inc/printf.h
+	<stdarg.h>
+
+1419884190 /home/lieven/projects/LinuxMqtt/include/Signal.h
+
+1414937238 source:/home/lieven/projects/Common/src/Json.cpp
+	"Json.h"
+	<cstring>
+
+1414321540 source:/home/lieven/projects/Common/src/Log.cpp
+	"Log.h"
+	"Sys.h"
+
+1419877512 source:/home/lieven/projects/Common/src/Mqtt.cpp
+	"Mqtt.h"
+
+1419877512 /home/lieven/projects/Common/inc/Mqtt.h
+	"Event.h"
+	"Sequence.h"
+	"Link.h"
+	"MqttIn.h"
+	"CircBuf.h"
+	"pt.h"
+	"MqttConstants.h"
+	"Log.h"
+	"Prop.h"
+	"MqttOut.h"
+	"Handler.h"
+	"Event.h"
+	"Msg.h"
+
+1419877512 /home/lieven/projects/Common/inc/Prop.h
+	<stdint.h>
+	"pt.h"
+	"Handler.h"
+	"Bytes.h"
+	"Mqtt.h"
+
+1419887012 /home/lieven/projects/LinuxMqtt/include/Handler.h
+	"MqttIn.h"
+	"Msg.h"
+	"pt.h"
+
+1410702561 source:/home/lieven/projects/Common/src/PIC32_stubs.cpp
+	<stdlib.h>
+	<string.h>
+	<sys/errno.h>
+	"Sys.h"
+	<sys/types.h>
+	<stddef.h>
+	<sys/types.h>
+	<string.h>
+
+1419877512 source:/home/lieven/projects/Common/src/Prop.cpp
+	"Mqtt.h"
+	"Prop.h"
+	"Fsm.h"
+	<cstdlib>
+
+1419176566 /home/lieven/projects/Common/inc/Fsm.h
+	"Event.h"
+	"Queue.h"
+	"Msg.h"
+	"MqttIn.h"
+
+1419888629 source:/home/lieven/projects/LinuxMqtt/Handler.cpp
+	<stdint.h>
+	"Handler.h"
+	"Sys.h"
+
+1419890390 source:/home/lieven/projects/LinuxMqtt/main.cpp
+	<iostream>
+	<stdio.h>
+	<string.h>
+	<unistd.h>
+	<fcntl.h>
+	<errno.h>
+	<termios.h>
+	<stdint.h>
+	<string.h>
+	<cstdlib>
+	"Str.h"
+	<time.h>
+	"Timer.h"
+	"MqttOut.h"
+	"MqttIn.h"
+	<stdio.h>
+	<stdlib.h>
+	<sys/time.h>
+	<sys/types.h>
+	"Sequence.h"
+	<unistd.h>
+	"Thread.h"
+	"pt.h"
+	"Tcp.h"
+	"Usb.h"
+	<time.h>
+	"Logger.h"
+	"Handler.h"
+	<signal.h>
+	<execinfo.h>
+	"Mqtt.h"
+
+1410702561 /home/lieven/projects/Common/inc/Thread.h
+	"stdint.h"
+	"Erc.h"
+	"Sys.h"
+
+1419796358 /home/lieven/projects/Linux/inc/Tcp.h
+	"Bytes.h"
+	"MqttIn.h"
+	"Thread.h"
+	"EventSource.h"
+	"Handler.h"
+	"Link.h"
+	"pt.h"
+
+1419863086 /home/lieven/projects/Linux/inc/Usb.h
+	<Sequence.h>
+	"Link.h"
+	"CircBuf.h"
+	"pt.h"
+	"MqttIn.h"
+	"Msg.h"
+	"Handler.h"
+
+1419859598 source:/home/lieven/projects/Linux/src/Sys.cpp
+	"Sys.h"
+	<malloc.h>
+	<time.h>
+	<unistd.h>
+	<string.h>
+	"Str.h"
+
+1419860356 source:/home/lieven/projects/Linux/src/Tcp.cpp
+	"Tcp.h"
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<netdb.h>
+	<unistd.h>
+	<strings.h>
+	<errno.h>
+	<string.h>
+	<iostream>
+	<signal.h>
+	"MqttIn.h"
+	"Logger.h"
+	<cstdio>
+	<sys/ioctl.h>
+

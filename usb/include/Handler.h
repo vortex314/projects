@@ -20,6 +20,7 @@ class Handler
 public:
 
     Handler();
+    Handler(const char* name);
     virtual ~Handler();
 
     void timeout(uint32_t msec);
