@@ -42,6 +42,7 @@ public :
     {
         level(ERROR);
         _str << s << " failed. errno = "<< errno << ":" << strerror(errno);
+        flush();
         return *this;
     };
     const char* logTime();

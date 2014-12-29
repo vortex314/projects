@@ -50,9 +50,8 @@ BAUDRATE BAUDRATES[]=
     {4000000,  B4000000 }
 };
 
-Usb::Usb(const char* device) : inBuffer(256)
+Usb::Usb(const char* device) : inBuffer(256),_outBuffer(256),_inBytes(256)
 {
-    _inBytes=new Bytes(256);
     logger.module("Usb");
     _device =  device;
     isConnected(false);
@@ -146,15 +145,17 @@ Erc Usb::disconnect()
 
 Erc Usb::send(Bytes& bytes)
 {
+    _outBuffer.clear();
+    _outBuffer.append(bytes);
     logger.debug()<< "send() " << bytes;
     logger.flush();
-    bytes.AddCrc();
-    bytes.Encode();
-    bytes.Frame();
-    logger.level(Logger::DEBUG)<<"send full : "<<bytes;
+    _outBuffer.AddCrc();
+    _outBuffer.Encode();
+    _outBuffer.Frame();
+    logger.level(Logger::DEBUG)<<"send full : "<<_outBuffer;
     logger.flush();
-    uint32_t count = ::write(_fd,bytes.data(),bytes.length());
-    if ( count != bytes.length())
+    uint32_t count = ::write(_fd,_outBuffer.data(),_outBuffer.length());
+    if ( count != _outBuffer.length())
     {
         disconnect();
         logger.perror("send() failed !");
@@ -233,30 +234,30 @@ int Usb::ptRun ( Msg& msg )
                 {
                     while( inBuffer.hasData() )
                     {
-                        if ( _inBytes->Feed(inBuffer.read()))
+                        if ( _inBytes.Feed(inBuffer.read()))
                         {
                             Str l(256);
-                            _inBytes->toString(l);
+                            _inBytes.toString(l);
                             logger.level(Logger::DEBUG)<< "recv : " << l;
                             logger.flush();
-                            _inBytes->Decode();
-                            if ( _inBytes->isGoodCrc() )
+                            _inBytes.Decode();
+                            if ( _inBytes.isGoodCrc() )
                             {
-                                _inBytes->RemoveCrc();
+                                _inBytes.RemoveCrc();
                                 Str l(256);
-                                _inBytes->toString(l);
-                                logger.level(Logger::INFO)<<"-> TCP : " <<l;
+                                _inBytes.toString(l);
+                                logger.level(Logger::INFO)<<" recv clean : " <<l;
                                 logger.flush();
-                                Msg msg;
-                                msg.create(256).sig(SIG_USB_MESSAGE).add(*_inBytes).send();
-                                _inBytes->clear();
+                                Msg m;
+                                m.create(256).sig(SIG_USB_MESSAGE).add(_inBytes).send();
+                                _inBytes.clear();
                                 break;
                             }
                             else
                             {
                                 logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
                                 logger.flush();
-                                _inBytes->clear(); // throw away bad data
+                                _inBytes.clear(); // throw away bad data
                             }
                         }
                     }
@@ -264,6 +265,7 @@ int Usb::ptRun ( Msg& msg )
             }
             else if ( msg.sig() == SIG_USB_DISCONNECTED )
             {
+                _inBytes.clear();
                 break;
             }
 
@@ -275,14 +277,6 @@ int Usb::ptRun ( Msg& msg )
     PT_END ( &t );
 }
 
-Bytes* Usb::recv()
-{
-    if ( _isComplete )
-    {
-        return _inBytes;
-    }
-    return 0;
-}
 
 int Usb::fd()
 {

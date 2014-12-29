@@ -81,6 +81,7 @@ Str& Sys::getDeviceName() {
     }
 
     void Sys::warn(int err,const char *s){
+        fprintf(stderr," Sys::warn(%d ,%s)",err,s);
     }
 
 

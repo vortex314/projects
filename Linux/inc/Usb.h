@@ -36,7 +36,8 @@ class Usb :public Link,public Handler  {
         const char* _device;
         uint32_t _baudrate;
         bool _isComplete;
-        Bytes* _inBytes;
+        Bytes _inBytes;
+        Bytes _outBuffer;
         CircBuf inBuffer;
     };
 ;

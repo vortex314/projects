@@ -59,6 +59,7 @@
 
 #define TOPIC_MAX_LENGTH 100
 #define MESSAGE_MAX_LENGTH 256
+#define MQTT_MAX_SIZE   256
 
 
 #endif	/* MQTTCONSTANTS_H */

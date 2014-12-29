@@ -78,6 +78,7 @@ Erc Tcp::connect()
     logger.info() <<  "connect() connected to " << _host << " : " << _port;
     logger.flush();
     Msg::publish(SIG_TCP_CONNECTED);
+//    signal(SIGPIPE, sigTcpHandler);;
     return E_OK;
 }
 
@@ -89,6 +90,8 @@ Erc Tcp::disconnect()
     Msg::publish(SIG_TCP_DISCONNECTED);
     return E_OK;
 }
+
+
 
 MqttIn* Tcp::recv()
 {
@@ -103,7 +106,7 @@ uint8_t Tcp::read()
     n=::read(_sockfd,&b,1) ;
     if (n <= 0)
     {
-        _connected=false;
+        disconnect();
         logger.perror("read()");
         return -1;
     }
@@ -130,11 +133,11 @@ uint32_t Tcp::hasData()
 {
     int count;
     int rc = ioctl(_sockfd, FIONREAD, (char *) &count);
-    if (rc < 0)
+    if (rc < 0 || count==0 )
     {
         logger.perror("ioctl()");
-        _connected=false;
-        return E_CONN_LOSS;
+        disconnect();
+        return 0;
     }
     return count;
 }
@@ -154,7 +157,7 @@ int Tcp::ptRun(Msg& msg)
         PT_YIELD(&t);
         while( true)
         {
-            listen(SIG_TCP_RXD | SIG_MQTT_DISCONNECTED );
+            listen(SIG_TCP_RXD | SIG_TCP_DISCONNECTED );
             PT_YIELD(&t);
             if ( msg.sig()==SIG_TCP_RXD && _mqttIn.complete() == false )
             {
@@ -169,14 +172,14 @@ int Tcp::ptRun(Msg& msg)
                         logger.debug()<<"-> USB : " <<l;
                         logger.flush();
                         _mqttIn.parse();
-                        Msg msg;
-                        msg.create(256).sig(SIG_TCP_MESSAGE).add(*_mqttIn.getBytes()).send();
+                        Msg m;
+                        m.create(256).sig(SIG_TCP_MESSAGE).add(*_mqttIn.getBytes()).send();
                         _mqttIn.reset();
                         break;
                     }
                 }
             }
-            else if( msg.sig()==SIG_MQTT_DISCONNECTED)
+            else if( msg.sig()==SIG_TCP_DISCONNECTED)
                 break;
         }
     }

@@ -24,7 +24,7 @@ using namespace std;
 #include <unistd.h>
 #include "Thread.h"
 #include "pt.h"
-#include "Sequence.h"
+// #include "Sequence.h"
 #include "Tcp.h"
 #include "Usb.h"
 #include <time.h>
@@ -59,6 +59,7 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     struct timeval tv;
     int retval;
     uint64_t start;
+    Str strEvents(100);
 
     /* Watch stdin (fd 0) to see when it has input. */
     FD_ZERO(&rfds);
@@ -96,32 +97,41 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
         if ( FD_ISSET(usbFd,&rfds) )
         {
             Msg::publish(SIG_USB_RXD);
+            strEvents << " USB_RXD ";
         }
         if ( FD_ISSET(tcpFd,&rfds) )
         {
             Msg::publish(SIG_TCP_RXD);
+            strEvents << " TCP_RXD ";
         }
         if ( FD_ISSET(usbFd,&efds) )
         {
             Msg::publish(SIG_USB_ERROR);
+            strEvents << " USB_ERR ";
         }
         if ( FD_ISSET(tcpFd,&efds) )
         {
             Msg::publish(SIG_TCP_ERROR);
+            strEvents << " TCP_ERR ";
         }
     }
     else
+    {
         //TODO publish TIMER_TICK
         Msg::publish(SIG_TIMEOUT);
+        strEvents << " TIM_OUT ";
+
+    }
     uint64_t waitTime=Sys::upTime()-start;
     if ( waitTime > 1 )
     {
-        logger.info() << "waited " << waitTime << " / "<< delta << " msec.";
+        logger.info() << "waited " << waitTime << " / "<< delta << " msec." << strEvents ;
         logger.flush();
     }
 }
 
 MqttIn mqttIn(new Bytes(256));
+MqttOut mqttOut(256);
 
 
 class Gateway : public Handler
@@ -138,10 +148,10 @@ public:
 
     void dispatch(Msg& msg)
     {
-        handler(msg);
+        ptRun(msg);
     }
 
-    int handler ( Msg& msg )
+    int ptRun ( Msg& msg )
     {
         PT_BEGIN ( &t );
         while(true)
@@ -162,6 +172,11 @@ public:
                     logger.info()<< str;
                     logger.flush();
                     usb.send(*mqttIn.getBytes());
+                }
+                else
+                {
+                    logger.info()<< "TCP->USB : dropped packet, not parseable Mqtt.";
+                    logger.flush();
                 }
             }
             else if ( msg.sig()==SIG_USB_MESSAGE )
@@ -208,11 +223,14 @@ public:
                         }
                     }
                 }
+                else
+                {
+                    logger.info()<< "dropped packet, not parseable Mqtt.";
+                    logger.flush();
+                }
 
             }
-            PT_YIELD ( &t );
         }
-
         PT_END ( &t );
     }
 };
@@ -346,7 +364,7 @@ int main(int argc, char *argv[] )
     while(true)
     {
         poller(usb.fd(),tcp.fd(),sleepTill);
-        sleepTill = Sys::upTime()+10000;
+        sleepTill = Sys::upTime()+100000;
         while (true )
         {
             msg.open();
