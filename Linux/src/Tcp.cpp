@@ -78,6 +78,7 @@ Erc Tcp::connect()
     logger.info() <<  "connect() connected to " << _host << " : " << _port;
     logger.flush();
     Msg::publish(SIG_TCP_CONNECTED);
+
 //    signal(SIGPIPE, sigTcpHandler);;
     return E_OK;
 }
@@ -115,6 +116,12 @@ uint8_t Tcp::read()
 
 Erc Tcp::send(Bytes& bytes)
 {
+    Str l(100);
+    MqttIn mqttIn(&bytes);
+    mqttIn.parse();
+    mqttIn.toString(l);
+    logger.info() << "TXD " << l << "\n";
+
     int n;
 //   signal(SIGPIPE, SIG_IGN);
 //   Log::log().message("TCP send : " ,bytes);
@@ -168,10 +175,10 @@ int Tcp::ptRun(Msg& msg)
                     if (  _mqttIn.complete() )
                     {
                         Str l(256);
-                        _mqttIn.toString(l);
-                        logger.debug()<<"-> USB : " <<l;
-                        logger.flush();
                         _mqttIn.parse();
+                        _mqttIn.toString(l);
+                        logger.debug()<<"RXD " <<l;
+                        logger.flush();
                         Msg m;
                         m.create(256).sig(SIG_TCP_MESSAGE).add(*_mqttIn.getBytes()).send();
                         _mqttIn.reset();

@@ -23,6 +23,15 @@ MqttIn::MqttIn(Bytes* bytes) :
     _header=0;
 }
 
+MqttIn::MqttIn(int size) :
+    _topic(0), _message(0)   //+++ len=0
+{
+    if ( size )
+        _bytes =  new Bytes(size);
+    _remainingLength = 0;
+    _header=0;
+}
+
 MqttIn::MqttIn()
 {
     _bytes = 0;

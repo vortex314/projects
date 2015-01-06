@@ -3,7 +3,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 
-const char *sLevel[]={"DEBUG","INFO ","WARN ","ERROR","FATAL"};
+const char *sLevel[]= {"DEBUG","INFO ","WARN ","ERROR","FATAL"};
 
 Logger::Logger(int size) : _str(size)
 {
@@ -22,7 +22,11 @@ Logger& Logger::module(const char * m)
 }
 Logger& Logger::log(const char *s)
 {
-    _str.append(s);
+    int slen=strlen(s);
+    for (int i=0; i< slen;i++){
+        if ( s[i]=='\n') flush();
+        else _str.append(s[i]);
+    }
     return *this;
 }
 Logger& Logger::log(int i)
@@ -36,8 +40,15 @@ Logger& Logger::operator<<(const char *s )
 }
 Logger& Logger::operator<<(Str& str )
 {
+    uint8_t b;
     str.offset(0);
-    while(str.hasData()) _str.write(str.read());
+    while(str.hasData())
+    {
+        b=str.read();
+        if ( b == '\n') flush();
+        else
+            _str.write(b);
+    }
     return *this;
 }
 Logger& Logger::operator<<(int i )
@@ -55,7 +66,6 @@ Logger& Logger::flush()
         std::cout << _str.read();
     std::cout  <<   std::endl;
     _str.clear();
-    _level = INFO;
     return *this;
 }
 const char* Logger::logTime()
@@ -80,19 +90,23 @@ const char* Logger::logTime()
 }
 
 const char *Hex="0123456789ABCDEF";
-Logger& Logger::operator<<(Bytes& bytes) {
+Logger& Logger::operator<<(Bytes& bytes)
+{
     bytes.offset(0);
-    while(bytes.hasData()) {
+    while(bytes.hasData())
+    {
         uint8_t b;
         b=bytes.read();
         _str << (char)Hex[b>>4]<< (char)Hex[b&0x0F] << " ";
-        }
+    }
     bytes.offset(0);
-    while(bytes.hasData()) {
+    while(bytes.hasData())
+    {
         uint8_t b;
         b=bytes.read();
         if ( isprint((char)b)) _str << (char)b;
         else _str << '.';
-        }
-    return *this;
     }
+    return *this;
+}
+

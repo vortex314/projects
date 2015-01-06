@@ -180,8 +180,7 @@ void interceptAllSignals()
 
 #include "Mqtt.h"
 
-PropMgr propMgr;
-Tcp tcp("localhost",1883);
+
 class UptimeTopic: public Prop {
 public:
 	UptimeTopic() :
@@ -201,54 +200,79 @@ class TcpConnection : public Handler {
     TcpConnection()
 }
 */
+const char *strSignal[]={
+        "SIG_INIT",//  0x1,
+    "SIG_TIMEOUT",//  0x2,
+    "SIG_TIMER_TICK",//  0x4 ,
+    "SIG_LINK_CONNECTED",//  0x8 ,
+    "SIG_LINK_DISCONNECTED",//  0x10 ,
+    "SIG_LINK_RXD",//  0x20 ,
+    "SIG_MQTT_CONNECTED",//  0x40,
+    "SIG_MQTT_DISCONNECTED",//  0x80,
+    "SIG_MQTT_MESSAGE",//  0x100 ,
+    "SIG_MQTT_DO_PUBLISH",//  0x200,
+    "SIG_MQTT_PUBLISH_FAILED",//  0x400,
+    "SIG_MQTT_PUBLISH_OK",// "=0x800,
+    "SIG_PROP_CHANGED", // "=0x1000,
+    "SIG_IDLE",//  0x2000,
+    "SIG_TCP_RXD", // 0x4000,
+    "SIG_TCP_ERROR", // 0x8000,
+    "SIG_USB_RXD", // 0x10000,
+    "SIG_USB_ERROR", // 0x20000,
+    "SIG_TCP_MESSAGE", // 0x40000,
+    "SIG_USB_MESSAGE", // 0x80000,
+    "SIG_USB_CONNECTED", // 0x100000,
+    "SIG_TCP_CONNECTED", // 0x200000,
+    "SIG_TCP_DISCONNECTED", // 0x400000,
+    "SIG_USB_DISCONNECTED" // 0x800000
+};
+const char *sigToString(Signal signal){
+    uint32_t s=signal;
+for(int i=0;i<32;i++) {
+    if ( s & 1 ) return strSignal[i];
+    s = s >>1 ;
+    }
+    return "unknown signal";
+}
+
+PropMgr propMgr;
+Tcp tcp("localhost",1883);
+
 int main(int argc, char *argv[] )
 {
 
     logger.module("Main");
-    logger.level(Logger::INFO)<<"Start "<<argv[0]<<" version : "<<__DATE__ << " " << __TIME__ ;
-    logger.flush();
+    logger.level(Logger::INFO)<<"Start "<<argv[0]<<" version : "<<__DATE__ << " " << __TIME__  << "\n";
 
     loadOptions(argc,argv);
     interceptAllSignals();
 
     tcp.setHost(context.host);
     tcp.setPort(context.port);
-    tcp.connect();
+ //   tcp.connect();
     Mqtt mqtt(tcp);
+    char hostname[30];
+    gethostname(hostname,sizeof(hostname));
 
-    uint64_t sleepTill=Sys::upTime()+1000;
+    mqtt.setPrefix(hostname);
+
+    propMgr.mqtt(mqtt);
+
     Msg initMsg(6);
     initMsg.sig(SIG_INIT);
-    Msg timeoutMsg(6);
-    timeoutMsg.sig(SIG_TIMEOUT);
+
     Msg msg;
     msg.create(10).sig(SIG_INIT).send();
 
     while(true)
     {
-        poller(tcp.fd(),sleepTill);
-        sleepTill = Sys::upTime()+10000;
+        poller(tcp.fd(),Handler::nextTimeout());
         while (true )
         {
             msg.open();
-            if ( msg.sig() == SIG_IDLE ) break;
-            for(Handler* hdlr=Handler::first(); hdlr!=0; hdlr=hdlr->next())
-            {
-                if ( hdlr->accept(msg.sig()))
-                {
-                    if ( msg.sig() == SIG_TIMEOUT )
-                    {
-                        if ( hdlr->timeout() )
-                            hdlr->dispatch(timeoutMsg);
-                    }
-                    else
-                        hdlr->dispatch(msg);
-                }
-                if ( hdlr->accept(SIG_TIMEOUT))
-                    if ( hdlr->getTimeout() < sleepTill )
-                        sleepTill=hdlr->getTimeout();
-
-            }
+            if ( msg.sig()==SIG_IDLE) break;
+            logger.info()<< "signal : " << sigToString(msg.sig()) <<"\n";
+            Handler::dispatchAll(msg);
             msg.recv();
         }
 

@@ -12,28 +12,29 @@
 
 Handler::Handler()
 {
-	_timeout = UINT64_MAX;
-	_sigMask = UINT32_MAX; // accept all
-	_name = "UNDEFINED";
-	_next = 0;
-	PT_INIT(&pt);
-	reg();
+    _timeout = UINT64_MAX;
+    _sigMask = UINT32_MAX; // accept all
+    _name = "UNDEFINED";
+    _next = 0;
+    PT_INIT(&pt);
+    reg();
 }
 
 Handler::Handler(const char* name)
 {
-	_timeout = UINT64_MAX;
-	_sigMask = UINT32_MAX; // accept all
-	_name = name;
-	_next = 0;
-	PT_INIT(&pt);
-	reg();
+    _timeout = UINT64_MAX;
+    _sigMask = UINT32_MAX; // accept all
+    _name = name;
+    _next = 0;
+    PT_INIT(&pt);
+    reg();
 }
 
-void Handler::restart(){
-	PT_INIT(&pt);
-	_sigMask = UINT32_MAX;
-	_timeout = UINT64_MAX;
+void Handler::restart()
+{
+    PT_INIT(&pt);
+    _sigMask = UINT32_MAX;
+    _timeout = UINT64_MAX;
 }
 
 
@@ -60,9 +61,10 @@ void Handler::listen(uint32_t sigMask)
     _sigMask=sigMask;
 }
 
-void Handler::listen(uint32_t sigMask, uint32_t time) {
-	_sigMask = sigMask | SIG_TIMEOUT;
-	timeout(time);
+void Handler::listen(uint32_t sigMask, uint32_t time)
+{
+    _sigMask = sigMask | SIG_TIMEOUT;
+    timeout(time);
 }
 
 
@@ -73,13 +75,9 @@ bool Handler::accept(Signal signal)
 
 Msg timeoutMsg(SIG_TIMEOUT);
 
-void Handler::dispatch(Msg& msg) {
-	if (accept(msg.sig()))
-		ptRun(msg);
-	else if ((msg.sig() == SIG_TIMER_TICK) && (_sigMask & SIG_TIMEOUT)
-			&& timeout())
-		ptRun(timeoutMsg);
-
+void Handler::dispatch(Msg& msg)
+{
+        ptRun(msg);
 }
 
 
@@ -109,3 +107,35 @@ void Handler::reg()
         cursor->_next = this;
     }
 }
+
+void Handler::dispatchAll(Msg& msg)
+{
+    for(Handler* hdlr=Handler::first(); hdlr!=0; hdlr=hdlr->next())
+    {
+        if ( msg.sig() == SIG_IDLE ) break;
+        if ( hdlr->accept(msg.sig()))
+        {
+            if ( msg.sig() == SIG_TIMEOUT )
+            {
+                if ( hdlr->timeout() )
+                    hdlr->dispatch(timeoutMsg);
+            }
+            else
+                hdlr->dispatch(msg);
+        }
+    }
+}
+
+uint64_t Handler::nextTimeout()
+{
+    uint64_t TO = Sys::upTime()+100000;
+    for(Handler* hdlr=Handler::first(); hdlr!=0; hdlr=hdlr->next())
+    {
+        if ( hdlr->accept(SIG_TIMEOUT))
+            if ( hdlr->getTimeout() < TO )
+                TO=hdlr->getTimeout();
+    }
+    return TO;
+}
+
+

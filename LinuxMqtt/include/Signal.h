@@ -29,4 +29,6 @@ enum Signal
     SIG_USB_DISCONNECTED=0x800000
 };
 
+
+
 #endif // SIGNAL_H_INCLUDED

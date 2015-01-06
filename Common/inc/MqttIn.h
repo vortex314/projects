@@ -36,6 +36,7 @@ public:
 public:
     MqttIn();
     MqttIn(Bytes* bytes);
+    MqttIn(int size);
     void remap(Bytes* bytes);
 //   MqttIn(MqttIn& src);
     virtual ~MqttIn();

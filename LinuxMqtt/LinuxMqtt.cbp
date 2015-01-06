@@ -11,9 +11,16 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters=" -h localhost" />
 				<Compiler>
 					<Add option="-g" />
+					<Add directory="../Common/inc" />
+					<Add directory="include" />
+					<Add directory="../Linux/inc" />
 				</Compiler>
+				<Linker>
+					<Add library="rt" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/LinuxMqtt" prefix_auto="1" extension_auto="1" />
@@ -32,6 +39,32 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Linker>
+			<Add library="libc.a" />
+		</Linker>
+		<Unit filename="../Common/src/BipBuffer.cpp" />
+		<Unit filename="../Common/src/Bytes.cpp" />
+		<Unit filename="../Common/src/Cbor.cpp" />
+		<Unit filename="../Common/src/CircBuf.cpp" />
+		<Unit filename="../Common/src/Json.cpp" />
+		<Unit filename="../Common/src/Link.cpp" />
+		<Unit filename="../Common/src/Log.cpp" />
+		<Unit filename="../Common/src/Logger.cpp" />
+		<Unit filename="../Common/src/Mqtt.cpp" />
+		<Unit filename="../Common/src/MqttIn.cpp" />
+		<Unit filename="../Common/src/MqttOut.cpp" />
+		<Unit filename="../Common/src/Msg.cpp" />
+		<Unit filename="../Common/src/Msgpack.cpp" />
+		<Unit filename="../Common/src/PIC32_stubs.cpp" />
+		<Unit filename="../Common/src/Pic32Stubs.h" />
+		<Unit filename="../Common/src/Prop.cpp" />
+		<Unit filename="../Common/src/Str.cpp" />
+		<Unit filename="../Common/src/Strpack.cpp" />
+		<Unit filename="../Linux/src/Sys.cpp" />
+		<Unit filename="../Linux/src/Tcp.cpp" />
+		<Unit filename="Handler.cpp" />
+		<Unit filename="include/MqttHandler.h" />
+		<Unit filename="include/Signal.h" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />
