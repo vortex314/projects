@@ -248,10 +248,10 @@ void AdcInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
 	ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
-//	ADCIntDisable(ADC0_BASE, 1);
-	ADCIntEnable(ADC0_BASE, 1);
-//	IntDisable(INT_ADC0SS1);
- 	IntEnable(INT_ADC0SS1); //DISABLED
+	ADCIntDisable(ADC0_BASE, 1);
+//	ADCIntEnable(ADC0_BASE, 1);
+	IntDisable(INT_ADC0SS1);
+// 	IntEnable(INT_ADC0SS1); //DISABLED
 	ADCSequenceEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 }

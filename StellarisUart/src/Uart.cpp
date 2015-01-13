@@ -29,12 +29,16 @@
 Uart* gUart0 = new Uart();
 
 Uart::Uart() :
-		_in(100), _out(256), _inBuffer(256) {
+		_in(100), _out(256), _inBuffer(256)
+{
 	_overrunErrors = 0;
 	_crcErrors = 0;
+	listen(gUart0);
+	listen(SIG_START);
 }
 // initialize UART at 1MB 8N1
-void Uart::init() {
+void Uart::init()
+{
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	GPIOPinConfigure(GPIO_PA0_U0RX);
@@ -53,143 +57,142 @@ void Uart::init() {
 	UARTIntEnable(UART0_BASE, UART_INT_RX | UART_INT_TX | UART_INT_OE);
 }
 
-Uart::~Uart() {
+Uart::~Uart()
+{
 }
 
-uint8_t Uart::read() {
+uint8_t Uart::read()
+{
 	return _in.read();
 }
-uint32_t Uart::hasData() {
+uint32_t Uart::hasData()
+{
 	return _in.hasData();
 }
 
-bool UARTFIFOFull(uint32_t uart_base) {
+bool UARTFIFOFull(uint32_t uart_base)
+{
 	uint32_t fr = *((uint32_t*) (UART0_BASE + UART_O_FR));
 	return (fr & UART_FR_TXFF) != 0;
 }
-/*
- void Uart::toFifo() {
- while (!UARTFIFOFull(UART0_BASE) && _out.hasData()) {
- int b = gUart0->_out.read();
- if (b >= 0) {
- if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
- break;
- } else
- break;
- }
- }
- */
 
-Erc Uart::send(Bytes& bytes) {
+Erc Uart::send(Bytes& bytes)
+{
 	bytes.AddCrc();
 	bytes.Encode();
 	bytes.Frame();
 	bytes.offset(0);
-	if (_out.space() < bytes.length()) { // not enough space in circbuf
+	if (_out.space() < bytes.length())
+	{ // not enough space in circbuf
 		_overrunErrors++;
-		Sys::warn(EOVERFLOW,"UART_SEND");
-		if (!UARTBusy(UART0_BASE)) { // fire off first bytes
+		Sys::warn(EOVERFLOW, "UART_SEND");
+		if (!UARTBusy(UART0_BASE))
+		{ // fire off first bytes
 			UARTCharPutNonBlocking(UART0_BASE, _out.read());
 		}
 		return E_AGAIN;
 	}
-	while (_out.hasSpace() && bytes.hasData()) {
+	while (_out.hasSpace() && bytes.hasData())
+	{
 		_out.write(bytes.read());
 	}
-	if (!UARTBusy(UART0_BASE)) { // fire off first bytes
+	if (!UARTBusy(UART0_BASE))
+	{ // fire off first bytes
 		UARTCharPutNonBlocking(UART0_BASE, _out.read());
 	}
 	return E_OK;
 }
 
-Erc Uart::connect() {
-	Msg::publish(SIG_LINK_CONNECTED);
-	isConnected(true);
+Erc Uart::connect()
+{
+	Msg::publish(SIG_CONNECTED, this);
 	return E_OK;
 }
 
-Erc Uart::disconnect() {
-	Msg::publish(SIG_LINK_DISCONNECTED);
-//	isConnected(false);
+Erc Uart::disconnect()
+{
+	Msg::publish(SIG_DISCONNECTED, this);
 	return E_OK;
 }
 
-void Uart::dispatch(Msg& event) {
-	switch (event.sig()) {
+void Uart::dispatch(Msg& event)
+{
+	switch (event.sig())
+	{
 
-	case SIG_LINK_CONNECTED: {
-		_in.clear();
-		isConnected(true);
-//      publish(Link::CONNECTED);
-		break;
-	}
-	case SIG_LINK_DISCONNECTED: {
-//		isConnected(false);
-//      publish(Link::DISCONNECTED);
-		break;
-	}
-	case (SIG_LINK_RXD):
-
+	case (SIG_START):
 	{
 		uint8_t b;
-		while (_in.hasData()) {
+		while (_in.hasData())
+		{
 			b = _in.read();
-			if (_inBuffer.Feed(b)) {
+			if (_inBuffer.Feed(b))
+			{
 				_inBuffer.Decode();
-				if (_inBuffer.isGoodCrc()) {
+				if (_inBuffer.isGoodCrc())
+				{
 					_inBuffer.RemoveCrc();
 					Msg m;
-					m.create(256).sig(SIG_MQTT_MESSAGE).add(_inBuffer).send();
-				} else {
+					m.create(256).sig(SIG_RXD).src(this).add(_inBuffer).send();
+				}
+				else
+				{
 					_crcErrors++;
-					Sys::warn(EIO,"UART_CRC");
+					Sys::warn(EIO, "UART_CRC");
 				}
 				_inBuffer.clear();
 			}
 		}
 		break;
 	}
-	default: {
-		if (_in.hasData())
-			Msg::publish(SIG_LINK_RXD);
-	}
 	}
 }
 uint32_t circbufOverflow = 0;
 uint32_t uart0TxInt = 0;
 
-extern "C" void UART0IntHandler(void) {
+extern "C" void UART0IntHandler(void)
+{
 	unsigned long ulStatus;
 
 	ulStatus = UARTIntStatus(UART0_BASE, true); // Get the interrrupt status.
 	UARTIntClear(UART0_BASE, ulStatus); // Clear the asserted interrupts.
-	if (ulStatus & UART_INT_RX) {
-		while (UARTCharsAvail(UART0_BASE)) { // Loop while there are characters in the receive FIFO.
+	if (ulStatus & UART_INT_RX)
+	{
+		while (UARTCharsAvail(UART0_BASE))
+		{ // Loop while there are characters in the receive FIFO.
 			uint8_t b = UARTCharGetNonBlocking(UART0_BASE);
-			if (gUart0) {						// add data to input ringbuffer
+			if (gUart0)
+			{						// add data to input ringbuffer
 				if (gUart0->_in.hasSpace())
 					gUart0->_in.writeFromIsr(b); // Read the next character from the UART
-				else { // just drop data;
+				else
+				{ // just drop data;
 					gUart0->_overrunErrors++;
-					Sys::warn(EOVERFLOW,"UART_RX");
+					Sys::warn(EOVERFLOW, "UART_RX");
 				}
 			}
 		}
 	}
-	if (ulStatus & UART_INT_TX) {
-		while (!UARTFIFOFull(UART0_BASE) && gUart0->_out.hasData()) {
+	if (ulStatus & UART_INT_TX)
+	{
+		while (!UARTFIFOFull(UART0_BASE) && gUart0->_out.hasData())
+		{
 			int b = gUart0->_out.readFromIsr();
-			if (b >= 0) {
-				if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
+			if (b >= 0)
+			{
+				if (ROM_UARTCharPutNonBlocking(UART0_BASE, b) == false)
 					break;
-			} else {
-				Sys::warn(ENODATA,"UART_TX");
+			}
+			else
+			{
+				Sys::warn(ENODATA, "UART_TX");
 				break;
 			}
 		}
 	}
-	if (ulStatus & UART_INT_OE) {
-		Sys::warn(ENODATA,"UART_RX_OE");
-		}
+	if (ulStatus & UART_INT_OE)
+	{
+		Sys::warn(ENODATA, "UART_RX_OE");
+	}
 }
 

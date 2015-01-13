@@ -8,8 +8,8 @@
 #include "Handler.h"
 #include "Sys.h"
 
-uint64_t _timeout;
-Handler::Handler() {
+Handler::Handler()
+{
 	_timeout = UINT64_MAX;
 	_sigMask = UINT32_MAX; // accept all
 	_name = "UNDEFINED";
@@ -18,7 +18,8 @@ Handler::Handler() {
 	reg();
 }
 
-Handler::Handler(const char* name) {
+Handler::Handler(const char* name)
+{
 	_timeout = UINT64_MAX;
 	_sigMask = UINT32_MAX; // accept all
 	_name = name;
@@ -27,88 +28,102 @@ Handler::Handler(const char* name) {
 	reg();
 }
 
-
-void Handler::restart(){
+void Handler::restart()
+{
 	PT_INIT(&pt);
 	_sigMask = UINT32_MAX;
 	_timeout = UINT64_MAX;
 }
 
-void Handler::timeout(uint32_t msec) {
+void Handler::timeout(uint32_t msec)
+{
 	_timeout = Sys::upTime() + msec;
 }
 
-bool Handler::timeout() {
+bool Handler::timeout()
+{
 	return _timeout < Sys::upTime();
 }
 
-uint64_t Handler::getTimeout() {
+uint64_t Handler::getTimeout()
+{
 	return _timeout;
 }
 
-void Handler::listen(uint32_t sigMask) {
+void Handler::listen(uint32_t sigMask)
+{
 	_sigMask = sigMask;
 }
 
-void Handler::listen(uint32_t sigMask, uint32_t time) {
+void Handler::listen(void* src)
+{
+	_srcMask = src;
+}
+
+void Handler::listen(uint32_t sigMask, uint32_t time)
+{
 	_sigMask = sigMask | SIG_TIMEOUT;
 	timeout(time);
 }
 
-bool Handler::accept(Signal signal) {
-	return (signal & _sigMask);
+void Handler::listen(uint32_t sig,void* src){
+	_sigMask=sig;
+	_srcMask=src;
+}
+
+bool Handler::accept(Signal signal, void* src)
+{
+	if (_srcMask == 0 || src == 0)
+		return (signal & _sigMask);
+	else
+		return (_srcMask == src) && (signal & _sigMask);
 }
 
 Msg timeoutMsg(SIG_TIMEOUT);
 
-void Handler::dispatch(Msg& msg) {
-	if (accept(msg.sig()))
+void Handler::dispatch(Msg& msg)
+{
+	if (accept(msg.sig(),msg.src()))
 		ptRun(msg);
-	else if ((msg.sig() == SIG_TIMER_TICK) && (_sigMask & SIG_TIMEOUT)
-			&& timeout())
+	else if (msg.is(SIG_TICK,0) && (_sigMask & SIG_TIMEOUT) && timeout())
 		ptRun(timeoutMsg);
 
 }
-/*
- void Handler::dispatch(Msg& msg) {
- Signal signal = msg.sig();
- if (signal == SIG_TIMER_TICK) {
- if (timeout())
- onTimeout();
- } else if (signal == SIG_MQTT_MESSAGE) {
- Bytes bytes(0);
- msg.get(bytes);
- MqttIn mqttIn(&bytes);
- bytes.offset(0);
- if (mqttIn.parse())
- onMqttMessage(mqttIn);
- else
- Sys::warn(EINVAL, "MQTT");
- } else if ( signal == SIG_INIT ) {
- onEntry();
- } else
- onOther(msg);
- }
- */
+
+//_________________________________________________________________________________________________
+//
+//				HANDLER LIST
+//_________________________________________________________________________________________________
 
 Handler* Handler::_first = 0;
 
-Handler* Handler::first() {
+Handler* Handler::first()
+{
 	return _first;
 }
 
-Handler* Handler::next() {
+Handler* Handler::next()
+{
 	return _next;
 }
 
-void Handler::reg() {
+void Handler::reg()
+{
 	if (_first == 0)
 		_first = this;
-	else {
+	else
+	{
 		Handler* cursor = _first;
-		while (cursor->_next != 0) {
+		while (cursor->_next != 0)
+		{
 			cursor = cursor->_next;
 		}
 		cursor->_next = this;
 	}
 }
+
+//_________________________________________________________________________________________________
+//
+//				LISTENER LIST
+//_________________________________________________________________________________________________
+

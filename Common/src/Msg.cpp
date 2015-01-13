@@ -4,13 +4,13 @@
 
 #include "BipBuffer.h"
 #include "Msg.h"
-#include "Event.h"
+// #include "Event.h"
 #include "Signal.h"
 
 typedef struct
 {
     uint16_t length;
-//	Signal signal;
+//    Signal signal;
 } Envelope;
 
 BipBuffer Msg::bb;
@@ -36,6 +36,8 @@ Msg::Msg(Signal sig)
     map(0, 0);
 //	_bufferStart = (uint)&env.signal;
 }
+
+
 
 Msg& Msg::create(int size)
 {
@@ -65,6 +67,7 @@ Msg& Msg::open()
         map(_bufferStart + ENVELOPE_SIZE, env.length - ENVELOPE_SIZE);
         Cbor cbor(*this);
         cbor.get((uint32_t&)_signal);
+        cbor.get((uint32_t&)_src);
     }
     else
     {
@@ -100,16 +103,28 @@ bool Msg::isEmpty()
 void Msg::publish(Signal sig)
 {
     Msg msg;
-    msg.create(5);
+    msg.create(20);
     Cbor cbor(msg);
     cbor.add(sig);
+    cbor.add((int)0);
+    msg.send();
+}
+
+
+void Msg::publish(Signal sig,void* src)
+{
+    Msg msg;
+    msg.create(20);
+    Cbor cbor(msg);
+    cbor.add(sig);
+    cbor.add((uint32_t)src);
     msg.send();
 }
 
 void Msg::publish(Signal sig, uint16_t detail)
 {
     Msg msg;
-    msg.create(10).sig(sig);
+    msg.create(20).sig(sig);
     Cbor cbor(msg);
     cbor.add(sig);
     cbor.add((uint64_t) detail);
@@ -147,4 +162,26 @@ Signal Msg::sig()
 {
     return _signal;
 }
+
+Msg& Msg::src(void* src)
+{
+    _src = src;
+    Cbor cbor(*this);
+    cbor.add((int)_src);
+    return *this;
+}
+
+void* Msg::src()
+{
+    return _src;
+}
+
+bool Msg::is(Signal sig,void* src) {
+	if ( src == 0 )
+		return sig==_signal;
+	else
+		return ( sig==_signal) && ( src==_src);
+}
+
+
 

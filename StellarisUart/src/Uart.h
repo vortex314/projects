@@ -1,4 +1,3 @@
-
 /*
  * Uart.h
  *
@@ -8,11 +7,13 @@
 
 #ifndef UART_H_
 #define UART_H_
+#include "Msg.h"
 #include "Link.h"
 #include "Handler.h"
 #include "CircBuf.h"
 #include "MqttIn.h"
-class Uart: public Link,public Handler {
+class Uart: public Link, public Handler
+{
 public:
 	Uart();
 	virtual ~Uart();
@@ -23,16 +24,21 @@ public:
 	void toFifo();
 	Erc connect();
 	Erc disconnect();
-	bool isConnected(){ return true;};
-    void isConnected(bool val) { };
-    void dispatch(Msg& event);
+	bool isConnected()
+	{
+		return true;
+	}
+	void isConnected(bool val)
+	{
+	}
+	void dispatch(Msg& event);
 	CircBuf _in;
 	CircBuf _out;
 	Bytes _inBuffer;
 	uint32_t _crcErrors;
-		uint32_t _overrunErrors;
-private:
+	uint32_t _overrunErrors;
 
+private:
 
 };
 

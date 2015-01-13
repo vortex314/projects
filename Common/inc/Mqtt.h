@@ -8,19 +8,19 @@
 #ifndef MQTT_H_
 #define MQTT_H_
 
-#include "Event.h"
-#include "Sequence.h"
+// #include "Event.h"
+//#include "Sequence.h"
 #include "Link.h"
 #include "MqttIn.h"
 #include "CircBuf.h"
 #include "pt.h"
 #include "MqttConstants.h"
 #include "Log.h"
-#include "Prop.h"
 #include "MqttOut.h"
 
 #include "Handler.h"
-#include "Event.h"
+#include "Flags.h"
+//#include "Event.h"
 #include "Msg.h"
 
 //************************************** CONSTANTS ****************************
@@ -30,6 +30,51 @@
 #define	TIME_PING ( TIME_KEEP_ALIVE /3 )
 #define TOPIC_MAX_SIZE	40
 #define MSG_MAX_SIZE	256
+
+class Publisher;
+class Subscriber;
+class Subscription;
+class Pinger;
+class Mqtt;
+
+
+class Mqtt: public Handler
+{
+public :
+    Link& _link;
+
+    Str _prefix;
+    Str _putPrefix;    //PUT/<device>/
+    Str _getPrefix;
+    Str _headPrefix; // HEAD/<device>/
+    MqttIn _mqttIn; // temp storage in one event call
+    MqttOut _mqttOut; // "
+
+private:
+
+    Pinger* _pinger;
+    Publisher* _publisher;
+    Subscriber* _subscriber;
+    Subscription* _subscription;
+    uint32_t _retries;
+
+
+public:
+    Mqtt(Link& link);
+    ~Mqtt();
+    void sendConnect();
+    int ptRun(Msg& msg);
+    static uint16_t nextMessageId();
+    void getPrefix(Str& prefix);
+    void setPrefix(const char * prefix);
+    bool publish(Str& topic, Bytes& msg, Flags flags);
+    bool isConnected();
+    bool msgToMqttIn(Msg& msg);
+    bool isMqttMsg(Msg& msg, uint8_t msgType, uint16_t msgId);
+
+private:
+    void sendSubscribe(uint8_t flags);
+};
 
 
 
@@ -102,41 +147,5 @@ private:
     uint32_t _retries;
 };
 
-class Mqtt: public Handler
-{
-public :
-    Link& _link;
-
-    Str _prefix;
-    Str _putPrefix;    //PUT/<device>/
-    Str _getPrefix;
-    Str _headPrefix; // HEAD/<device>/
-    MqttIn _mqttIn; // temp storage in one event call
-    MqttOut _mqttOut; // "
-
-private:
-
-    Pinger* _pinger;
-    Publisher* _publisher;
-    Subscriber* _subscriber;
-    Subscription* _subscription;
-    uint32_t _retries;
-
-public:
-    Mqtt(Link& link);
-    ~Mqtt();
-    void sendConnect();
-    int ptRun(Msg& msg);
-    static uint16_t nextMessageId();
-    void getPrefix(Str& prefix);
-    void setPrefix(const char * prefix);
-    bool publish(Str& topic, Bytes& msg, Flags flags);
-    bool isConnected();
-    bool msgToMqttIn(Msg& msg);
-    bool isMqttMsg(Msg& msg, uint8_t msgType, uint16_t msgId);
-//	Erc disconnect();
-private:
-    void sendSubscribe(uint8_t flags);
-};
 
 #endif /* MQTT_H_ */

@@ -10,6 +10,7 @@
 #include "Timer.h"
 #include "Prop.h"
 #include "Cbor.h"
+#include "Msg.h"
 
 #include <malloc.h>
 #include "Handler.h"
@@ -155,7 +156,7 @@ GpioOutTopic gpioF2("GPIO/F2", GPIO_PORTF_BASE, GPIO_PIN_2);
 GpioOutTopic gpioF1("GPIO/F1", GPIO_PORTF_BASE, GPIO_PIN_1);
 GpioOutTopic gpioF3("GPIO/F3", GPIO_PORTF_BASE, GPIO_PIN_3);
 
-#include "Fsm.h"
+// #include "Fsm.h"
 
 class LedBlink: public Handler {
 	bool _isOn;
@@ -174,7 +175,7 @@ public:
 	int ptRun(Msg& msg) {
 		PT_BEGIN(&pt)
 		while (true) {
-			listen(SIG_MQTT_CONNECTED | SIG_MQTT_DISCONNECTED, _msecInterval);
+			listen(SIG_CONNECTED | SIG_DISCONNECTED, _msecInterval);
 			PT_YIELD(&pt);
 			switch (msg.sig()) {
 			case SIG_TIMEOUT: {
@@ -182,11 +183,11 @@ public:
 				_isOn = !_isOn;
 				break;
 			}
-			case SIG_MQTT_CONNECTED: {
+			case SIG_CONNECTED: {
 				_msecInterval = 100;
 				break;
 			}
-			case SIG_MQTT_DISCONNECTED: {
+			case SIG_DISCONNECTED: {
 				_msecInterval = 500;
 				break;
 			}
@@ -199,7 +200,7 @@ public:
 }
 
 };
-LedBlink ledBlink;
+
 Msg msg;
 Handler* hdlr;
 static Msg timeout(SIG_TIMEOUT);
@@ -232,7 +233,7 @@ void eventPump() {
 
 extern Uart *gUart0;
 PropMgr propMgr;
-I2C i2c1(1);
+// I2C i2c1(1);
 
 int main(void) {
 	Board::init();	// initialize usb
@@ -245,17 +246,18 @@ int main(void) {
 //	Uart uart0;
 	Mqtt mqtt(*gUart0);	// mqtt active object
 	propMgr.mqtt(mqtt);
+	LedBlink ledBlink;
+	ledBlink.listen(&mqtt);
 
 	uint64_t clock = Sys::upTime() + 100;
-	Msg::publish(SIG_INIT);
-	Msg::publish(SIG_ENTRY);
+	Msg::publish(SIG_INIT);				// kickoff all engines
 	while (1) {
 		eventPump();
 		if (Sys::upTime() > clock) {
 			clock += 10;		// 10 msec timer tick
-			Msg::publish(SIG_TIMER_TICK);
+			Msg::publish(SIG_TICK);
 		}
 		if (gUart0->hasData())
-			Msg::publish(SIG_LINK_RXD);
+			Msg::publish(SIG_START,gUart0);
 	}
 }

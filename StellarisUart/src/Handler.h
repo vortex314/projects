@@ -7,37 +7,22 @@
 
 #ifndef HANDLER_H_
 #define HANDLER_H_
-#include "MqttIn.h"
+
 #include "Msg.h"
 #include "pt.h"
+
+
 
 class Handler {
 	static Handler* _first;
 	Handler* _next;
 	uint64_t _timeout;
 	uint32_t _sigMask;
+	void* _srcMask;
 	const char* _name;
 protected:
 	struct pt pt;
 public:
-/*	virtual void onInit() {
-	}
-
-	virtual void onEntry() {
-	}
-
-	virtual void onExit() {
-	}
-
-	virtual void onTimeout() {
-	}
-
-	virtual void onMqttMessage(MqttIn& msg) {
-	}
-
-	virtual void onOther(Msg& msg) {
-	}*/
-
 	Handler();
 	Handler(const char* name);
 
@@ -50,7 +35,10 @@ public:
 
 	void listen(uint32_t signalMap);
 	void listen(uint32_t signalMap, uint32_t time);
+	void listen(void* src);
+	void listen(uint32_t signalMap,void* src);
 	bool accept(Signal signal);
+	bool accept(Signal signal,void* src);
 
 	virtual void dispatch(Msg& msg);
 	virtual int ptRun(Msg& msg){ return 0;} ;
@@ -60,5 +48,6 @@ public:
 	Handler* next();
 	void reg();
 };
+
 
 #endif /* HANDLER_H_ */

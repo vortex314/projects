@@ -24,6 +24,7 @@ public:
 	~Cbor();
 
 	Cbor& add(int i);
+	Cbor& add(uint32_t i);
 	Cbor& add(float f);
 	Cbor& add(double d);
 	Cbor& add(Bytes& b);
