@@ -31,46 +31,30 @@ typedef enum Signal
 
 } Signal;
 
-class Msg: public Bytes
+class Msg
+{
+public:
+	void * src;
+	Signal signal;
+	int param;
+	void* data;
+//	Msg();
+	bool is(void * src, int sigMask, int param, void* data);
+	bool is(void * src, int sigMask);
+	bool is(void * src, Signal signal);
+};
+
+class MsgQueue
 {
 private:
 	static BipBuffer bb;
-	Signal _signal;
-	void * _src;
-	uint8_t* _bufferStart;
 public:
-	Msg();
-	Msg(int size);
-	Msg(Signal sig);
 
-	Msg& create(int size);
-
-	Msg& open();
-	void recv();
-	void send();
-
-	void* src();
-	Msg& src(void* ptr);
-
-	Signal sig();
-	Msg& sig(Signal sig);
-
-	void get(Bytes& bytes);
-	void get(uint32_t& i);
-
-	Msg& add(Bytes& bytes);
-	Msg& rewind();
-//	Msg& send(void* str);
-	Msg& recv(void* str);
-	bool isEmpty();
-	bool is(Signal signal);
-	bool is(Signal, void* src);
-	static void publish(Signal sig);
-	static void publish(Signal signal, uint16_t detail);
-	static void publish(Signal signal, void* src);
-
-	static void push(uint8_t* pb, uint32_t length);
-
+public:
+	static void publish(Msg& msg);
+	static void publish(void* src, Signal signal);
+	static void publish(void* src, Signal signal, int param, void* data);
+	static bool get(Msg& msg);
 };
 
 #endif /* SIG_H_ */

@@ -11,14 +11,13 @@
 #include "Msg.h"
 #include "pt.h"
 
-
-
-class Handler {
-	static Handler* _first;
+class Handler
+{
+	Handler* _firstChild;
 	Handler* _next;
 	uint64_t _timeout;
-	uint32_t _sigMask;
-	void* _srcMask;
+//	uint32_t _sigMask;
+//	void* _srcMask;
 	const char* _name;
 protected:
 	struct pt pt;
@@ -26,28 +25,25 @@ public:
 	Handler();
 	Handler(const char* name);
 
-	virtual ~Handler() {
+	virtual ~Handler()
+	{
 	}
 
 	void timeout(uint32_t msec);
 	bool timeout();
 	uint64_t getTimeout();
 
-	void listen(uint32_t signalMap);
-	void listen(uint32_t signalMap, uint32_t time);
-	void listen(void* src);
-	void listen(uint32_t signalMap,void* src);
-	bool accept(Signal signal);
-	bool accept(Signal signal,void* src);
+	virtual int dispatch(Msg& msg)
+	{
+		return 0;
+	}
 
-	virtual void dispatch(Msg& msg);
-	virtual int ptRun(Msg& msg){ return 0;} ;
 	void restart();
 
-	static Handler* first();
+	Handler* first();
 	Handler* next();
-	void reg();
+	void dispatchToChilds(Msg& msg);
+	void reg(Handler* hdlr);
 };
-
 
 #endif /* HANDLER_H_ */

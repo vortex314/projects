@@ -7,31 +7,29 @@
 
 #include "Handler.h"
 #include "Sys.h"
+#include "Msg.h"
 
 Handler::Handler()
 {
 	_timeout = UINT64_MAX;
-	_sigMask = UINT32_MAX; // accept all
 	_name = "UNDEFINED";
 	_next = 0;
+	_firstChild = 0;
 	PT_INIT(&pt);
-	reg();
 }
 
 Handler::Handler(const char* name)
 {
 	_timeout = UINT64_MAX;
-	_sigMask = UINT32_MAX; // accept all
 	_name = name;
 	_next = 0;
+	_firstChild=0;
 	PT_INIT(&pt);
-	reg();
 }
 
 void Handler::restart()
 {
 	PT_INIT(&pt);
-	_sigMask = UINT32_MAX;
 	_timeout = UINT64_MAX;
 }
 
@@ -49,7 +47,7 @@ uint64_t Handler::getTimeout()
 {
 	return _timeout;
 }
-
+/*
 void Handler::listen(uint32_t sigMask)
 {
 	_sigMask = sigMask;
@@ -66,9 +64,10 @@ void Handler::listen(uint32_t sigMask, uint32_t time)
 	timeout(time);
 }
 
-void Handler::listen(uint32_t sig,void* src){
-	_sigMask=sig;
-	_srcMask=src;
+void Handler::listen(uint32_t sig, void* src)
+{
+	_sigMask = sig;
+	_srcMask = src;
 }
 
 bool Handler::accept(Signal signal, void* src)
@@ -78,28 +77,18 @@ bool Handler::accept(Signal signal, void* src)
 	else
 		return (_srcMask == src) && (signal & _sigMask);
 }
-
-Msg timeoutMsg(SIG_TIMEOUT);
-
-void Handler::dispatch(Msg& msg)
-{
-	if (accept(msg.sig(),msg.src()))
-		ptRun(msg);
-	else if (msg.is(SIG_TICK,0) && (_sigMask & SIG_TIMEOUT) && timeout())
-		ptRun(timeoutMsg);
-
-}
+*/
 
 //_________________________________________________________________________________________________
 //
 //				HANDLER LIST
 //_________________________________________________________________________________________________
 
-Handler* Handler::_first = 0;
+
 
 Handler* Handler::first()
 {
-	return _first;
+	return _firstChild;
 }
 
 Handler* Handler::next()
@@ -107,18 +96,18 @@ Handler* Handler::next()
 	return _next;
 }
 
-void Handler::reg()
+void Handler::reg(Handler* hdlr)
 {
-	if (_first == 0)
-		_first = this;
+	if (_firstChild == 0)
+		_firstChild = hdlr;
 	else
 	{
-		Handler* cursor = _first;
+		Handler* cursor = _firstChild;
 		while (cursor->_next != 0)
 		{
 			cursor = cursor->_next;
 		}
-		cursor->_next = this;
+		cursor->_next = hdlr;
 	}
 }
 
@@ -126,4 +115,14 @@ void Handler::reg()
 //
 //				LISTENER LIST
 //_________________________________________________________________________________________________
-
+Handler* hdlr;
+Msg timeoutMsg =
+{ 0, SIG_TIMEOUT, 0, 0 };
+void Handler::dispatchToChilds(Msg& msg)
+{
+	Handler* hdlr;
+	for (hdlr = first(); hdlr != 0; hdlr = hdlr->next())
+	{
+			hdlr->dispatch(msg);
+	}
+}

@@ -28,11 +28,12 @@
 #define TIME_WAIT_REPLY 2000
 #define TIME_WAIT_CONNECT 5000
 #define	TIME_PING ( TIME_KEEP_ALIVE /3 )
+#define TIME_FOREVER UINT32_MAX
 #define TOPIC_MAX_SIZE	40
 #define MSG_MAX_SIZE	256
 
-class Publisher;
-class Subscriber;
+class MqttPublisher;
+class MqttSubscriber;
 class Subscription;
 class Pinger;
 class Mqtt;
@@ -53,8 +54,8 @@ public :
 private:
 
     Pinger* _pinger;
-    Publisher* _publisher;
-    Subscriber* _subscriber;
+    MqttPublisher* _publisher;
+    MqttSubscriber* _subscriber;
     Subscription* _subscription;
     uint32_t _retries;
 
@@ -63,7 +64,7 @@ public:
     Mqtt(Link& link);
     ~Mqtt();
     void sendConnect();
-    int ptRun(Msg& msg);
+    int dispatch(Msg& msg);
     static uint16_t nextMessageId();
     void getPrefix(Str& prefix);
     void setPrefix(const char * prefix);
@@ -78,11 +79,11 @@ private:
 
 
 
-class Subscriber: public Handler
+class MqttSubscriber: public Handler
 {
 public:
-    Subscriber(Mqtt& mqtt);
-    int ptRun(Msg& msg);
+    MqttSubscriber(Mqtt& mqtt);
+    int dispatch(Msg& msg);
     void sendPubRec();
     // will invoke
 private:
@@ -94,11 +95,11 @@ private:
     uint16_t _retries;
 };
 
-class Publisher: public Handler
+class MqttPublisher: public Handler
 {
 public:
-    Publisher(Mqtt& mqtt);
-    int ptRun(Msg& msg);
+    MqttPublisher(Mqtt& mqtt);
+    int dispatch(Msg& msg);
     bool publish(Str& topic, Bytes& msg, Flags flags);
     // will send PUB_OK,PUB_FAIL
 private:
@@ -121,7 +122,7 @@ class Subscription: public Handler
 {
 public:
     Subscription(Mqtt& mqtt);
-    int ptRun(Msg& msg);
+    int dispatch(Msg& msg);
     void sendSubscribePut();
     void sendSubscribeGet();
 private:
@@ -141,7 +142,7 @@ class Pinger: public Handler
 {
 public:
     Pinger(Mqtt& mqtt);
-    int ptRun(Msg& msg);
+    int dispatch(Msg& msg);
 private:
     Mqtt& _mqtt;
     uint32_t _retries;

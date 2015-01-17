@@ -33,8 +33,6 @@ Uart::Uart() :
 {
 	_overrunErrors = 0;
 	_crcErrors = 0;
-	listen(gUart0);
-	listen(SIG_START);
 }
 // initialize UART at 1MB 8N1
 void Uart::init()
@@ -105,22 +103,19 @@ Erc Uart::send(Bytes& bytes)
 
 Erc Uart::connect()
 {
-	Msg::publish(SIG_CONNECTED, this);
+	MsgQueue::publish(this, SIG_CONNECTED);
 	return E_OK;
 }
 
 Erc Uart::disconnect()
 {
-	Msg::publish(SIG_DISCONNECTED, this);
+	MsgQueue::publish(this, SIG_DISCONNECTED);
 	return E_OK;
 }
 
-void Uart::dispatch(Msg& event)
+int Uart::dispatch(Msg& msg)
 {
-	switch (event.sig())
-	{
-
-	case (SIG_START):
+	if (msg.is(this, SIG_START))
 	{
 		uint8_t b;
 		while (_in.hasData())
@@ -132,8 +127,15 @@ void Uart::dispatch(Msg& event)
 				if (_inBuffer.isGoodCrc())
 				{
 					_inBuffer.RemoveCrc();
-					Msg m;
-					m.create(256).sig(SIG_RXD).src(this).add(_inBuffer).send();
+					MqttIn* mqttIn = new MqttIn(_inBuffer.length());
+					_inBuffer.offset(0);
+					if (mqttIn == 0)
+						while (1)
+							;
+					while (_inBuffer.hasData())
+						mqttIn->Feed(_inBuffer.read());
+					mqttIn->parse();
+					MsgQueue::publish(this, SIG_RXD, mqttIn->type(), mqttIn);
 				}
 				else
 				{
@@ -143,8 +145,6 @@ void Uart::dispatch(Msg& event)
 				_inBuffer.clear();
 			}
 		}
-		break;
-	}
 	}
 }
 uint32_t circbufOverflow = 0;
@@ -180,7 +180,7 @@ extern "C" void UART0IntHandler(void)
 			int b = gUart0->_out.readFromIsr();
 			if (b >= 0)
 			{
-				if (ROM_UARTCharPutNonBlocking(UART0_BASE, b) == false)
+				if (UARTCharPutNonBlocking(UART0_BASE, b) == false)
 					break;
 			}
 			else

@@ -9,179 +9,106 @@
 
 typedef struct
 {
-    uint16_t length;
+	uint16_t length;
 //    Signal signal;
 } Envelope;
 
-BipBuffer Msg::bb;
+BipBuffer MsgQueue::bb;
 
-#define ENVELOPE_SIZE	sizeof(Envelope)
+#define ENVELOPE_SIZE	sizeof(Msg)
+/*
+ Msg::Msg()
+ {
+ signal = SIG_IDLE;
+ param = 0;
+ data = 0;
+ src = 0;
+ }*/
 
-Msg::Msg()
+bool Msg::is(void * src, int sigMask, int param, void* data)
 {
-    _bufferStart = 0;
-    _signal = SIG_IDLE;
+	if (sigMask & this->signal)
+	{
+		if (src == 0 || src == this->src)
+		{
+			if (param == 0 || param == this->param)
+			{
+				if (data == 0 || data == this->data)
+					return true;
+			}
+		}
+	}
+	return false;
 }
 
-Msg::Msg(int size)
+bool Msg::is(void * src, int sigMask)
 {
-    create(size);
-    _signal = SIG_IDLE;
+	if (sigMask & this->signal)
+	{
+		if (src == 0 || src == this->src)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
-Msg::Msg(Signal sig)
+bool Msg::is(void * src,Signal signal)
 {
-    _bufferStart = 0;
-    _signal = sig;
-    map(0, 0);
-//	_bufferStart = (uint)&env.signal;
+	if (signal == this->signal)
+	{
+		if (src == 0 || src == this->src)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
-
-
-Msg& Msg::create(int size)
+void MsgQueue::publish(void *src, Signal signal, int param, void* data)
 {
-    if (!bb.IsInitialized())
-        bb.AllocateBuffer(1024);
-    int reserved;
-    _bufferStart = bb.Reserve(size + ENVELOPE_SIZE, reserved);
-    if (_bufferStart)
-        map(_bufferStart + ENVELOPE_SIZE, reserved - ENVELOPE_SIZE);
-    else
-        Sys::warn(EINVAL, "MSG");
-    return *this;
+	Msg msg =
+	{ src, signal, param, data };
+	publish(msg);
 }
 
-Msg& Msg::open()
+void MsgQueue::publish(void *src, Signal signal)
 {
-    Envelope env;
-    map(0, 0);
-
-    // read length
-    int size = 2;
-    _bufferStart = bb.GetContiguousBlock(size);
-
-    if (size > 2)   		// map to these bytes
-    {
-        memcpy(&env, _bufferStart, ENVELOPE_SIZE);
-        map(_bufferStart + ENVELOPE_SIZE, env.length - ENVELOPE_SIZE);
-        Cbor cbor(*this);
-        cbor.get((uint32_t&)_signal);
-        cbor.get((uint32_t&)_src);
-    }
-    else
-    {
-        _signal = SIG_IDLE;
-    }
-    // read signal
-    return *this;
+	Msg msg =
+	{ src, signal, 0, 0 };
+	publish(msg);
 }
 
-void Msg::recv()
+void MsgQueue::publish(Msg& msg)
 {
-    bb.DecommitBlock(length() + ENVELOPE_SIZE);
-}
-
-void Msg::send()
-{
-    Envelope env = { length() + ENVELOPE_SIZE /*,_signal */};
-    ::memcpy(_bufferStart, &env, ENVELOPE_SIZE);
-    bb.Commit(length() + ENVELOPE_SIZE);
-}
-
-Msg& Msg::rewind()
-{
-    offset(0);
-    return *this;
-}
-
-bool Msg::isEmpty()
-{
-    return _signal == SIG_IDLE;
-}
-
-void Msg::publish(Signal sig)
-{
-    Msg msg;
-    msg.create(20);
-    Cbor cbor(msg);
-    cbor.add(sig);
-    cbor.add((int)0);
-    msg.send();
-}
-
-
-void Msg::publish(Signal sig,void* src)
-{
-    Msg msg;
-    msg.create(20);
-    Cbor cbor(msg);
-    cbor.add(sig);
-    cbor.add((uint32_t)src);
-    msg.send();
-}
-
-void Msg::publish(Signal sig, uint16_t detail)
-{
-    Msg msg;
-    msg.create(20).sig(sig);
-    Cbor cbor(msg);
-    cbor.add(sig);
-    cbor.add((uint64_t) detail);
-    msg.send();
-}
-
-void Msg::get(Bytes& bytes)
-{
-    Cbor cbor(*this);
-    cbor.get(bytes);
-}
-
-void Msg::get(uint32_t& i)
-{
-    Cbor cbor(*this);
-    cbor.get(i);
-}
-
-Msg& Msg::add(Bytes& bytes)
-{
-    Cbor cbor(*this);
-    cbor.add(bytes);
-    return *this;
-}
-
-Msg& Msg::sig(Signal sig)
-{
-    _signal = sig;
-    Cbor cbor(*this);
-    cbor.add(sig);
-    return *this;
-}
-
-Signal Msg::sig()
-{
-    return _signal;
-}
-
-Msg& Msg::src(void* src)
-{
-    _src = src;
-    Cbor cbor(*this);
-    cbor.add((int)_src);
-    return *this;
-}
-
-void* Msg::src()
-{
-    return _src;
-}
-
-bool Msg::is(Signal sig,void* src) {
-	if ( src == 0 )
-		return sig==_signal;
+	uint8_t* _bufferStart;
+	if (!bb.IsInitialized())
+		bb.AllocateBuffer(1024);
+	int reserved;
+	_bufferStart = bb.Reserve(sizeof(Msg), reserved);
+	if (_bufferStart)
+		memcpy(_bufferStart, &msg, sizeof(Msg));
 	else
-		return ( sig==_signal) && ( src==_src);
+		Sys::warn(EINVAL, "MSG");
+	bb.Commit(sizeof(Msg));
 }
 
+bool MsgQueue::get(Msg& msg)
+{
+	uint8_t* _bufferStart;
+	int size = sizeof(Msg);
+	_bufferStart = bb.GetContiguousBlock(size);
 
+	if (size < sizeof(Msg))   		// map to these bytes
+	{
+		msg.signal = SIG_IDLE;
+		return false;
+	}
+	else
+	{
+		memcpy(&msg, _bufferStart, sizeof(Msg));
+		bb.DecommitBlock(sizeof(Msg));
+		return true;
+	}
+}
 

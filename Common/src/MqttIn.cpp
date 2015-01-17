@@ -21,6 +21,7 @@ MqttIn::MqttIn(Bytes* bytes) :
     _bytes =  bytes;
     _remainingLength = 0;
     _header=0;
+    _recvState = ST_HEADER;
 }
 
 MqttIn::MqttIn(int size) :
@@ -30,6 +31,8 @@ MqttIn::MqttIn(int size) :
         _bytes =  new Bytes(size);
     _remainingLength = 0;
     _header=0;
+    _recvState = ST_HEADER;
+
 }
 
 MqttIn::MqttIn()
@@ -37,11 +40,15 @@ MqttIn::MqttIn()
     _bytes = 0;
     _remainingLength = 0;
     _header=0;
+    _recvState = ST_HEADER;
+
 }
 
 void MqttIn::remap(Bytes* bytes)
 {
     _bytes = bytes;
+    _recvState = ST_HEADER;
+
 }
 
 
@@ -57,7 +64,7 @@ MqttIn::MqttIn(MqttIn& src) :
 
 MqttIn::~MqttIn()
 {
-
+	delete _bytes;
 }
 uint8_t MqttIn::type()
 {
