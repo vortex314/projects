@@ -72,7 +72,7 @@ private:
 public:
 	PropMgr();
 	~PropMgr(){};
-	int ptRun(Msg& msg);
+	int dispatch(Msg& msg);
 	void nextProp();
 	void nextProp(Prop* p);
 	void set(Str& topic, Bytes& message);

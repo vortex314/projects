@@ -288,6 +288,7 @@ int main(void)
 	mainH.reg(&mqtt);
 	mainH.reg(gUart0);
 	mainH.reg(&ledBlink);
+	mainH.reg(&propMgr);
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines

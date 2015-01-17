@@ -179,7 +179,7 @@ void PropMgr::nextProp(Prop* next)
 	_next = next;
 }
 
-int PropMgr::ptRun(Msg& msg)
+int PropMgr::dispatch(Msg& msg)
 {
 	if (msg.signal == SIG_DISCONNECTED)
 	{
@@ -194,7 +194,7 @@ int PropMgr::ptRun(Msg& msg)
 			while (true)
 			{
 				timeout(10);
-				PT_YIELD(&pt);
+				PT_YIELD_UNTIL(&pt,SIG_DISCONNECTED || timeout());
 				if (msg.is(_mqtt, SIG_DISCONNECTED))
 					break;
 				if (_cursor->hasToBePublished())

@@ -50,6 +50,7 @@ public :
     Str _headPrefix; // HEAD/<device>/
     MqttIn _mqttIn; // temp storage in one event call
     MqttOut _mqttOut; // "
+    bool _isConnected;
 
 private:
 
