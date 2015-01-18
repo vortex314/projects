@@ -12,7 +12,8 @@
 
 class Json : public Packer  {
 public:
-	Json(Str& bytes);
+	Json(Str& str);
+	Json(Bytes& bytes);
 	Json(uint32_t size);
 	virtual ~Json();
 

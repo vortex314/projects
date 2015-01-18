@@ -11,40 +11,34 @@
 
 Prop* Prop::_first;
 
-const char* sType[] =
-{ "UINT8", "UINT16", "UINT32", "UINT64", "INT8", "INT16", "INT32", "INT64",
-		"BOOL", "FLOAT", "DOUBLE", "BYTES", "ARRAY", "MAP", "STR", "OBJECT" };
+const char* sType[] = { "UINT8", "UINT16", "UINT32", "UINT64", "INT8", "INT16",
+		"INT32", "INT64", "BOOL", "FLOAT", "DOUBLE", "BYTES", "ARRAY", "MAP",
+		"STR", "OBJECT" };
 
-const char* sMode[] =
-{ "READ", "WRITE", "RW" };
+const char* sMode[] = { "READ", "WRITE", "RW" };
 
-Prop::Prop(const char* name, Flags flags)
-{
+Prop::Prop(const char* name, Flags flags) {
 	init(name, flags);
 }
 
-void Prop::init(const char* name, Flags flags)
-{
+void Prop::init(const char* name, Flags flags) {
 	_name = name;
 	_flags = flags;
 	_flags.doPublish = true;
 	_lastPublished = 0;
 	if (_first == 0)
 		_first = this;
-	else
-	{
+	else {
 		Prop* cursor = _first;
-		while (cursor->_next != 0)
-		{
+		while (cursor->_next != 0) {
 			cursor = cursor->_next;
 		}
 		cursor->_next = this;
 	}
 }
-static int pow10[10] =
-{ 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 };
-bool Prop::hasToBePublished()
-{
+static int pow10[10] = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000,
+		100000000, 1000000000 };
+bool Prop::hasToBePublished() {
 	if (_flags.mode == M_WRITE)
 		return false;
 	if (Sys::upTime() > (_lastPublished + pow10[_flags.interval]))
@@ -52,19 +46,16 @@ bool Prop::hasToBePublished()
 	return _flags.doPublish;
 }
 
-void Prop::doPublish()
-{
+void Prop::doPublish() {
 	_flags.doPublish = true;
 }
 
-void Prop::isPublished()
-{
+void Prop::isPublished() {
 	_flags.doPublish = false;
 	_lastPublished = Sys::upTime();
 }
 
-void Prop::metaToBytes(Bytes& message)
-{
+void Prop::metaToBytes(Bytes& message) {
 	Cbor msg(message);
 	int r;
 	msg.addMap(-1);
@@ -83,11 +74,9 @@ void Prop::metaToBytes(Bytes& message)
 
 #include <cstdlib>
 
-Prop* Prop::findProp(Str& name)
-{
+Prop* Prop::findProp(Str& name) {
 	Prop* cursor = _first;
-	while (cursor != 0)
-	{
+	while (cursor != 0) {
 		if (name.equals(cursor->_name))
 			return cursor;
 		cursor = cursor->_next;
@@ -97,138 +86,116 @@ Prop* Prop::findProp(Str& name)
 
 extern PropMgr propMgr;
 
-void PropMgr::set(Str& topic, Bytes& message)
-{
+void PropMgr::set(Str& topic, Bytes& message) {
 	Str str(TOPIC_MAX_SIZE);
 
 	if (topic.startsWith(_mqtt->_putPrefix))   // "PUT/<device>/<topic>
-	{
+			{
 		str.substr(topic, _mqtt->_putPrefix.length());
 		Prop* p = Prop::findProp(str);
-		if (p)
-		{
+		if (p) {
 			message.offset(0);
 			p->fromBytes(message);
 			p->doPublish();
 			nextProp(p);
 		}
-	}
-	else if (topic.startsWith(_mqtt->_getPrefix))     // "GET/<device>/<topic>
-	{
+	} else if (topic.startsWith(_mqtt->_getPrefix))     // "GET/<device>/<topic>
+			{
 		str.substr(topic, _mqtt->_getPrefix.length());
 		Prop* p = Prop::findProp(str);
-		if (p)
-		{
-			if (message.length() == 0)
-			{
+		if (p) {
+			if (message.length() == 0) {
 				p->doPublish();
 				nextProp(p);
-			}
-			else
-			{
+			} else {
 				Str t(TOPIC_MAX_SIZE);
 				t << p->_name;
 				t << ".META";
 				Bytes msg(MSG_MAX_SIZE);
 				p->metaToBytes(msg);
-				_mqtt->publish(t, msg, (Flags
-						)
+				_mqtt->publish(t, msg, (Flags )
 						{ T_MAP, M_READ, T_100SEC, QOS_0, NO_RETAIN });
 			}
 		}
 
-	}
-	else if (topic.startsWith(_mqtt->_headPrefix))     // "HEAD/<device>/<topic>
-	{
+	} else if (topic.startsWith(_mqtt->_headPrefix))   // "HEAD/<device>/<topic>
+			{
 
 	}
 
 }
 
 PropMgr::PropMgr() :
-		_topic(TOPIC_MAX_SIZE), _message(MSG_MAX_SIZE)
-{
+		_topic(TOPIC_MAX_SIZE), _message(MSG_MAX_SIZE) {
 	_cursor = Prop::_first;
 	_state = ST_DISCONNECTED;
 	_next = 0;
 	PT_INIT(&t);
 }
 
-void PropMgr::mqtt(Mqtt& mq)
-{
+void PropMgr::mqtt(Mqtt& mq) {
 	_mqtt = &mq;
 }
 
-void PropMgr::nextProp()
-{
-	if (_next)
-	{
+void PropMgr::nextProp() {
+	if (_next) {
 		_cursor = _next;
 		_next = 0;
-	}
-	else
-	{
+	} else {
 		_cursor = _cursor->_next;
 		if (_cursor == 0)
 			_cursor = Prop::_first;
 	}
 }
 
-void PropMgr::nextProp(Prop* next)
-{
+void PropMgr::nextProp(Prop* next) {
 	_next = next;
 }
 
-int PropMgr::dispatch(Msg& msg)
-{
-	if (msg.signal == SIG_DISCONNECTED)
-	{
-		restart();
-		return 0;
-	}
+int PropMgr::dispatch(Msg& msg) {
 	PT_BEGIN(&pt)
-		while (true)
-		{
+		DISCONNECTED: {
 			PT_YIELD_UNTIL(&pt, msg.is(_mqtt, SIG_CONNECTED));
 			_cursor = Prop::_first;
-			while (true)
-			{
-				timeout(10);
-				PT_YIELD_UNTIL(&pt,SIG_DISCONNECTED || timeout());
-				if (msg.is(_mqtt, SIG_DISCONNECTED))
-					break;
-				if (_cursor->hasToBePublished())
-				{
-					_topic = _mqtt->_prefix;
-					_topic << _cursor->_name;
-					_message.clear();
-					_cursor->toBytes(_message);
-					if (_mqtt->publish(_topic, _message, _cursor->_flags))
-					{
-						timeout(TIME_WAIT_REPLY);
-						PT_YIELD_UNTIL(&pt,msg.is(_mqtt,SIG_SUCCESS | SIG_FAIL | SIG_DISCONNECTED) || timeout());
-						if (msg.signal == SIG_SUCCESS)
-						{
-							_cursor->isPublished();
-							nextProp();
-						}
-					}
+		}
+		PUBLISH: {
+			timeout(10);
+			PT_YIELD_UNTIL(&pt, SIG_DISCONNECTED || timeout());
+			if (msg.is(_mqtt, SIG_DISCONNECTED))
+				goto DISCONNECTED;
+			if (_cursor->hasToBePublished()) {
+				_topic = _mqtt->_prefix;
+				_topic << _cursor->_name;
+				_message.clear();
+				_cursor->toBytes(_message);
+				if (_mqtt->publish(_topic, _message, _cursor->_flags)) {
+					goto ACK;
 				}
-				else
-				{
-					nextProp();
-				}
-
+			} else {
+				nextProp();
 			}
+			goto PUBLISH;
+		}
+		ACK: {
+			timeout(TIME_WAIT_REPLY);
+			PT_YIELD_UNTIL(&pt,
+					msg.is(_mqtt, SIG_SUCCESS | SIG_FAIL | SIG_DISCONNECTED)
+							|| timeout());
+			if (msg.is(_mqtt, SIG_DISCONNECTED))
+				goto DISCONNECTED;
+			if (msg.signal == SIG_SUCCESS) {
+				_cursor->isPublished();
+				nextProp();
+				goto PUBLISH;
+			}
+			goto PUBLISH;
 		}
 	PT_END(&pt)
 }
 
-void Prop::publishAll()
-{
+void Prop::publishAll() {
 Prop* cursor = Prop::_first;
-while (cursor->_next != 0)
-{
+while (cursor->_next != 0) {
 	cursor->doPublish();
 	cursor = cursor->_next;
 }

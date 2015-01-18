@@ -123,6 +123,12 @@ void tfp_format(void* putp,void (*putf) (void*,char),char *fmt, va_list va);
 #define sprintf tfp_sprintf 
 #ifdef __cplusplus
 }
+ void uli2a(unsigned long int num, unsigned int base, int uc,char * bf);
+ void li2a (long num, char * bf);
+ void ui2a(unsigned int num, unsigned int base, int uc,char * bf);
+ void i2a (int num, char * bf);
+ int a2d(char ch);
+ char a2i(char ch, char** src,int base,int* nump);
 #endif
 #endif
 
