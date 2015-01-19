@@ -28,6 +28,7 @@ public:
 	Json& add(bool b);
 	Json& addMap(int size);
 	Json& addArray(int size);
+	Json& addKey(const char* s);
 	Json& addTag(int nr);
 	Json& addBreak();
 	Json& addNull();

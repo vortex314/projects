@@ -45,7 +45,7 @@ bool Msg::is(void * src, int sigMask)
 {
 	if (sigMask & this->signal)
 	{
-		if (src == 0 || src == this->src)
+		if (src == 0 || src == this->src )
 		{
 			return true;
 		}

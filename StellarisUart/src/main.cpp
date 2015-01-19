@@ -39,16 +39,16 @@ public:
 	void toBytes(Bytes& message) {
 		Json msg(message);
 		msg.addMap(4);
-		msg.add("cpuRevision");
+		msg.addKey("cpuRevision");
 		msg.add(':');
 		Bytes b(8);
 		Board::processorRevision(b);
 		msg.add(b);
-		msg.add("cpu");
+		msg.addKey("cpu");
 		msg.add("LM4F120H5QR");
-		msg.add("board");
+		msg.addKey("board");
 		msg.add("EK-LM4F120XL");
-		msg.add("bool");
+		msg.addKey("bool");
 		msg.add(false);
 	}
 };
@@ -63,7 +63,7 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Json json((Str&) message);
+		Json json(message);
 		json.add(Sys::upTime());
 	}
 };
@@ -79,8 +79,8 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Cbor msg(message);
-		msg.add(bootTime + Sys::upTime());
+		Json json( message);
+		json.add(bootTime + Sys::upTime());
 	}
 	void fromBytes(Bytes& message) {
 		Cbor msg(message);
@@ -101,8 +101,8 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Cbor msg(message);
-		msg.add(true);
+		Json json( message);
+		json.add(true);
 	}
 };
 SystemOnlineTopic systemOnline;
@@ -135,22 +135,22 @@ public:
 	}
 
 	void fromBytes(Bytes& message) {
-		Cbor msg(message);
+/*		Json json((Str&) message);
 		bool bl;
-		if (msg.get(bl)) {
+		if (json.get(bl)) {
 			_value = bl;
 			if (bl)
 				GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
 			else
 				GPIOPinWrite(_gpio_port, _gpio_pin, 0);
-		}
+		}*/
 	}
 	void toBytes(Bytes& message) {
-		Cbor msg(message);
+		Json json( message);
 		if (GPIOPinRead(_gpio_port, _gpio_pin))
-			msg.add((bool) true);
+			json.add((bool) true);
 		else
-			msg.add((bool) false);
+			json.add((bool) false);
 	}
 };
 

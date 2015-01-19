@@ -151,11 +151,11 @@ Json& Json::add(double d) {
 	return *this;
 }
 Json& Json::add(Bytes& b) {
-	_str.append("0x");
+	_str.append('"');
 	b.offset(0);
 	while (b.hasData())
 		_str.appendHex(b.read());
-
+	_str.append('"');
 	return *this;
 }
 Json& Json::add(Str& str) {
@@ -173,6 +173,13 @@ Json& Json::add(const char* s) {
 	for (uint32_t i = 0; i < size; i++)
 		_str.append(*s++);
 	_str.append('"');
+	return *this;
+}
+
+Json& Json::addKey(const char* s) {
+	_str.append(',');
+	add(s);
+	_str.append(':');
 	return *this;
 }
 
