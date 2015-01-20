@@ -16,6 +16,7 @@
 // from GNU libc-4.6.27
 //
 #define CVTBUFSIZE 30
+// eflag : exponent flag
 
 static char *cvt(double arg, int ndigits, int *decpt, int *sign, char *buf,
 		int eflag) {
@@ -178,26 +179,25 @@ Str& Str::operator+(Str& s) {
 	*this << s;
 	return *this;
 }
-#include <stdlib.h>
 #include <cstdio>
-Str& Str::operator<<(float f) {
-	char buf[20];
-	double d=f;
+Str& Str::append(double d) {
+	char buf[80];
 	int decpt;
 	int sign;
 	int i;
-	cvt(d,sizeof(buf),&decpt,&sign,buf,0);
-	for(i=0;i<decpt;i++)
+	cvt(d, sizeof(buf), &decpt, &sign, buf, 1);
+	if (sign)
+		append('-');
+	for (i = 0; i < decpt; i++)
 		append(buf[i]);
 	append('.');
-	for(;i<strlen(buf);i++)
-		append(buf[i]);
+	for (int j = 0; (j + i < strlen(buf)) && j < 6; j++)
+		append(buf[j + i]);
 	return *this;
 }
-Str& Str::operator<<(double d) {
-	char sFloat[30];
-	sprintf(sFloat, "%lf", d);
-	append(sFloat);
+Str& Str::append(float f) {
+	double d = f;
+	append(d);
 	return *this;
 }
 Str& Str::operator=(Str& s) {

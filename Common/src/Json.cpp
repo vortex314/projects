@@ -143,11 +143,11 @@ Json& Json::add(int i) {
 }
 
 Json& Json::add(float fl) {
-	_str << fl;
+	_str.append(fl);
 	return *this;
 }
 Json& Json::add(double d) {
-	_str.append((uint64_t) d);
+	_str.append(d);
 	return *this;
 }
 Json& Json::add(Bytes& b) {
@@ -177,7 +177,7 @@ Json& Json::add(const char* s) {
 }
 
 Json& Json::addKey(const char* s) {
-	_str.append(',');
+	if ( _break[_breakIndex]++) _str.append(',');
 	add(s);
 	_str.append(':');
 	return *this;
@@ -203,13 +203,13 @@ Json& Json::add(bool b) {
 
 Json& Json::addMap(int size) {
 	_str.append('{');
-	_break[_breakIndex++] = '}';
+	_break[++_breakIndex] = 0;
 	return *this;
 }
 
 Json& Json::addArray(int size) {
 	_str.append('[');
-	_break[_breakIndex++] = ']';
+	_break[++_breakIndex] = 0x80;
 	return *this;
 }
 
@@ -220,7 +220,9 @@ Json& Json::addTag(int nr) {
 }
 
 Json& Json::addBreak() {
-	_str.append(_break[--_breakIndex]);
+	if ( _break[_breakIndex] < 0x80) _str.append('}');
+	else _str.append(']');
+	_breakIndex--;
 	return *this;
 }
 

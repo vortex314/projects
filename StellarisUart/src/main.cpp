@@ -40,7 +40,6 @@ public:
 		Json msg(message);
 		msg.addMap(4);
 		msg.addKey("cpuRevision");
-		msg.add(':');
 		Bytes b(8);
 		Board::processorRevision(b);
 		msg.add(b);
@@ -50,6 +49,7 @@ public:
 		msg.add("EK-LM4F120XL");
 		msg.addKey("bool");
 		msg.add(false);
+		msg.addBreak();
 	}
 };
 
@@ -79,7 +79,7 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Json json( message);
+		Json json(message);
 		json.add(bootTime + Sys::upTime());
 	}
 	void fromBytes(Bytes& message) {
@@ -101,7 +101,7 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Json json( message);
+		Json json(message);
 		json.add(true);
 	}
 };
@@ -135,18 +135,18 @@ public:
 	}
 
 	void fromBytes(Bytes& message) {
-/*		Json json((Str&) message);
-		bool bl;
-		if (json.get(bl)) {
-			_value = bl;
-			if (bl)
-				GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
-			else
-				GPIOPinWrite(_gpio_port, _gpio_pin, 0);
-		}*/
+		/*		Json json((Str&) message);
+		 bool bl;
+		 if (json.get(bl)) {
+		 _value = bl;
+		 if (bl)
+		 GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
+		 else
+		 GPIOPinWrite(_gpio_port, _gpio_pin, 0);
+		 }*/
 	}
 	void toBytes(Bytes& message) {
-		Json json( message);
+		Json json(message);
 		if (GPIOPinRead(_gpio_port, _gpio_pin))
 			json.add((bool) true);
 		else

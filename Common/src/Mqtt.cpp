@@ -62,8 +62,10 @@ bool Mqtt::publish(Str& topic, Bytes& msg, Flags flags) {
 void Mqtt::sendConnect() {
 	Str str(8);
 	str << "false";
+	Str online(30);
+	online << _prefix << "system/online";
 	_mqttOut.Connect(MQTT_QOS2_FLAG, _prefix.c_str(), MQTT_CLEAN_SESSION,
-			"system/online", str, "", "",
+			online.c_str(), str, "", "",
 			TIME_KEEP_ALIVE / 1000);
 	_link.send(_mqttOut);
 }

@@ -46,6 +46,7 @@ public:
     Str& append(uint32_t val);
     Str& append(int32_t val);
     Str& append(float f);
+    Str& append(double d);
     Str& append(bool b);
     Str& appendHex(uint8_t byte);
     Str& substr(Str& master,uint32_t offset);
