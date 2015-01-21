@@ -83,9 +83,11 @@ public:
 		json.add(bootTime + Sys::upTime());
 	}
 	void fromBytes(Bytes& message) {
-		Cbor msg(message);
+		Json json(message);
+		double d;
 		uint64_t now;
-		if (msg.get(now)) {
+		if (json.get(d)) {
+			now = d;
 			bootTime = now - Sys::upTime();
 		}
 	}

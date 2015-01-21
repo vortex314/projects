@@ -48,7 +48,9 @@ Mqtt::Mqtt(Link& link) :
 	_publisher = new MqttPublisher(*this);
 	reg(_publisher);
 	_subscriber = new MqttSubscriber(*this);
+	reg(_subscriber);
 	_subscription = new Subscription(*this);
+	reg(_subscription);
 }
 Mqtt::~Mqtt() {
 }
@@ -118,7 +120,7 @@ int Mqtt::dispatch(Msg& msg) {
 				PT_YIELD_UNTIL(&pt,
 						msg.is(&_link, SIG_DISCONNECTED | SIG_RXD)
 								|| msg.is(0, SIG_TICK)); // wait for disconnect or message
-				if (msg.is(0, SIG_DISCONNECTED))
+				if (msg.is(&_link, SIG_DISCONNECTED))
 					goto DISCONNECTED;
 				else
 					dispatchToChilds(msg);

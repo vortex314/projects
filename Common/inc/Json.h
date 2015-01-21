@@ -33,6 +33,8 @@ public:
 	Json& addBreak();
 	Json& addNull();
 
+	bool get(double& d);
+
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);
 

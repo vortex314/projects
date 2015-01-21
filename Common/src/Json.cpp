@@ -177,7 +177,8 @@ Json& Json::add(const char* s) {
 }
 
 Json& Json::addKey(const char* s) {
-	if ( _break[_breakIndex]++) _str.append(',');
+	if (_break[_breakIndex]++)
+		_str.append(',');
 	add(s);
 	_str.append(':');
 	return *this;
@@ -220,8 +221,10 @@ Json& Json::addTag(int nr) {
 }
 
 Json& Json::addBreak() {
-	if ( _break[_breakIndex] < 0x80) _str.append('}');
-	else _str.append(']');
+	if (_break[_breakIndex] < 0x80)
+		_str.append('}');
+	else
+		_str.append(']');
 	_breakIndex--;
 	return *this;
 }
@@ -229,5 +232,19 @@ Json& Json::addBreak() {
 Json& Json::addNull() {
 	_str.append("null");
 	return *this;
+}
+#include "jsmn.h"
+jsmn_parser parser;
+jsmntok_t tokens[10];
+bool Json::get(double & d) {
+	jsmn_init(&parser);
+	jsmn_parse(&parser, _str.c_str(), _str.length(), tokens, 10);
+	if (tokens[0].type != JSMN_PRIMITIVE)
+		return false;
+	Str value;
+	value.map(_str.data() + tokens[0].start, tokens[0].end);
+	double t = atof(value.c_str());
+	d = t;
+	return true;
 }
 
