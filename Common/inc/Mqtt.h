@@ -34,120 +34,107 @@
 
 class MqttPublisher;
 class MqttSubscriber;
-class Subscription;
-class Pinger;
+class MqttSubscription;
+class MqttPinger;
 class Mqtt;
 
-
-class Mqtt: public Handler
-{
-public :
-    Link& _link;
-
-    Str _prefix;
-    Str _putPrefix;    //PUT/<device>/
-    Str _getPrefix;
-    Str _headPrefix; // HEAD/<device>/
-    MqttIn _mqttIn; // temp storage in one event call
-    MqttOut _mqttOut; // "
-    bool _isConnected;
+class Mqtt: public Handler {
+public:
+	Link& _link;
+	Str _prefix;
+	MqttSubscriber* _mqttSubscriber;
+	MqttPublisher* _mqttPublisher;
+	MqttSubscription* _mqttSubscription;
+	MqttPinger* _mqttPinger;
+	MqttIn _mqttIn; // temp storage in one event call
+	MqttOut _mqttOut; // "
+	bool _isConnected;
 
 private:
-
-    Pinger* _pinger;
-    MqttPublisher* _publisher;
-    MqttSubscriber* _subscriber;
-    Subscription* _subscription;
-    uint32_t _retries;
-
+	uint32_t _retries;
 
 public:
-    Mqtt(Link& link);
-    ~Mqtt();
-    void sendConnect();
-    int dispatch(Msg& msg);
-    static uint16_t nextMessageId();
-    void getPrefix(Str& prefix);
-    void setPrefix(const char * prefix);
-    bool publish(Str& topic, Bytes& msg, Flags flags);
-    bool isConnected();
-    bool msgToMqttIn(Msg& msg);
-    bool isMqttMsg(Msg& msg, uint8_t msgType, uint16_t msgId);
-
+	Mqtt(Link& link);
+	~Mqtt();
+	void sendConnect();
+	void onMessage(Msg& msg);
+	int dispatch(Msg& msg);
+	static uint16_t nextMessageId();
+	void getPrefix(Str& prefix);
+	void setPrefix(const char * prefix);
+	bool isConnected();
+	void* subscribe(Str& topic);
+	void* publish(Str& topic,Bytes& message,Flags flags);
 private:
-    void sendSubscribe(uint8_t flags);
+	void sendSubscribe(uint8_t flags);
 };
 
-
-
-class MqttSubscriber: public Handler
-{
+class MqttSubscriber: public Handler {
 public:
-    MqttSubscriber(Mqtt& mqtt);
-    int dispatch(Msg& msg);
-    void sendPubRec();
-    // will invoke
+	MqttSubscriber(Mqtt& mqtt);
+	int dispatch(Msg& msg);
+	void sendPubRec();
+	void callBack();
+	// will invoke
 private:
-    Mqtt& _mqtt;
-    Str _topic;
-    Bytes _message;
-    Flags _flags;
-    uint16_t _messageId;
-    uint16_t _retries;
+	Mqtt& _mqtt;
+	Str _topic;
+	Bytes _message;
+	Flags _flags;
+	uint16_t _messageId;
+	uint16_t _retries;
 };
 
-class MqttPublisher: public Handler
-{
+class MqttPublish {
 public:
-    MqttPublisher(Mqtt& mqtt);
-    int dispatch(Msg& msg);
-    bool publish(Str& topic, Bytes& msg, Flags flags);
-    // will send PUB_OK,PUB_FAIL
-private:
-    void sendPublish();
-    void sendPubRel();
-    Mqtt& _mqtt;
-    enum State
-    {
-        ST_READY,
-        ST_BUSY,
-    } _state;
-    Str _topic;
-    Bytes _message;
-    uint16_t _messageId;
-    Flags _flags;
-    uint16_t _retries;
+	Str topic;
+	Bytes message;
+	Flags flags;
+	MqttPublish(int topicSize, int messageSize) :
+			topic(topicSize), message(messageSize) {
+	}
 };
 
-class Subscription: public Handler
-{
+class MqttPublisher: public Handler {
 public:
-    Subscription(Mqtt& mqtt);
-    int dispatch(Msg& msg);
-    void sendSubscribePut();
-    void sendSubscribeGet();
+	MqttPublisher(Mqtt& mqtt);
+	int dispatch(Msg& msg);
+	void* publish(Str& topic, Bytes& msg, Flags flags);
+	// will send PUB_OK,PUB_FAIL
 private:
-    Mqtt& _mqtt;
-    enum State
-    {
-        ST_DISCONNECTED,
-        ST_WAIT_SUBACK_PUT,
-        ST_WAIT_SUBACK_GET,
-        ST_SLEEP
-    } _state;
-    uint16_t _retries;
-    uint16_t _messageId;
+	void sendPublish();
+	void sendPubRel();
+	Mqtt& _mqtt;
+	enum State {
+		ST_READY, ST_BUSY,
+	} _state;
+	Str _topic;
+	Bytes _message;
+	uint16_t _messageId;
+	Flags _flags;
+	uint16_t _retries;
 };
 
-class Pinger: public Handler
-{
+class MqttSubscription: public Handler {
 public:
-    Pinger(Mqtt& mqtt);
-    int dispatch(Msg& msg);
+	MqttSubscription(Mqtt& mqtt);
+	int dispatch(Msg& msg);
+	void* subscribe(Str& topic);
 private:
-    Mqtt& _mqtt;
-    uint32_t _retries;
+	Mqtt& _mqtt;
+	uint16_t _retries;
+	uint16_t _messageId;
+	Str _topic;
+	void sendSubscribe();
 };
 
+class MqttPinger: public Handler {
+public:
+	MqttPinger(Mqtt& mqtt);
+	int dispatch(Msg& msg);
+private:
+	Mqtt& _mqtt;
+	uint32_t _retries;
+};
 
 #endif /* MQTT_H_ */

@@ -96,7 +96,7 @@ void MsgQueue::publish(Msg& msg)
 bool MsgQueue::get(Msg& msg)
 {
 	uint8_t* _bufferStart;
-	int size = sizeof(Msg);
+	uint32_t size = sizeof(Msg);
 	_bufferStart = bb.GetContiguousBlock(size);
 
 	if (size < sizeof(Msg))   		// map to these bytes

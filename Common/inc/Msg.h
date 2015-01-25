@@ -13,8 +13,7 @@
 //#include "Event.h"
 #include "Cbor.h"
 
-typedef enum Signal
-{
+typedef enum Signal {
 	SIG_INIT = 1 << 0,
 	SIG_IDLE = 1 << 1,
 	SIG_ERC = 1 << 2,
@@ -27,12 +26,13 @@ typedef enum Signal
 	SIG_START = 1 << 9,
 	SIG_STOP = 1 << 10,
 	SIG_SUCCESS = 1 << 11,
-	SIG_FAIL = 1 << 12
+	SIG_FAIL = 1 << 12,
+	SIG_DO = 1 << 13
 
 } Signal;
 
-class Msg
-{
+
+class Msg {
 public:
 	void * src;
 	Signal signal;
@@ -44,8 +44,7 @@ public:
 	bool is(void * src, Signal signal);
 };
 
-class MsgQueue
-{
+class MsgQueue {
 private:
 	static BipBuffer bb;
 public:

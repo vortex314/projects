@@ -11,38 +11,47 @@
 #include "Msg.h"
 #include "pt.h"
 
-class Handler
-{
-	Handler* _firstChild;
+class Handler {
+	static Handler* _firstChild;
 	Handler* _next;
 	uint64_t _timeout;
 //	uint32_t _sigMask;
 //	void* _srcMask;
 	const char* _name;
+	bool _isRunning;
 protected:
 	struct pt pt;
 public:
 	Handler();
 	Handler(const char* name);
 
-	virtual ~Handler()
-	{
+	virtual ~Handler() {
 	}
 
 	void timeout(uint32_t msec);
 	bool timeout();
 	uint64_t getTimeout();
 
-	virtual int dispatch(Msg& msg)
-	{
+	virtual int dispatch(Msg& msg) {
 		return 0;
 	}
 
 	void restart();
 
-	Handler* first();
+	void start() {
+		_isRunning = true;
+		restart();
+	}
+	void stop() {
+		_isRunning = false;
+	}
+	bool isRunning() {
+		return _isRunning;
+	}
+
+	static Handler* first();
 	Handler* next();
-	void dispatchToChilds(Msg& msg);
+	static void dispatchToChilds(Msg& msg);
 	void reg(Handler* hdlr);
 };
 

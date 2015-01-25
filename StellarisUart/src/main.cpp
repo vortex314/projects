@@ -137,7 +137,7 @@ public:
 	}
 
 	void fromBytes(Bytes& message) {
-		/*		Json json((Str&) message);
+		Json json(message);
 		 bool bl;
 		 if (json.get(bl)) {
 		 _value = bl;
@@ -145,7 +145,7 @@ public:
 		 GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
 		 else
 		 GPIOPinWrite(_gpio_port, _gpio_pin, 0);
-		 }*/
+		 }
 	}
 	void toBytes(Bytes& message) {
 		Json json(message);
@@ -218,40 +218,25 @@ public:
 #include "Msg.h"
 #include "Uart.h"
 #include "Cbor.h"
-#include "I2C.h"
-
-#define L3GD20_ADDR  0b1101010
 
 extern Uart *gUart0;
-PropMgr propMgr;
-// I2C i2c1(1);
 
 class Main: public Handler {
 
 };
-
-Main mainH;
+PropMgr propMgr;
 
 int main(void) {
 	Board::init();	// initialize usb
 	Uart::init();
-	Bytes bytes(10);
-	bytes.write(0x12);
-//	i2c1.init();
-//	i2c1.send(L3GD20_ADDR,bytes);
-//	Usb usb;	// usb active object
-//	Uart uart0;
 
-	Mqtt mqtt(*gUart0);	// mqtt active object
-//	MqttPublisher mqttPublisher(mqtt);
-//	MqttSubscriber mqttSubscriber(mqtt);
-	propMgr.mqtt(mqtt);
 	LedBlink ledBlink(gUart0);
 
-	mainH.reg(&mqtt);
-	mainH.reg(gUart0);
-	mainH.reg(&ledBlink);
-	mainH.reg(&propMgr);
+	Mqtt mqtt(*gUart0);	// mqtt active object
+
+
+	propMgr.setPrefix("Stellaris-1/");
+	propMgr.setMqtt(&mqtt);
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
@@ -266,9 +251,11 @@ int main(void) {
 			MsgQueue::publish(gUart0, SIG_START);
 		// _________________________________________________________________handle all queued messages
 		while (MsgQueue::get(msg)) {
-			mainH.dispatchToChilds(msg);
-			if (msg.data != 0)
-				delete (MqttIn*) (msg.data);
+			Handler::dispatchToChilds(msg);
+			if (msg.data != 0) {
+				if (msg.src == gUart0)
+					delete (MqttIn*) msg.data;
+			}
 		}
 
 	}

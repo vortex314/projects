@@ -34,6 +34,7 @@ public:
 	Json& addNull();
 
 	bool get(double& d);
+	bool get(bool& bl);
 
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);

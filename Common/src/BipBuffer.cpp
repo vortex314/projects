@@ -230,7 +230,7 @@ void BipBuffer::Commit(int size) {
 // Returns:
 //   uint8_t*                    pointer to the first contiguous block, or NULL if empty.
 
-uint8_t* BipBuffer::GetContiguousBlock(int& size) {
+uint8_t* BipBuffer::GetContiguousBlock(uint32_t& size) {
 	if (sza == 0) {
 		size = 0;
 		return NULL;

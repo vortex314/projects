@@ -56,17 +56,17 @@ void Prop::isPublished() {
 }
 
 void Prop::metaToBytes(Bytes& message) {
-	Cbor msg(message);
+	Json msg(message);
 	int r;
-	msg.addMap(-1);
-	msg.add("type");
+	msg.addMap(4);
+	msg.addKey("type");
 	msg.add(sType[_flags.type]);
-	msg.add("mode");
+	msg.addKey("mode");
 	r = _flags.mode;
 	msg.add(sMode[r]);
-	msg.add("qos");
+	msg.addKey("qos");
 	msg.add(_flags.qos);
-	msg.add("interval");
+	msg.addKey("interval");
 	r = _flags.interval;
 	msg.add(pow10[r]);
 	msg.addBreak();
@@ -84,14 +84,29 @@ Prop* Prop::findProp(Str& name) {
 	return 0;
 }
 
-extern PropMgr propMgr;
+PropMgr::PropMgr() :
+		_topic(TOPIC_MAX_SIZE), _message(MSG_MAX_SIZE), _prefix(30),_putPrefix(30),_getPrefix(30),_headPrefix(30) {
+	_cursor = Prop::_first;
+	_state = ST_DISCONNECTED;
+	_next = 0;
+	PT_INIT(&t);
+}
 
-void PropMgr::set(Str& topic, Bytes& message) {
+void PropMgr::setPrefix(const char* prefix) {
+
+	_prefix.clear() << prefix;
+	_mqtt->setPrefix(prefix);
+	_getPrefix.clear() << "GET/" << _prefix;
+	_putPrefix.clear() << "PUT/" << _prefix;
+	_headPrefix.clear() << "HEAD/" << _prefix;
+}
+
+void PropMgr::onPublish(Str& topic, Bytes& message) {
 	Str str(TOPIC_MAX_SIZE);
 
-	if (topic.startsWith(_mqtt->_putPrefix))   // "PUT/<device>/<topic>
+	if (topic.startsWith(_putPrefix))   // "PUT/<device>/<topic>
 			{
-		str.substr(topic, _mqtt->_putPrefix.length());
+		str.substr(topic, _putPrefix.length());
 		Prop* p = Prop::findProp(str);
 		if (p) {
 			message.offset(0);
@@ -99,9 +114,9 @@ void PropMgr::set(Str& topic, Bytes& message) {
 			p->doPublish();
 			nextProp(p);
 		}
-	} else if (topic.startsWith(_mqtt->_getPrefix))     // "GET/<device>/<topic>
+	} else if (topic.startsWith(_getPrefix))     // "GET/<device>/<topic>
 			{
-		str.substr(topic, _mqtt->_getPrefix.length());
+		str.substr(topic, _getPrefix.length());
 		Prop* p = Prop::findProp(str);
 		if (p) {
 			if (message.length() == 0) {
@@ -118,23 +133,11 @@ void PropMgr::set(Str& topic, Bytes& message) {
 			}
 		}
 
-	} else if (topic.startsWith(_mqtt->_headPrefix))   // "HEAD/<device>/<topic>
+	} else if (topic.startsWith(_headPrefix))   // "HEAD/<device>/<topic>
 			{
 
 	}
 
-}
-
-PropMgr::PropMgr() :
-		_topic(TOPIC_MAX_SIZE), _message(MSG_MAX_SIZE) {
-	_cursor = Prop::_first;
-	_state = ST_DISCONNECTED;
-	_next = 0;
-	PT_INIT(&t);
-}
-
-void PropMgr::mqtt(Mqtt& mq) {
-	_mqtt = &mq;
 }
 
 void PropMgr::nextProp() {
@@ -153,35 +156,48 @@ void PropMgr::nextProp(Prop* next) {
 }
 
 int PropMgr::dispatch(Msg& msg) {
+	Str sub(100);
+
 	PT_BEGIN(&pt)
 		DISCONNECTED: {
 			PT_YIELD_UNTIL(&pt, msg.is(_mqtt, SIG_CONNECTED));
 			_cursor = Prop::_first;
 		}
+		SUB_PUT: {
+			sub.clear() << "PUT/" << _prefix << "#";
+			_src = _mqtt->subscribe(sub);
+			PT_YIELD_UNTIL(&pt, msg.is(_src, SIG_SUCCESS | SIG_FAIL ));
+		}
+		SUB_GET: {
+			sub.clear() << "GET/" << _prefix << "#";
+			_src = _mqtt->subscribe(sub);
+			PT_YIELD_UNTIL(&pt, msg.is(_src, SIG_SUCCESS | SIG_FAIL));
+		}
+
 		PUBLISH: {
 			timeout(10);
-			PT_YIELD_UNTIL(&pt, SIG_DISCONNECTED || timeout());
+			PT_YIELD_UNTIL(&pt, SIG_DISCONNECTED || timeout()); // sleep between prop publishing
 			if (msg.is(_mqtt, SIG_DISCONNECTED))
 				goto DISCONNECTED;
 			if (_cursor->hasToBePublished()) {
-				_topic = _mqtt->_prefix;
+				_topic = _prefix;
 				_topic << _cursor->_name;
 				_message.clear();
 				_cursor->toBytes(_message);
-				if (_mqtt->publish(_topic, _message, _cursor->_flags)) {
-					goto ACK;
-				}
+				_src = _mqtt->publish(_topic, _message, _cursor->_flags);
+				if (_src)
+					goto WAIT_ACK;
 			} else {
 				nextProp();
 			}
 			goto PUBLISH;
 		}
-		ACK: {
+		WAIT_ACK: {
 			timeout(TIME_WAIT_REPLY);
 			PT_YIELD_UNTIL(&pt,
-					msg.is(_mqtt, SIG_SUCCESS | SIG_FAIL | SIG_DISCONNECTED)
+					msg.is(_src, SIG_STOP | SIG_FAIL | SIG_SUCCESS)
 							|| timeout());
-			if (msg.is(_mqtt, SIG_DISCONNECTED))
+			if (msg.is(_src, SIG_STOP))
 				goto DISCONNECTED;
 			if (msg.signal == SIG_SUCCESS) {
 				_cursor->isPublished();

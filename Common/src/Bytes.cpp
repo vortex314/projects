@@ -6,6 +6,7 @@
  */
 
 #include "Bytes.h"
+#include "new.h"
 
 void myMemcpy(uint8_t *dst, uint8_t* src, int length) {
 	for (int i = 0; i < length; i++)
@@ -47,7 +48,7 @@ void Bytes::map(uint8_t* st, uint32_t length) {
 Bytes::Bytes(uint32_t size) {
 	_start = 0;
 	if (size > 0) {
-		_start = new uint8_t[size]; // (uint8_t*) Sys::malloc(size);
+		_start = (uint8_t*)::malloc(size); // (uint8_t*) Sys::malloc(size);
 		ASSERT(_start != 0);
 	}
 	_offset = 0;
@@ -57,7 +58,7 @@ Bytes::Bytes(uint32_t size) {
 }
 
 Bytes::Bytes(Bytes& src) {
-	_start = new uint8_t[src._capacity];
+	_start = (uint8_t*)::malloc(src._capacity);
 	_offset = 0;
 	_limit = src._limit;
 	_capacity = src._capacity;
@@ -109,7 +110,8 @@ Bytes& Bytes::operator=(const char* s) {
 
 Bytes::~Bytes() {
 	if (isMemoryOwner)
-		delete[] _start;
+		if ( _start)
+		::free( _start);
 }
 
 void Bytes::move(int32_t dist) {

@@ -19,7 +19,6 @@ void operator delete[](void * ptr) {
 }
 #endif
 
-
 /* A replacement malloc with:
  - Much reduced code size;
  - Smaller RAM footprint;
@@ -159,6 +158,21 @@ fle __malloc_end = (fle) (&__malloc_start);
 
 // void * __malloc_end = &_end;
 fle __malloc_freelist;
+#include "Prop.h"
+class Memblocks: public Prop {
+public:
+	Memblocks() :
+			Prop("system/memblocks", (Flags )
+					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.add(m_count_called);
+	}
+};
+
+Memblocks memblocks;
 
 void *
 malloc(size_t sz) {
@@ -169,7 +183,8 @@ malloc(size_t sz) {
 	 overhead and alignment.  */
 	size_t real_size = REAL_SIZE(sz);
 	m_count_called++;
-	if ( m_count_called > 50) Sys::warn(E2BIG,"malloc");
+	if (m_count_called > 50)
+		Sys::warn(E2BIG, "malloc");
 
 	/* Look for the first block on the freelist that is large enough.  */
 	for (nextfree = &__malloc_freelist; *nextfree; nextfree =
@@ -233,12 +248,12 @@ malloc(size_t sz) {
 
 void free(void *block_p) {
 	fle *nextfree;
-	m_count_called--;
+
 	fle block = (fle) ((size_t) block_p - offsetof(struct freelist_entry, next));
 
 	if (block_p == NULL)
 		return;
-
+	m_count_called--;
 	/* Look on the freelist to see if there's a free block just before
 	 or just after this block.  */
 	for (nextfree = &__malloc_freelist; *nextfree; nextfree =
@@ -769,7 +784,6 @@ void __cxa_guard_release(__guard *g) {
 
 void __cxa_guard_abort(__guard *) {
 }
-
 
 void __cxa_pure_virtual(void) {
 }

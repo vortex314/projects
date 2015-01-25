@@ -31,7 +31,7 @@ public:
 	void FreeBuffer() ;
 	uint8_t* Reserve(int size, int& reserved);
 	void Commit(int size);
-	uint8_t* GetContiguousBlock(int& size);
+	uint8_t* GetContiguousBlock(uint32_t& size);
 	void DecommitBlock(int size);
 	int GetCommittedSize() const ;
 	int GetReservationSize() const;

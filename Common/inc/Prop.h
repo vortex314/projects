@@ -37,8 +37,8 @@ public:
 public:
 	Prop();
 	Prop(const char* name, Flags flags);
-	Prop(const char* name,const char* value);
-	Prop(const char* name,uint64_t&  value);
+	Prop(const char* name, const char* value);
+	Prop(const char* name, uint64_t& value);
 	void init(const char* name, Flags flags);
 
 	static Prop* findProp(Str& name);
@@ -46,8 +46,12 @@ public:
 //	static void xdrUint64(void* addr, Cmd cmd, Bytes& strp);
 //	static void xdrString(void* addr, Cmd cmd, Bytes& strp);
 
-	virtual void toBytes(Bytes& msg) {};
-	virtual void fromBytes(Bytes& msg) {};
+	virtual void toBytes(Bytes& msg) {
+	}
+	;
+	virtual void fromBytes(Bytes& msg) {
+	}
+	;
 	void metaToBytes(Bytes& msg);
 
 	void updated();
@@ -61,22 +65,34 @@ class PropMgr: public Handler {
 
 private:
 	Mqtt* _mqtt;
+	Str _prefix;
+	Str _getPrefix;
+	Str _putPrefix;
+	Str _headPrefix;
 	struct pt t;
 	Str _topic;
 	Bytes _message;
 	Prop* _cursor;
 	Prop* _next;
+	void *_src;
 	bool _publishMeta;
-	enum State { ST_DISCONNECTED,ST_PUBLISHING,ST_WAIT_PUBRESP} _state;
+	enum State {
+		ST_DISCONNECTED, ST_PUBLISHING, ST_WAIT_PUBRESP
+	} _state;
 
 public:
 	PropMgr();
-	~PropMgr(){};
+	~PropMgr() {
+	}
+
 	int dispatch(Msg& msg);
 	void nextProp();
 	void nextProp(Prop* p);
-	void set(Str& topic, Bytes& message);
-	void mqtt(Mqtt& mqtt);
+	void onPublish(Str& topic, Bytes& message);
+	void setMqtt(Mqtt* mqtt) {
+		_mqtt = mqtt;
+	}
+	void setPrefix(const char* s);
 };
 
 #endif /* PROP_H_ */

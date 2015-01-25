@@ -234,6 +234,7 @@ Json& Json::addNull() {
 	return *this;
 }
 #include "jsmn.h"
+#include <stdlib.h>
 jsmn_parser parser;
 jsmntok_t tokens[10];
 bool Json::get(double & d) {
@@ -246,5 +247,20 @@ bool Json::get(double & d) {
 	double t = atof(value.c_str());
 	d = t;
 	return true;
+}
+bool Json::get(bool & bl) {
+	jsmn_init(&parser);
+	jsmn_parse(&parser, _str.c_str(), _str.length(), tokens, 10);
+	if (tokens[0].type != JSMN_PRIMITIVE)
+		return false;
+	const char* s = _str.c_str() + tokens[0].start;
+	if (strncmp(s, "true", tokens[0].size) == 0) {
+		bl = true;
+		return true;
+	} else if (strncmp(s, "false", tokens[0].size) == 0) {
+		bl = false;
+		return true;
+	}
+	return false;
 }
 
