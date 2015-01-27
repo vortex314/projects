@@ -85,7 +85,8 @@ Prop* Prop::findProp(Str& name) {
 }
 
 PropMgr::PropMgr() :
-		_topic(TOPIC_MAX_SIZE), _message(MSG_MAX_SIZE), _prefix(30),_putPrefix(30),_getPrefix(30),_headPrefix(30) {
+		_topic(SIZE_TOPIC), _prefix(SIZE_TOPIC), _putPrefix(SIZE_TOPIC), _getPrefix(
+				SIZE_TOPIC), _headPrefix(30), _message(SIZE_MESSAGE) {
 	_cursor = Prop::_first;
 	_state = ST_DISCONNECTED;
 	_next = 0;
@@ -102,7 +103,7 @@ void PropMgr::setPrefix(const char* prefix) {
 }
 
 void PropMgr::onPublish(Str& topic, Bytes& message) {
-	Str str(TOPIC_MAX_SIZE);
+	Str str(SIZE_TOPIC);
 
 	if (topic.startsWith(_putPrefix))   // "PUT/<device>/<topic>
 			{
@@ -123,10 +124,10 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 				p->doPublish();
 				nextProp(p);
 			} else {
-				Str t(TOPIC_MAX_SIZE);
+				Str t(SIZE_TOPIC);
 				t << p->_name;
 				t << ".META";
-				Bytes msg(MSG_MAX_SIZE);
+				Bytes msg(SIZE_MESSAGE);
 				p->metaToBytes(msg);
 				_mqtt->publish(t, msg, (Flags )
 						{ T_MAP, M_READ, T_100SEC, QOS_0, NO_RETAIN });
@@ -166,7 +167,7 @@ int PropMgr::dispatch(Msg& msg) {
 		SUB_PUT: {
 			sub.clear() << "PUT/" << _prefix << "#";
 			_src = _mqtt->subscribe(sub);
-			PT_YIELD_UNTIL(&pt, msg.is(_src, SIG_SUCCESS | SIG_FAIL ));
+			PT_YIELD_UNTIL(&pt, msg.is(_src, SIG_SUCCESS | SIG_FAIL));
 		}
 		SUB_GET: {
 			sub.clear() << "GET/" << _prefix << "#";

@@ -29,8 +29,10 @@
 #define TIME_WAIT_CONNECT 5000
 #define	TIME_PING ( TIME_KEEP_ALIVE /3 )
 #define TIME_FOREVER UINT32_MAX
-#define TOPIC_MAX_SIZE	40
-#define MSG_MAX_SIZE	256
+#define SIZE_TOPIC	40
+#define SIZE_MESSAGE	256
+#define SIZE_MQTT	300
+#define MAX_RETRIES	4
 
 class MqttPublisher;
 class MqttSubscriber;
@@ -95,7 +97,7 @@ public:
 	}
 };
 
-class MqttPublisher: public Handler {
+class MqttPublisher: public Handler  {
 public:
 	MqttPublisher(Mqtt& mqtt);
 	int dispatch(Msg& msg);

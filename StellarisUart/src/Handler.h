@@ -40,10 +40,12 @@ public:
 
 	void start() {
 		_isRunning = true;
-		restart();
+		PT_INIT(&pt);
+//		restart();
 	}
 	void stop() {
 		_isRunning = false;
+		PT_INIT(&pt);
 	}
 	bool isRunning() {
 		return _isRunning;
