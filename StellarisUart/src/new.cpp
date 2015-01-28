@@ -167,8 +167,13 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
+		struct mallinfo m;
 		Json json(message);
-		json.add(m_count_called);
+		m = mallinfo();
+		json.addMap(4).addKey("usedBlocks").add(m_count_called);
+		json.addKey("total").add(m.arena);
+		json.addKey("free").add(m.fordblks);
+		json.addBreak();
 	}
 };
 

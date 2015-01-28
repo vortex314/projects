@@ -48,6 +48,10 @@ Mqtt::Mqtt(Link& link) :
 Mqtt::~Mqtt() {
 }
 
+bool Mqtt::isConnected(){
+	return _isConnected;
+}
+
 void Mqtt::setPrefix(const char* s) {
 	_prefix.clear() << s;
 }
@@ -144,23 +148,21 @@ PT_BEGIN(&pt)
 		if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_SUBACK, 0)) {
 			MsgQueue::publish(this, SIG_SUCCESS);
 			stop();
+			PT_YIELD(&pt);
 		} else if (msg.is(&_mqtt._link, SIG_DISCONNECTED)) {
 			MsgQueue::publish(this, SIG_FAIL);
 			stop();
-		} else if (timeout()) {
-
-		} else
-			while (1)
-				;
+			PT_YIELD(&pt);
+		}
 	}
 	MsgQueue::publish(this, SIG_FAIL);
 	stop();
 PT_END(&pt);
 }
 
- //____________________________________________________________________________
- //			PINGER
- //____________________________________________________________________________
+//____________________________________________________________________________
+//			PINGER
+//____________________________________________________________________________
 MqttPinger::MqttPinger(Mqtt& mqtt) :
 Handler("Pinger"), _mqtt(mqtt) {
 _retries = 0;
@@ -201,6 +203,8 @@ _state = ST_READY;
 }
 
 void* MqttPublisher::publish(Str& topic, Bytes& msg, Flags flags) {
+if (!_mqtt.isConnected())
+return 0;
 if (isRunning())
 return 0;
 _retries = 0;
@@ -392,7 +396,7 @@ MqttSubscription::MqttSubscription(Mqtt & mqtt) :
 Handler("Subscription"), _mqtt(mqtt), _topic(SIZE_TOPIC) {
 _retries = 0;
 _messageId = 0;
-// listen(&_mqtt);
+ // listen(&_mqtt);
 }
 
 void* MqttSubscription::subscribe(Str& topic) {
