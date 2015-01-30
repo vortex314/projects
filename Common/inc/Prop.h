@@ -9,7 +9,7 @@
 #define PROP_H_
 #include <stdint.h>
 
-#include "pt.h"
+#include "ProtoThread.h"
 #include "Msg.h"
 #include "Handler.h"
 #include "Bytes.h"
@@ -69,7 +69,6 @@ private:
 	Str _getPrefix;
 	Str _putPrefix;
 	Str _headPrefix;
-	struct pt t;
 	Str _topic;
 	Bytes _message;
 	Prop* _cursor;
@@ -85,7 +84,7 @@ public:
 	~PropMgr() {
 	}
 
-	int dispatch(Msg& msg);
+	bool dispatch(Msg& msg);
 	void nextProp();
 	void nextProp(Prop* p);
 	void onPublish(Str& topic, Bytes& message);

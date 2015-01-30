@@ -162,17 +162,20 @@ fle __malloc_freelist;
 class Memblocks: public Prop {
 public:
 	Memblocks() :
-			Prop("system/memblocks", (Flags )
-					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
+			Prop("system/mallinfo", (Flags )
+					{ T_OBJECT, M_READ, T_10SEC, QOS_0, NO_RETAIN }) {
 	}
 
 	void toBytes(Bytes& message) {
 		struct mallinfo m;
 		Json json(message);
 		m = mallinfo();
-		json.addMap(4).addKey("usedBlocks").add(m_count_called);
-		json.addKey("total").add(m.arena);
-		json.addKey("free").add(m.fordblks);
+		json.addMap(5);
+		json.addKey("usedBlocks").add(m_count_called);
+		json.addKey("totalSize").add(m.arena);
+		json.addKey("freeSize").add(m.fordblks);
+		json.addKey("usedSize").add(m.uordblks);
+		json.addKey("freeBlocks").add(m.ordblks);
 		json.addBreak();
 	}
 };

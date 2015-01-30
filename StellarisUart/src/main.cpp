@@ -27,13 +27,13 @@ public:
 	}
 };
 
-TempTopic tt;
+// TempTopic tt;
 
 class HardwareTopic: public Prop {
 public:
 	HardwareTopic() :
 			Prop("system/hardware", (Flags )
-					{ T_OBJECT, M_READ, T_1SEC, QOS_1, NO_RETAIN }) {
+					{ T_OBJECT, M_READ, T_10SEC, QOS_1, NO_RETAIN }) {
 	}
 
 	void toBytes(Bytes& message) {
@@ -53,13 +53,13 @@ public:
 	}
 };
 
-HardwareTopic hardware;
+// HardwareTopic hardware;
 
 class UptimeTopic: public Prop {
 public:
 	UptimeTopic() :
 			Prop("system/uptime", (Flags )
-					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
+					{ T_UINT64, M_READ, T_10MSEC, QOS_0, NO_RETAIN }) {
 	}
 
 	void toBytes(Bytes& message) {
@@ -75,7 +75,7 @@ class RealTimeTopic: public Prop {
 public:
 	RealTimeTopic() :
 			Prop("system/now", (Flags )
-					{ T_UINT64, M_RW, T_1SEC, QOS_0, NO_RETAIN }) {
+					{ T_UINT64, M_RW, T_10SEC, QOS_0, NO_RETAIN }) {
 	}
 
 	void toBytes(Bytes& message) {
@@ -149,10 +149,11 @@ public:
 	}
 	void toBytes(Bytes& message) {
 		Json json(message);
-		if (GPIOPinRead(_gpio_port, _gpio_pin))
+		json.add(_value);
+/*		if (GPIOPinRead(_gpio_port, _gpio_pin))
 			json.add((bool) true);
 		else
-			json.add((bool) false);
+			json.add((bool) false);*/
 	}
 };
 
@@ -178,12 +179,11 @@ public:
 	virtual ~LedBlink() {
 	}
 
-	int dispatch(Msg& msg) {
-		PT_BEGIN(&pt)
+	bool dispatch(Msg& msg) {
+		PT_BEGIN()
 			while (true) {
 				timeout(_msecInterval);
-				PT_YIELD_UNTIL(&pt,
-						msg.is(_link, SIG_CONNECTED | SIG_DISCONNECTED)
+				PT_YIELD_UNTIL(	msg.is(_link, SIG_CONNECTED | SIG_DISCONNECTED)
 								|| timeout());
 				switch (msg.signal) {
 				case SIG_TIMEOUT: {
@@ -204,7 +204,7 @@ public:
 				}
 
 			}
-		PT_END(&pt);
+		PT_END();
 }
 
 };

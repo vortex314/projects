@@ -13,9 +13,8 @@ Handler::Handler() {
 	_timeout = UINT64_MAX;
 	_name = "UNDEFINED";
 	_next = 0;
-	_isRunning=true;
-//	_firstChild = 0;
-	PT_INIT(&pt);
+//      _firstChild = 0;
+	restart();
 	reg(this);
 }
 
@@ -23,18 +22,9 @@ Handler::Handler(const char* name) {
 	_timeout = UINT64_MAX;
 	_name = name;
 	_next = 0;
-	_isRunning=true;
-//	_firstChild = 0;
-	PT_INIT(&pt);
+//      _firstChild = 0;
+	restart();
 	reg(this);
-}
-
-void Handler::restart() {
-	PT_INIT(&pt);
-	_timeout = UINT64_MAX;
-	Msg initMsg = { this, SIG_INIT, 0, 0 };
-	dispatch(initMsg);
-
 }
 
 void Handler::timeout(uint32_t msec) {
@@ -48,41 +38,9 @@ bool Handler::timeout() {
 uint64_t Handler::getTimeout() {
 	return _timeout;
 }
-/*
- void Handler::listen(uint32_t sigMask)
- {
- _sigMask = sigMask;
- }
-
- void Handler::listen(void* src)
- {
- _srcMask = src;
- }
-
- void Handler::listen(uint32_t sigMask, uint32_t time)
- {
- _sigMask = sigMask | SIG_TIMEOUT;
- timeout(time);
- }
-
- void Handler::listen(uint32_t sig, void* src)
- {
- _sigMask = sig;
- _srcMask = src;
- }
-
- bool Handler::accept(Signal signal, void* src)
- {
- if (_srcMask == 0 || src == 0)
- return (signal & _sigMask);
- else
- return (_srcMask == src) && (signal & _sigMask);
- }
- */
-
 //_________________________________________________________________________________________________
 //
-//				HANDLER LIST
+//       HANDLER LIST
 //_________________________________________________________________________________________________
 Handler* Handler::first() {
 	return _firstChild;
@@ -106,7 +64,7 @@ void Handler::reg(Handler* hdlr) {
 
 //_________________________________________________________________________________________________
 //
-//				LISTENER LIST
+//       LISTENER LIST
 //_________________________________________________________________________________________________
 Handler* hdlr;
 Msg timeoutMsg = { 0, SIG_TIMEOUT, 0, 0 };

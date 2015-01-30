@@ -31,7 +31,7 @@ public:
 	void isConnected(bool val)
 	{
 	}
-	int dispatch(Msg& event);
+	bool dispatch(Msg& event);
 	CircBuf _in;
 	CircBuf _out;
 	Bytes _inBuffer;

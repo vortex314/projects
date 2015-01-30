@@ -9,18 +9,13 @@
 #define HANDLER_H_
 
 #include "Msg.h"
-#include "pt.h"
+#include "ProtoThread.h"
 
-class Handler {
+class Handler: public ProtoThread {
 	static Handler* _firstChild;
 	Handler* _next;
 	uint64_t _timeout;
-//	uint32_t _sigMask;
-//	void* _srcMask;
 	const char* _name;
-	bool _isRunning;
-protected:
-	struct pt pt;
 public:
 	Handler();
 	Handler(const char* name);
@@ -32,23 +27,8 @@ public:
 	bool timeout();
 	uint64_t getTimeout();
 
-	virtual int dispatch(Msg& msg) {
-		return 0;
-	}
-
-	void restart();
-
-	void start() {
-		_isRunning = true;
-		PT_INIT(&pt);
-//		restart();
-	}
-	void stop() {
-		_isRunning = false;
-		PT_INIT(&pt);
-	}
-	bool isRunning() {
-		return _isRunning;
+	virtual void free(void* ptr) {
+		::free(ptr);
 	}
 
 	static Handler* first();

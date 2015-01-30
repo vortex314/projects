@@ -85,12 +85,12 @@ Prop* Prop::findProp(Str& name) {
 }
 
 PropMgr::PropMgr() :
-		_topic(SIZE_TOPIC), _prefix(SIZE_TOPIC), _putPrefix(SIZE_TOPIC), _getPrefix(
-				SIZE_TOPIC), _headPrefix(30), _message(SIZE_MESSAGE) {
+		_prefix(SIZE_TOPIC), _getPrefix( SIZE_TOPIC), _putPrefix(SIZE_TOPIC), _headPrefix(
+		SIZE_TOPIC), _topic(SIZE_TOPIC), _message(SIZE_MESSAGE) {
 	_cursor = Prop::_first;
 	_state = ST_DISCONNECTED;
 	_next = 0;
-	PT_INIT(&t);
+	restart();
 }
 
 void PropMgr::setPrefix(const char* prefix) {
@@ -156,58 +156,61 @@ void PropMgr::nextProp(Prop* next) {
 	_next = next;
 }
 
-int PropMgr::dispatch(Msg& msg) {
+bool PropMgr::dispatch(Msg& msg) {
 	Str sub(100);
 
-	PT_BEGIN(&pt)
-		DISCONNECTED: {
-			PT_YIELD_UNTIL(&pt, msg.is(_mqtt, SIG_CONNECTED));
-			_cursor = Prop::_first;
-		}
-		SUB_PUT: {
-			sub.clear() << "PUT/" << _prefix << "#";
-			_src = _mqtt->subscribe(sub);
-			PT_YIELD_UNTIL(&pt, msg.is(_src, SIG_SUCCESS | SIG_FAIL));
-		}
-		SUB_GET: {
-			sub.clear() << "GET/" << _prefix << "#";
-			_src = _mqtt->subscribe(sub);
-			PT_YIELD_UNTIL(&pt, msg.is(_src, SIG_SUCCESS | SIG_FAIL));
-		}
+	PT_BEGIN()
+	DISCONNECTED: {
+		PT_YIELD_UNTIL(_mqtt->isConnected());
+		_cursor = Prop::_first;
+		goto SUB_PUT;
+	}
+	SUB_PUT: {
+		sub.clear() << "PUT/" << _prefix << "#";
+		_src = _mqtt->subscribe(sub);
+		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || !_mqtt->isConnected());
+		if (!msg.is(_src, SIG_ERC, 0, 0))
+			goto DISCONNECTED;
+		goto SUB_GET;
+	}
+	SUB_GET: {
+		sub.clear() << "GET/" << _prefix << "#";
+		_src = _mqtt->subscribe(sub);
+		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || !_mqtt->isConnected());
+		if (!msg.is(_src, SIG_ERC, 0, 0))
+			goto DISCONNECTED;
+	}
 
-		PUBLISH: {
-			timeout(10);
-			PT_YIELD_UNTIL(&pt, SIG_DISCONNECTED || timeout()); // sleep between prop publishing
-			if (msg.is(_mqtt, SIG_DISCONNECTED))
-				goto DISCONNECTED;
-			if (_cursor->hasToBePublished()) {
-				_topic = _prefix;
-				_topic << _cursor->_name;
-				_message.clear();
-				_cursor->toBytes(_message);
-				_src = _mqtt->publish(_topic, _message, _cursor->_flags);
-				if (_src)
-					goto WAIT_ACK;
-			} else {
-				nextProp();
-			}
-			goto PUBLISH;
+	PUBLISH: {
+		timeout(10);
+		PT_YIELD_UNTIL(!_mqtt->isConnected() || timeout()); // sleep between prop publishing
+		if (!_mqtt->isConnected())
+			goto DISCONNECTED;
+		if (_cursor->hasToBePublished()) {
+			_topic = _prefix;
+			_topic << _cursor->_name;
+			_message.clear();
+			_cursor->toBytes(_message);
+			_src = _mqtt->publish(_topic, _message, _cursor->_flags);
+			if (_src)
+				goto WAIT_ACK;
+		} else {
+			nextProp();
 		}
-		WAIT_ACK: {
-			timeout(TIME_WAIT_REPLY);
-			PT_YIELD_UNTIL(&pt,
-					msg.is(_src, SIG_STOP | SIG_FAIL | SIG_SUCCESS)
-							|| timeout());
-			if (msg.is(_src, SIG_STOP))
-				goto DISCONNECTED;
-			if (msg.signal == SIG_SUCCESS) {
-				_cursor->isPublished();
-				nextProp();
-				goto PUBLISH;
-			}
+		goto PUBLISH;
+	}
+	WAIT_ACK: {
+		timeout(TIME_WAIT_REPLY);
+		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || timeout());
+		if (msg.is(_src, SIG_ERC, 0, 0)) {
+			_cursor->isPublished();
+			nextProp();
 			goto PUBLISH;
-		}
-	PT_END(&pt)
+		} else
+			goto DISCONNECTED;
+		goto PUBLISH;
+	}
+PT_END()
 }
 
 void Prop::publishAll() {

@@ -13,7 +13,6 @@
 #include "Link.h"
 #include "MqttIn.h"
 #include "CircBuf.h"
-#include "pt.h"
 #include "MqttConstants.h"
 #include "Log.h"
 #include "MqttOut.h"
@@ -48,7 +47,7 @@ public:
 	MqttPublisher* _mqttPublisher;
 	MqttSubscription* _mqttSubscription;
 	MqttPinger* _mqttPinger;
-	MqttIn _mqttIn; // temp storage in one event call
+//	MqttIn _mqttIn; // temp storage in one event call
 	MqttOut _mqttOut; // "
 	bool _isConnected;
 
@@ -60,7 +59,7 @@ public:
 	~Mqtt();
 	void sendConnect();
 	void onMessage(Msg& msg);
-	int dispatch(Msg& msg);
+	bool dispatch(Msg& msg);
 	static uint16_t nextMessageId();
 	void getPrefix(Str& prefix);
 	void setPrefix(const char * prefix);
@@ -74,7 +73,7 @@ private:
 class MqttSubscriber: public Handler {
 public:
 	MqttSubscriber(Mqtt& mqtt);
-	int dispatch(Msg& msg);
+	bool dispatch(Msg& msg);
 	void sendPubRec();
 	void callBack();
 	// will invoke
@@ -100,7 +99,7 @@ public:
 class MqttPublisher: public Handler  {
 public:
 	MqttPublisher(Mqtt& mqtt);
-	int dispatch(Msg& msg);
+	bool dispatch(Msg& msg);
 	void* publish(Str& topic, Bytes& msg, Flags flags);
 	// will send PUB_OK,PUB_FAIL
 private:
@@ -120,7 +119,7 @@ private:
 class MqttSubscription: public Handler {
 public:
 	MqttSubscription(Mqtt& mqtt);
-	int dispatch(Msg& msg);
+	bool dispatch(Msg& msg);
 	void* subscribe(Str& topic);
 private:
 	Mqtt& _mqtt;
@@ -133,7 +132,7 @@ private:
 class MqttPinger: public Handler {
 public:
 	MqttPinger(Mqtt& mqtt);
-	int dispatch(Msg& msg);
+	bool dispatch(Msg& msg);
 private:
 	Mqtt& _mqtt;
 	uint32_t _retries;

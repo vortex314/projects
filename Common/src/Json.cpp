@@ -254,10 +254,10 @@ bool Json::get(bool & bl) {
 	if (tokens[0].type != JSMN_PRIMITIVE)
 		return false;
 	const char* s = _str.c_str() + tokens[0].start;
-	if (strncmp(s, "true", tokens[0].size) == 0) {
+	if (strncmp(s, "true", tokens[0].end-tokens[0].start) == 0) {
 		bl = true;
 		return true;
-	} else if (strncmp(s, "false", tokens[0].size) == 0) {
+	} else if (strncmp(s, "false", tokens[0].end-tokens[0].start) == 0) {
 		bl = false;
 		return true;
 	}

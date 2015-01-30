@@ -25,8 +25,6 @@ typedef enum Signal {
 	SIG_TXD = 1 << 8,
 	SIG_START = 1 << 9,
 	SIG_STOP = 1 << 10,
-	SIG_SUCCESS = 1 << 11,
-	SIG_FAIL = 1 << 12,
 	SIG_DO = 1 << 13
 
 } Signal;

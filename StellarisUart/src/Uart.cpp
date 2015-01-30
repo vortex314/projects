@@ -113,7 +113,7 @@ Erc Uart::disconnect()
 	return E_OK;
 }
 
-int Uart::dispatch(Msg& msg)
+bool Uart::dispatch(Msg& msg)
 {
 	if (msg.is(this, SIG_START))
 	{
