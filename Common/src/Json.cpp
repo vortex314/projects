@@ -23,9 +23,23 @@ Json::Json(Bytes& bytes) :
 	_breakIndex = 0;
 }
 
+
+
 Json::~Json() {
 	//dtor
 }
+
+Json& Json::clear(){
+	_str.clear();
+	return *this;
+}
+
+Json& Json::operator=(Json& src){
+	_str = src._str;
+	return *this;
+}
+
+
 
 Erc Json::readToken(PackType& type, Variant& v) {
 
@@ -46,98 +60,13 @@ Erc Json::toString(Str& str) {
 
 	return E_OK;
 }
-/*
- JsonType Json::parse(JsonListener& listener) {
- JsonToken token;
-
- while (hasData()) {
- token.value = 0;
- if (readToken(token) != E_OK)
- return C_ERROR;
- token.u._uint64 = token.value;
- switch (token.type) {
- case C_PINT: {
- token.u._uint64 = token.value;
- listener.onToken(token);
- break;
- }
- case C_NINT: {
- token.u._int64 = -token.value;
- listener.onToken(token);
- break;
- }
- case C_BYTES: {
- token.u.pb = data() + offset();
- listener.onToken(token);
- move(token.value); // skip bytes
- break;
- }
- case C_STRING: {
- token.u.pb = data() + offset();
- listener.onToken(token);
- move(token.value); // skip bytes
- break;
- }
- case C_MAP: {
- listener.onToken(token);
- int count = token.value;
- for (int i = 0; i < count; i++) {
- parse(listener);
- if (parse(listener) == C_BREAK)
- break;
- parse(listener);
- }
- break;
- }
- case C_ARRAY: {
- listener.onToken(token);
- int count = token.value;
- for (int i = 0; i < count; i++) {
- if (parse(listener) == C_BREAK)
- break;
- }
- break;
- }
- case C_TAG: {
- listener.onToken(token);
- parse(listener);
- break;
- }
- case C_BOOL: {
- token.u._bool = token.value == 1 ? true : false;
- listener.onToken(token);
- break;
- }
- case C_NILL:
- case C_BREAK: {
- listener.onToken(token);
- break;
- }
- case C_FLOAT: {
- token.u._uint64 = token.value;
- listener.onToken(token);
- break;
- }
- case C_DOUBLE: {
- token.u._uint64 = token.value;
- listener.onToken(token);
- break;
- }
- case C_SPECIAL: {
- listener.onToken(token);
- break;
- }
- default:  // avoid warnings about additional types > 7
- {
- return C_ERROR;
- }
- }
- };
- return token.type;
-
- }*/
 
 Json& Json::add(int i) {
+	_str.append((long) i);
+	return *this;
+}
+
+Json& Json::add(uint32_t i) {
 	_str.append((long) i);
 	return *this;
 }

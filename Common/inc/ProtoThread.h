@@ -102,7 +102,6 @@ public:
 	// (his restart automatically, which is usually not what you want).
 	void stop() {
 		_ptLine = LineNumberInvalid;
-		MsgQueue::publish(this, SIG_ERC, ECONNABORTED, 0);
 	}
 
 	// Return true if the protothread is running or waiting, false if it has

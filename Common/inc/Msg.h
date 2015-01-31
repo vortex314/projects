@@ -11,7 +11,6 @@
 #include "Bytes.h"
 #include "BipBuffer.h"
 //#include "Event.h"
-#include "Cbor.h"
 
 typedef enum Signal {
 	SIG_INIT = 1 << 0,
@@ -29,17 +28,17 @@ typedef enum Signal {
 
 } Signal;
 
-
+class Handler;
 class Msg {
 public:
-	void * src;
+	Handler* src;
 	Signal signal;
 	int param;
 	void* data;
 //	Msg();
-	bool is(void * src, int sigMask, int param, void* data);
-	bool is(void * src, int sigMask);
-	bool is(void * src, Signal signal);
+	bool is(Handler * src, int sigMask, int param, void* data);
+	bool is(Handler * src, int sigMask);
+	bool is(Handler * src, Signal signal);
 };
 
 class MsgQueue {
@@ -49,8 +48,8 @@ public:
 
 public:
 	static void publish(Msg& msg);
-	static void publish(void* src, Signal signal);
-	static void publish(void* src, Signal signal, int param, void* data);
+	static void publish(Handler* src, Signal signal);
+	static void publish(Handler* src, Signal signal, int param, void* data);
 	static bool get(Msg& msg);
 };
 

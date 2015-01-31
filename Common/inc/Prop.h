@@ -73,7 +73,7 @@ private:
 	Bytes _message;
 	Prop* _cursor;
 	Prop* _next;
-	void *_src;
+	Handler *_src;
 	bool _publishMeta;
 	enum State {
 		ST_DISCONNECTED, ST_PUBLISHING, ST_WAIT_PUBRESP

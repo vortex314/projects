@@ -3,8 +3,9 @@
 
 // #include "Event.h"
 #include "MqttIn.h"
+#include "Handler.h"
 
-class Link
+class Link : public Handler
 {
     public:
 //	static const int CONNECTED,DISCONNECTED,RXD,MESSAGE,ERROR;
