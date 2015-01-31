@@ -27,6 +27,25 @@
 #include "driverlib/uart.h"
 
 Uart* gUart0 = new Uart();
+#include "Prop.h"
+class PropUartStats: public Prop {
+public:
+	Uart* _uart;
+	PropUartStats(Uart* uart,const char *name) :
+			Prop(name, (Flags )
+					{ T_OBJECT, M_READ, T_10SEC, QOS_0, NO_RETAIN }) {
+		_uart=uart;
+	}
+	void toBytes(Bytes& message) {
+			Json json(message);
+			json.addMap(3);
+			json.addKey("overruns").add(_uart->_overrunErrors);
+			json.addKey("crcErrors").add(_uart->_crcErrors);
+			json.addBreak();
+		}
+	};
+
+PropUartStats  propUart(gUart0,"uart0/stats");
 
 Uart::Uart() :
 		_in(100), _out(256), _inBuffer(256)
@@ -57,6 +76,10 @@ void Uart::init()
 
 Uart::~Uart()
 {
+}
+
+void Uart::free(void* ptr){
+	delete (MqttIn*)ptr;
 }
 
 uint8_t Uart::read()
