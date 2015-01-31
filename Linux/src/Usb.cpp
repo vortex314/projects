@@ -50,13 +50,13 @@ BAUDRATE BAUDRATES[]=
     {4000000,  B4000000 }
 };
 
-Usb::Usb(const char* device) : inBuffer(256),_outBuffer(256),_inBytes(256)
+Usb::Usb(const char* device) : _inBytes(256),_outBuffer(256),inBuffer(256)
 {
     logger.module("Usb");
     _device =  device;
     isConnected(false);
     _fd=0;
-    PT_INIT(&t);
+    restart();
     _isComplete = false;
 }
 
@@ -117,7 +117,7 @@ Erc Usb::connect()
     logger.level(Logger::INFO) << "open " << _device << " succeeded.";
     logger.flush();
     isConnected(true);
-    Msg::publish(SIG_USB_CONNECTED);
+    MsgQueue::publish(this,SIG_CONNECTED);
     return E_OK;
 }
 #include <linux/serial.h>
@@ -139,7 +139,7 @@ Erc Usb::disconnect()
     isConnected(false);
     _isComplete=false;
     if ( ::close(_fd) < 0 )   return errno;
-    Msg::publish(SIG_USB_DISCONNECTED);
+    MsgQueue::publish(this,SIG_DISCONNECTED);
     return E_OK;
 }
 
@@ -194,18 +194,14 @@ uint32_t Usb::hasData()
     return count;
 }
 
-void Usb::dispatch(Msg& msg)
+bool Usb::dispatch(Msg& msg)
 {
-    ptRun(msg);
-}
 
-int Usb::ptRun ( Msg& msg )
-{
     uint8_t b;
     uint32_t i;
     uint32_t count;
 
-    if ( msg.sig() == SIG_USB_ERROR )
+    if ( msg.is(0,SIG_ERC,fd(),0))
     {
         logger.level(Logger::WARN) << " error occured. Reconnecting.";
         logger.flush();
@@ -213,16 +209,14 @@ int Usb::ptRun ( Msg& msg )
         connect();
         return 0;
     }
-    PT_BEGIN ( &t );
+    PT_BEGIN ( );
     while(true)
     {
-        listen(SIG_USB_CONNECTED);
-        PT_YIELD ( &t );
+        PT_YIELD_UNTIL ( msg.is(this,SIG_CONNECTED));
         while( true )
         {
-            listen(SIG_USB_RXD | SIG_USB_DISCONNECTED );
-            PT_YIELD(&t);//event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
-            if ( msg.sig()==SIG_USB_RXD  &&  hasData())
+            PT_YIELD_UNTIL(msg.is(0,SIG_RXD,fd(),0)|| msg.is(0,SIG_ERC,fd(),0));//event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
+            if ( msg.is(0,SIG_RXD,fd(),0)  &&  hasData())
             {
                 count =hasData();
                 for(i=0; i<count; i++)
@@ -230,58 +224,73 @@ int Usb::ptRun ( Msg& msg )
                     b=read();
                     inBuffer.write(b);
                 }
-                if ( inBuffer.hasData() )
+                while( inBuffer.hasData() )
                 {
-                    while( inBuffer.hasData() )
+                    if ( _inBytes.Feed(inBuffer.read()))
                     {
-                        if ( _inBytes.Feed(inBuffer.read()))
+                        Str l(256);
+                        _inBytes.toString(l);
+                        logger.level(Logger::DEBUG)<< "recv : " << l;
+                        logger.flush();
+                        _inBytes.Decode();
+                        if ( _inBytes.isGoodCrc() )
                         {
+                            _inBytes.RemoveCrc();
                             Str l(256);
                             _inBytes.toString(l);
-                            logger.level(Logger::DEBUG)<< "recv : " << l;
+                            logger.level(Logger::INFO)<<" recv clean : " <<l;
                             logger.flush();
-                            _inBytes.Decode();
-                            if ( _inBytes.isGoodCrc() )
+
+                            MqttIn* _mqttIn=new MqttIn(256);
+                            _inBytes.offset(0);
+                            while(_inBytes.hasData())
+                                _mqttIn->Feed(_inBytes.read());
+
+                            if ( _mqttIn->parse())
                             {
-                                _inBytes.RemoveCrc();
-                                Str l(256);
-                                _inBytes.toString(l);
-                                logger.level(Logger::INFO)<<" recv clean : " <<l;
-                                logger.flush();
-                                Msg m;
-                                m.create(256).sig(SIG_USB_MESSAGE).add(_inBytes).send();
-                                _inBytes.clear();
-                                break;
+                                MsgQueue::publish(this,SIG_RXD,_mqttIn->type(),_mqttIn); // _mqttIn will be deleted by msg process
                             }
                             else
                             {
-                                logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
-                                logger.flush();
-                                _inBytes.clear(); // throw away bad data
+                                Sys::warn(EINVAL, "MQTT");
+                                delete _mqttIn;
                             }
                         }
+                        else
+                        {
+                            logger.level(Logger::WARN)<<"Bad CRC. Dropped packet. ";
+                            logger.flush();
+                            _inBytes.clear(); // throw away bad data
+                        }
+                        _inBytes.clear();
                     }
                 }
             }
-            else if ( msg.sig() == SIG_USB_DISCONNECTED )
+            else if ( msg.is(0,SIG_ERC,fd(),0) )
             {
                 _inBytes.clear();
                 break;
             }
 
-            PT_YIELD ( &t );
+            PT_YIELD ( );
         }
 
     }
 
-    PT_END ( &t );
+    PT_END (  );
 }
 
+void Usb::free(void* ptr)
+{
+    delete (MqttIn*)ptr;
+}
 
 int Usb::fd()
 {
     return _fd;
 }
+
+
 
 
 

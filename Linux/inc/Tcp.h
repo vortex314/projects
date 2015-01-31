@@ -7,18 +7,16 @@
 #include "EventSource.h"
 #include "Handler.h"
 #include "Link.h"
-#include "pt.h"
 
 
-class Tcp : public Link,public Handler
+class Tcp : public Link
 {
 private:
     int _sockfd;
     bool _connected;
     const char* _host;
     uint16_t _port;
-    MqttIn _mqttIn;
-    struct pt t;
+    MqttIn* _mqttIn;
 public:
 
     static int CONNECTED,DISCONNECTED,RXD,MESSAGE,FREE,ERROR;
@@ -38,7 +36,7 @@ public:
 
 
     void mqttRead(int32_t b);
-    void dispatch(Msg& msg);
+    bool dispatch(Msg& msg);
     int ptRun(Msg& msg);
     int fd();
 };

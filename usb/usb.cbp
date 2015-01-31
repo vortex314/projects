@@ -88,6 +88,7 @@
 		<Unit filename="../Common/src/CircBuf.cpp" />
 		<Unit filename="../Common/src/Event.cpp" />
 		<Unit filename="../Common/src/EventSource.cpp" />
+		<Unit filename="../Common/src/Handler.cpp" />
 		<Unit filename="../Common/src/Link.cpp" />
 		<Unit filename="../Common/src/Logger.cpp" />
 		<Unit filename="../Common/src/MqttIn.cpp" />
@@ -115,9 +116,6 @@
 		<Unit filename="Board.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="Handler.cpp" />
-		<Unit filename="MqttHandler.cpp" />
-		<Unit filename="include/Handler.h" />
 		<Unit filename="include/MqttHandler.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="main.h" />

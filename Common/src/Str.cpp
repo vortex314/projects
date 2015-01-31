@@ -175,6 +175,16 @@ Str& Str::operator<<(Str& s) {
 	return *this;
 }
 
+Str& Str::operator<<(double d) {
+	append(d);
+	return *this;
+}
+
+Str& Str::operator<<(float d) {
+	append(d);
+	return *this;
+}
+
 Str& Str::operator+(Str& s) {
 	*this << s;
 	return *this;

@@ -6,8 +6,11 @@
  */
 
 #include "Bytes.h"
+#ifdef __linux__
+#include <stdlib.h>
+#else
 #include "new.h"
-
+#endif
 void myMemcpy(uint8_t *dst, uint8_t* src, int length) {
 	for (int i = 0; i < length; i++)
 		dst[i] = src[i];
@@ -57,6 +60,11 @@ Bytes::Bytes(uint32_t size) {
 	isMemoryOwner = true;
 }
 
+Bytes::~Bytes() {
+	if (isMemoryOwner)
+		if ( _start)
+		::free( _start);
+}
 Bytes::Bytes(Bytes& src) {
 	_start = (uint8_t*)::malloc(src._capacity);
 	_offset = 0;
@@ -108,11 +116,7 @@ Bytes& Bytes::operator=(const char* s) {
 	return append(s);
 }
 
-Bytes::~Bytes() {
-	if (isMemoryOwner)
-		if ( _start)
-		::free( _start);
-}
+
 
 void Bytes::move(int32_t dist) {
 	if ((_offset + dist) > _limit)

@@ -560,8 +560,10 @@
 1410702561 /home/lieven/projects/Common/inc/Bits.h
 	<stdint.h>
 
-1419176566 source:/home/lieven/projects/Common/src/Bytes.cpp
+1422733447 source:/home/lieven/projects/Common/src/Bytes.cpp
 	"Bytes.h"
+	<stdlib.h>
+	"new.h"
 	"Str.h"
 
 1419176566 /home/lieven/projects/Common/inc/Bytes.h
@@ -599,7 +601,7 @@
 	"QueueTemplate.h"
 	"Signal.h"
 
-1419279094 /home/lieven/projects/Common/inc/Str.h
+1422705645 /home/lieven/projects/Common/inc/Str.h
 	"Bytes.h"
 	"Erc.h"
 
@@ -610,9 +612,8 @@
 
 1410707690 /home/lieven/projects/usb//main.h
 
-1420231986 /home/lieven/projects/Common/inc/MqttIn.h
+1422733982 /home/lieven/projects/Common/inc/MqttIn.h
 	"MqttConstants.h"
-	"Event.h"
 	"Str.h"
 	"Cbor.h"
 	"Packer.h"
@@ -633,11 +634,11 @@
 1410702561 source:/home/lieven/projects/Common/src/Link.cpp
 	"Link.h"
 
-1414936664 /home/lieven/projects/Common/inc/Link.h
-	"Event.h"
+1422706413 /home/lieven/projects/Common/inc/Link.h
 	"MqttIn.h"
+	"Handler.h"
 
-1420231944 source:/home/lieven/projects/Common/src/MqttIn.cpp
+1422734002 source:/home/lieven/projects/Common/src/MqttIn.cpp
 	"MqttIn.h"
 	<cstring>
 
@@ -711,11 +712,11 @@
 
 1410702561 /home/lieven/projects/Common/inc/Timer.h
 
-1419279381 source:/home/lieven/projects/Common/src/Str.cpp
+1422711399 source:/home/lieven/projects/Common/src/Str.cpp
 	"Str.h"
 	<string.h>
+	<math.h>
 	<string.h>
-	<stdlib.h>
 	<cstdio>
 
 1410702561 source:/home/lieven/projects/Common/src/Strpack.cpp
@@ -738,10 +739,10 @@
 	"Timer.h"
 	"Event.h"
 
-1410702561 source:/home/lieven/projects/Common/src/printf.c
+1422705645 source:/home/lieven/projects/Common/src/printf.c
 	"printf.h"
 
-1410702561 /home/lieven/projects/Common/inc/printf.h
+1422705645 /home/lieven/projects/Common/inc/printf.h
 	<stdarg.h>
 
 1414922151 source:/home/lieven/projects/Linux/src/Queue.cpp
@@ -764,7 +765,7 @@
 	<string.h>
 	"Str.h"
 
-1419981823 source:/home/lieven/projects/Linux/src/Tcp.cpp
+1422734631 source:/home/lieven/projects/Linux/src/Tcp.cpp
 	"Tcp.h"
 	<sys/types.h>
 	<sys/socket.h>
@@ -781,14 +782,13 @@
 	<cstdio>
 	<sys/ioctl.h>
 
-1419796358 /home/lieven/projects/Linux/inc/Tcp.h
+1422708678 /home/lieven/projects/Linux/inc/Tcp.h
 	"Bytes.h"
 	"MqttIn.h"
 	"Thread.h"
 	"EventSource.h"
 	"Handler.h"
 	"Link.h"
-	"pt.h"
 
 1410702561 /home/lieven/projects/Common/inc/Thread.h
 	"stdint.h"
@@ -801,7 +801,7 @@
 	<malloc.h>
 	"Thread.h"
 
-1419863274 source:/home/lieven/projects/Linux/src/Usb.cpp
+1422735106 source:/home/lieven/projects/Linux/src/Usb.cpp
 	"Usb.h"
 	<stdio.h>
 	<string.h>
@@ -817,16 +817,14 @@
 	<sys/ioctl.h>
 	<sys/ioctl.h>
 
-1419863086 /home/lieven/projects/Linux/inc/Usb.h
-	<Sequence.h>
+1422726546 /home/lieven/projects/Linux/inc/Usb.h
 	"Link.h"
 	"CircBuf.h"
-	"pt.h"
 	"MqttIn.h"
 	"Msg.h"
 	"Handler.h"
 
-1419863290 source:/home/lieven/projects/usb/main.cpp
+1422729070 source:/home/lieven/projects/usb/main.cpp
 	<iostream>
 	<stdio.h>
 	<string.h>
@@ -843,13 +841,10 @@
 	"MqttOut.h"
 	"MqttIn.h"
 	<stdio.h>
-	<stdlib.h>
 	<sys/time.h>
 	<sys/types.h>
-	"Sequence.h"
 	<unistd.h>
 	"Thread.h"
-	"pt.h"
 	"Tcp.h"
 	"Usb.h"
 	<time.h>
@@ -865,12 +860,12 @@
 	<sys/time.h>
 	<stdio.h>
 
-1419278907 source:/home/lieven/projects/Common/src/Cbor.cpp
+1422705645 source:/home/lieven/projects/Common/src/Cbor.cpp
 	"Cbor.h"
 	"Packer.h"
 	<cstring>
 
-1419276429 /home/lieven/projects/Common/inc/Cbor.h
+1422705645 /home/lieven/projects/Common/inc/Cbor.h
 	"Bytes.h"
 	"Packer.h"
 	"Str.h"
@@ -892,7 +887,7 @@
 	"Bytes.h"
 	"Str.h"
 
-1414937238 /home/lieven/projects/Common/inc/Json.h
+1422706413 /home/lieven/projects/Common/inc/Json.h
 	"Packer.h"
 
 1418242851 /home/lieven/projects/usb//Board.h
@@ -905,13 +900,11 @@
 	"MqttIn.h"
 	"Msg.h"
 
-1419877512 /home/lieven/projects/Common/inc/Msg.h
+1422706413 /home/lieven/projects/Common/inc/Msg.h
 	"Bytes.h"
 	"BipBuffer.h"
-	"Event.h"
-	"Cbor.h"
 
-1418239546 /home/lieven/projects/Common/inc/BipBuffer.h
+1422705645 /home/lieven/projects/Common/inc/BipBuffer.h
 	<stdint.h>
 	<malloc.h>
 	<string.h>
@@ -926,23 +919,33 @@
 1419795237 source:/home/lieven/projects/usb/MqttHandler.cpp
 	"MqttHandler.h"
 
-1419793574 /home/lieven/projects/usb/include/MqttHandler.h
+1422709739 /home/lieven/projects/usb/include/MqttHandler.h
 	"Handler.h"
 
 1419887576 /home/lieven/projects/usb/include/Handler.h
 	"MqttIn.h"
 	"Msg.h"
 
-1418598408 source:/home/lieven/projects/Common/src/BipBuffer.cpp
+1422705645 source:/home/lieven/projects/Common/src/BipBuffer.cpp
 	<BipBuffer.h>
 	"Sys.h"
 
-1419877512 source:/home/lieven/projects/Common/src/Msg.cpp
+1422733202 source:/home/lieven/projects/Common/src/Msg.cpp
 	<stdint.h>
 	<malloc.h>
 	<string.h>
 	"BipBuffer.h"
 	"Msg.h"
-	"Event.h"
-	"Signal.h"
+
+1422708495 /home/lieven/projects/Common/inc/Handler.h
+	"Msg.h"
+	"ProtoThread.h"
+
+1422708583 /home/lieven/projects/Common/inc/ProtoThread.h
+	"Msg.h"
+
+1422727458 source:/home/lieven/projects/Common/src/Handler.cpp
+	"Handler.h"
+	"Sys.h"
+	"Msg.h"
 

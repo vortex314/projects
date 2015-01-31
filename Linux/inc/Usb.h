@@ -1,16 +1,15 @@
 #ifndef USB_H
 #define USB_H
 
-#include <Sequence.h>
+// #include <Sequence.h>
 #include "Link.h"
 #include "CircBuf.h"
-#include "pt.h"
 #include "MqttIn.h"
 #include "Msg.h"
 #include "Handler.h"
 
 
-class Usb :public Link,public Handler  {
+class Usb :public Link  {
 
     public:
         const static int CONNECTED,DISCONNECTED,RXD,ERROR,MESSAGE,FREE;
@@ -21,8 +20,8 @@ class Usb :public Link,public Handler  {
         Erc send(Bytes& bytes) ;
         Bytes* recv() ;
 
-        void dispatch(Msg& msg);
-        int ptRun(Msg& msg);
+        bool dispatch(Msg& msg);
+        void free(void* ptr);
 
         void setDevice(const char* device) ;
         void setBaudrate(uint32_t baud);
@@ -31,7 +30,6 @@ class Usb :public Link,public Handler  {
     private :
     uint8_t read() ;
     uint32_t hasData();
-        struct pt t;
         int _fd;
         const char* _device;
         uint32_t _baudrate;

@@ -26,6 +26,7 @@ public:
     uint32_t _offsetVarHeader;
     uint8_t _returnCode;
     uint16_t _messageId;
+    bool _isBytesOwner;
     Str _topic;
     Bytes _message;
 

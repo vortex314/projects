@@ -11,7 +11,7 @@ public:
     virtual void onTimeout() {};
     virtual void onMqttMessage(MqttIn& msg) {};
     virtual void onOther(Msg& msg) {};
-    void dispatch(Msg& msg);
+    bool dispatch(Msg& msg);
 protected:
 private:
 };

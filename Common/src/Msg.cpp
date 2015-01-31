@@ -4,26 +4,15 @@
 
 #include "BipBuffer.h"
 #include "Msg.h"
-// #include "Event.h"
-#include "Signal.h"
 
 typedef struct
 {
 	uint16_t length;
-//    Signal signal;
 } Envelope;
 
 BipBuffer MsgQueue::bb;
 
 #define ENVELOPE_SIZE	sizeof(Msg)
-/*
- Msg::Msg()
- {
- signal = SIG_IDLE;
- param = 0;
- data = 0;
- src = 0;
- }*/
 
 bool Msg::is(Handler* src, int sigMask, int param, void* data)
 {

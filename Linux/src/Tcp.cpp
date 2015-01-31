@@ -15,7 +15,7 @@ static Logger logger(256);
 
 Tcp::Tcp( const char *host,uint16_t port)
 {
-    _mqttIn.remap(new Bytes(256));
+    _mqttIn= new MqttIn(256);
     logger.module("Tcp");
     _host=host;
     _port=port;
@@ -77,7 +77,7 @@ Erc Tcp::connect()
     _connected=true;
     logger.info() <<  "connect() connected to " << _host << " : " << _port;
     logger.flush();
-    Msg::publish(SIG_TCP_CONNECTED);
+    MsgQueue::publish(this,SIG_CONNECTED);
 
 //    signal(SIGPIPE, sigTcpHandler);;
     return E_OK;
@@ -88,17 +88,12 @@ Erc Tcp::disconnect()
     close(_sockfd);
     _connected=false;
     _sockfd = 0;
-    Msg::publish(SIG_TCP_DISCONNECTED);
+    MsgQueue::publish(this,SIG_DISCONNECTED);
     return E_OK;
 }
 
 
 
-MqttIn* Tcp::recv()
-{
-    if ( _mqttIn.complete() ) return &_mqttIn;
-    else return 0;
-}
 #include <cstdio>
 uint8_t Tcp::read()
 {
@@ -116,12 +111,6 @@ uint8_t Tcp::read()
 
 Erc Tcp::send(Bytes& bytes)
 {
-    Str l(100);
-    MqttIn mqttIn(&bytes);
-    mqttIn.parse();
-    mqttIn.toString(l);
-    logger.info() << "TXD " << l << "\n";
-
     int n;
 //   signal(SIGPIPE, SIG_IGN);
 //   Log::log().message("TCP send : " ,bytes);
@@ -140,7 +129,7 @@ uint32_t Tcp::hasData()
 {
     int count;
     int rc = ioctl(_sockfd, FIONREAD, (char *) &count);
-    if (rc < 0 || count==0 )
+    if (rc < 0  )
     {
         logger.perror("ioctl()");
         disconnect();
@@ -150,47 +139,46 @@ uint32_t Tcp::hasData()
 }
 
 
-void Tcp::dispatch ( Msg& msg )
-{
-    ptRun(msg);
-}
-int Tcp::ptRun(Msg& msg)
+bool Tcp::dispatch ( Msg& msg )
 {
     int32_t b;
-    PT_BEGIN ( &t );
+    PT_BEGIN ( );
     while(true)
     {
-        listen(SIG_TCP_CONNECTED);
-        PT_YIELD(&t);
+        PT_YIELD_UNTIL(msg.is(0,SIG_CONNECTED,fd(),0));
         while( true)
         {
-            listen(SIG_TCP_RXD | SIG_TCP_DISCONNECTED );
-            PT_YIELD(&t);
-            if ( msg.sig()==SIG_TCP_RXD && _mqttIn.complete() == false )
+            PT_YIELD_UNTIL(msg.is(0,SIG_RXD,fd(),0)|| msg.is(0,SIG_ERC,fd(),0) );
+            if ( msg.is(0,SIG_RXD,fd(),0) && _mqttIn->complete() == false )
             {
                 while( hasData() )
                 {
                     b=read();
-                    _mqttIn.Feed(b);
-                    if (  _mqttIn.complete() )
+                    _mqttIn->Feed(b);
+                    if (  _mqttIn->complete() )
                     {
                         Str l(256);
-                        _mqttIn.parse();
-                        _mqttIn.toString(l);
-                        logger.debug()<<"RXD " <<l;
-                        logger.flush();
-                        Msg m;
-                        m.create(256).sig(SIG_TCP_MESSAGE).add(*_mqttIn.getBytes()).send();
-                        _mqttIn.reset();
+                        if ( _mqttIn->parse())
+                        {
+                            _mqttIn->toString(l);
+                            logger.debug()<<"RXD " <<l;
+                            logger.flush();
+                            MsgQueue::publish(this,SIG_RXD,_mqttIn->type(),_mqttIn);
+                            _mqttIn =  new MqttIn(256);
+                        }
+                        else
+                        {
+                            _mqttIn->reset();
+                        }
                         break;
                     }
                 }
             }
-            else if( msg.sig()==SIG_TCP_DISCONNECTED)
+            else if( msg.is(0,SIG_ERC,fd(),0))
                 break;
         }
     }
-    PT_END ( &t );
+    PT_END ( );
 }
 
 int Tcp::fd()

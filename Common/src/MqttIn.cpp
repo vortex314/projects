@@ -6,7 +6,6 @@
  */
 
 #include "MqttIn.h"
-//#include "Property.h"
 #include <cstring>
 
 #define LOG(x) std::cout << Sys::upTime() << " | MQTT  IN " << x << std::endl
@@ -22,6 +21,7 @@ MqttIn::MqttIn(Bytes* bytes) :
     _remainingLength = 0;
     _header=0;
     _recvState = ST_HEADER;
+    _isBytesOwner=false;
 }
 
 MqttIn::MqttIn(int size) :
@@ -32,7 +32,7 @@ MqttIn::MqttIn(int size) :
     _remainingLength = 0;
     _header=0;
     _recvState = ST_HEADER;
-
+_isBytesOwner=true;
 }
 
 MqttIn::MqttIn()
@@ -44,28 +44,19 @@ MqttIn::MqttIn()
 
 }
 
+MqttIn::~MqttIn()
+{
+    if ( _isBytesOwner )
+        delete _bytes;
+}
+
 void MqttIn::remap(Bytes* bytes)
 {
     _bytes = bytes;
     _recvState = ST_HEADER;
-
+_isBytesOwner=false;
 }
 
-
-/*
-MqttIn::MqttIn(MqttIn& src) :
-    Bytes(src.capacity()), _topic(0), _message(0)   //+++ len=0
-{
-    memcpy(this, &src, sizeof(MqttIn));
-//    this->_start = new uint8_t[src._capacity];
-    memcpy(_start, src._start, src._limit);
-    _topic = src._topic;
-}*/
-
-MqttIn::~MqttIn()
-{
-	delete _bytes;
-}
 uint8_t MqttIn::type()
 {
     return _header & MQTT_TYPE_MASK;
@@ -192,8 +183,7 @@ void MqttIn::toString(Str& str)
         str << (const char*)", topic : ";
         str << _topic;
         str << ", message : ";
-        Cbor cbor(_message);
-        cbor.toString(str);
+        str << (Str&)_message;
     }
     else if (type() == MQTT_MSG_SUBSCRIBE)
     {
@@ -204,8 +194,7 @@ void MqttIn::toString(Str& str)
     {
         str << ", willTopic : " << _topic;
         str << ", willMessage : " ;
-        Cbor cbor(_message);
-        cbor.toString(str);
+        str << (Str&)_message;
     }
     str.append(" }");
 }

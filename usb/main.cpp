@@ -17,13 +17,11 @@ using namespace std;
 #include "MqttOut.h"
 #include "MqttIn.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include "Sequence.h"
+//#include "Sequence.h"
 #include <unistd.h>
 #include "Thread.h"
-#include "pt.h"
 // #include "Sequence.h"
 #include "Tcp.h"
 #include "Usb.h"
@@ -96,29 +94,29 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     {
         if ( FD_ISSET(usbFd,&rfds) )
         {
-            Msg::publish(SIG_USB_RXD);
+            MsgQueue::publish(0,SIG_RXD,usbFd,0);
             strEvents << " USB_RXD ";
         }
         if ( FD_ISSET(tcpFd,&rfds) )
         {
-            Msg::publish(SIG_TCP_RXD);
+            MsgQueue::publish(0,SIG_RXD,tcpFd,0);
             strEvents << " TCP_RXD ";
         }
         if ( FD_ISSET(usbFd,&efds) )
         {
-            Msg::publish(SIG_USB_ERROR);
+            MsgQueue::publish(0,SIG_ERC,usbFd,0);
             strEvents << " USB_ERR ";
         }
         if ( FD_ISSET(tcpFd,&efds) )
         {
-            Msg::publish(SIG_TCP_ERROR);
+            MsgQueue::publish(0,SIG_ERC,tcpFd,0);
             strEvents << " TCP_ERR ";
         }
     }
     else
     {
         //TODO publish TIMER_TICK
-        Msg::publish(SIG_TIMEOUT);
+        MsgQueue::publish(0,SIG_TICK,0,0);
         strEvents << " TIM_OUT ";
 
     }
@@ -137,133 +135,99 @@ MqttOut mqttOut(256);
 class Gateway : public Handler
 {
 private:
-    struct pt t;
     MqttIn* _mqttIn;
+    Usb* _usb;
+    Tcp* _tcp;
 public:
 
-    Gateway (  )
+    Gateway ( Usb* usb,Tcp* tcp )
     {
-        PT_INIT ( &t );
+        _usb = usb;
+        _tcp = tcp;
+        restart();
     }
 
-    void dispatch(Msg& msg)
+    bool dispatch(Msg& msg)
     {
-        ptRun(msg);
-    }
-
-    int ptRun ( Msg& msg )
-    {
-        PT_BEGIN ( &t );
+        PT_BEGIN (  );
         while(true)
         {
-            listen(SIG_TCP_MESSAGE | SIG_USB_MESSAGE);
-            PT_YIELD(&t);
-            if ( msg.sig()==SIG_TCP_MESSAGE )
+            PT_YIELD_UNTIL( msg.is(_tcp,SIG_RXD) || msg.is(_usb,SIG_RXD) );
+            if ( msg.is(_tcp,SIG_RXD))
             {
-                Bytes bytes(0);
-                msg.get(bytes);
-                MqttIn mqttIn(&bytes);
-                bytes.offset(0);
-                if (mqttIn.parse())
-                {
-                    Str str(256);
-                    str << "MQTT TCP->USB:";
-                    mqttIn.toString(str);
-                    logger.info()<< str;
-                    logger.flush();
-                    usb.send(*mqttIn.getBytes());
-                }
-                else
-                {
-                    logger.info()<< "TCP->USB : dropped packet, not parseable Mqtt.";
-                    logger.flush();
-                }
+                MqttIn* mqttIn = (MqttIn*)msg.data;
+                Str str(256);
+                str << "MQTT TCP->USB:";
+                mqttIn->toString(str);
+                logger.info()<< str;
+                logger.flush();
+                usb.send(*mqttIn->getBytes());
             }
-            else if ( msg.sig()==SIG_USB_MESSAGE )
+            else if ( msg.is(_usb,SIG_RXD))
             {
-                Bytes bytes(0);
-                msg.get(bytes);
-                MqttIn mqttIn(&bytes);
-                bytes.offset(0);
-                if (mqttIn.parse())
-                {
-                    Str str(256);
-                    str << "MQTT USB->TCP:";
-                    mqttIn.toString(str);
-                    logger.info()<< str;
-                    logger.flush();
+                MqttIn* mqttIn = (MqttIn*)msg.data;
+                Str str(256);
+                str << "MQTT USB->TCP:";
+                mqttIn->toString(str);
+                logger.info()<< str;
+                logger.flush();
 
-                    if ( tcp.isConnected() )
+                if ( _tcp->isConnected() )
+                {
+                    if ( mqttIn->type() == MQTT_MSG_CONNECT ) // simulate a reply
                     {
-                        if ( mqttIn.type() == MQTT_MSG_CONNECT ) // simulate a reply
-                        {
-                            MqttOut m(10);
-                            m.ConnAck(0);
-                            //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
-                            logger.info()<< "CONNACK virtual,already tcp connected";
-                            logger.flush();
-                            usb.send(m);
-                        }
-                        else
-                        {
-                            tcp.send(*mqttIn.getBytes());
-                        }
+                        MqttOut m(10);
+                        m.ConnAck(0);
+                        //                           uint8_t CONNACK[]={0x20,0x02,0x00,0x00};
+                        logger.info()<< "CONNACK virtual,already tcp connected";
+                        logger.flush();
+                        usb.send(m);
                     }
                     else
                     {
-                        if ( mqttIn.type() == MQTT_MSG_CONNECT )
-                        {
-                            tcp.connect();
-                            tcp.send(*mqttIn.getBytes());
-                        }
-                        else
-                        {
-                            logger.info()<< "dropped packet, not connected.";
-                            logger.flush();
-                        }
+                        tcp.send(*mqttIn->getBytes());
                     }
                 }
                 else
                 {
-                    logger.info()<< "dropped packet, not parseable Mqtt.";
-                    logger.flush();
+                    if ( mqttIn->type() == MQTT_MSG_CONNECT )
+                    {
+                        tcp.connect();
+                        tcp.send(*mqttIn->getBytes());
+                    }
+                    else
+                    {
+                        logger.info()<< "dropped packet, not connected.";
+                        logger.flush();
+                    }
                 }
-
             }
         }
-        PT_END ( &t );
+        PT_END (  );
     }
 };
 
 class UsbConnection : public Handler
 {
 private:
-    struct pt t;
     MqttOut msg;
 public:
 
     UsbConnection (  ) :msg(256)
     {
-        PT_INIT ( &t );
+        restart();
     }
 
-    void dispatch ( Msg& msg )
+    bool dispatch ( Msg& msg )
     {
-
-        ptRun(msg);
-
-    }
-    int ptRun(Msg& msg)
-    {
-        PT_BEGIN ( &t );
+        PT_BEGIN (  );
         while(true)
         {
             usb.connect();
-            listen(SIG_USB_DISCONNECTED );
-            PT_YIELD ( &t );
+            PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0) );
             tcp.disconnect();
         }
-        PT_END ( &t );
+        PT_END (  );
     }
 
 };
@@ -349,46 +313,18 @@ int main(int argc, char *argv[] )
     tcp.setHost(context.host);
     tcp.setPort(context.port);
 
-    //    poller.start();
     UsbConnection usbConnection;
-    //    EventLogger eventLogger;
-    Gateway gtw;
+    Gateway gtw(&usb,&tcp);
     uint64_t sleepTill=Sys::upTime()+1000;
-    Msg initMsg(6);
-    initMsg.sig(SIG_INIT);
-    Msg timeoutMsg(6);
-    timeoutMsg.sig(SIG_TIMEOUT);
+    MsgQueue::publish(0,SIG_INIT);
     Msg msg;
-    msg.create(10).sig(SIG_INIT).send();
-
     while(true)
     {
         poller(usb.fd(),tcp.fd(),sleepTill);
         sleepTill = Sys::upTime()+100000;
-        while (true )
-        {
-            msg.open();
-            if ( msg.sig() == SIG_IDLE ) break;
-            for(Handler* hdlr=Handler::first(); hdlr!=0; hdlr=hdlr->next())
-            {
-                if ( hdlr->accept(msg.sig()))
-                {
-                    if ( msg.sig() == SIG_TIMEOUT )
-                    {
-                        if ( hdlr->timeout() )
-                            hdlr->dispatch(timeoutMsg);
-                    }
-                    else
-                        hdlr->dispatch(msg);
-                }
-                if ( hdlr->accept(SIG_TIMEOUT))
-                    if ( hdlr->getTimeout() < sleepTill )
-                        sleepTill=hdlr->getTimeout();
-
-            }
-            msg.recv();
-        }
-
+        while (MsgQueue::get(msg)) {
+			Handler::dispatchToChilds(msg);
+		}
     }
 }
 
