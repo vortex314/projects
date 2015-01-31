@@ -12,12 +12,13 @@
 #include "Handler.h"
 #include "CircBuf.h"
 #include "MqttIn.h"
-class Uart: public Link, public Handler
+class Uart: public Link
 {
 public:
 	Uart();
 	virtual ~Uart();
 	static void init();
+	void free(void* ptr);
 	uint8_t read();
 	uint32_t hasData();
 	Erc send(Bytes&);

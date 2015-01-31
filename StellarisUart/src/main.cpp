@@ -27,7 +27,7 @@ public:
 	}
 };
 
-// TempTopic tt;
+
 
 class HardwareTopic: public Prop {
 public:
@@ -53,13 +53,13 @@ public:
 	}
 };
 
-// HardwareTopic hardware;
+
 
 class UptimeTopic: public Prop {
 public:
 	UptimeTopic() :
 			Prop("system/uptime", (Flags )
-					{ T_UINT64, M_READ, T_10MSEC, QOS_0, NO_RETAIN }) {
+					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
 	}
 
 	void toBytes(Bytes& message) {
@@ -68,14 +68,14 @@ public:
 	}
 };
 
-UptimeTopic uptime;
-uint64_t bootTime;
 
+static uint64_t bootTime;
 class RealTimeTopic: public Prop {
 public:
+
 	RealTimeTopic() :
 			Prop("system/now", (Flags )
-					{ T_UINT64, M_RW, T_10SEC, QOS_0, NO_RETAIN }) {
+					{ T_UINT64, M_RW, T_1SEC, QOS_0, NO_RETAIN }) {
 	}
 
 	void toBytes(Bytes& message) {
@@ -93,7 +93,7 @@ public:
 	}
 };
 
-RealTimeTopic now;
+
 
 class SystemOnlineTopic: public Prop {
 public:
@@ -108,6 +108,11 @@ public:
 	}
 };
 SystemOnlineTopic systemOnline;
+RealTimeTopic now;
+UptimeTopic uptime;
+
+HardwareTopic hardware;
+TempTopic tt;
 
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
@@ -150,10 +155,6 @@ public:
 	void toBytes(Bytes& message) {
 		Json json(message);
 		json.add(_value);
-/*		if (GPIOPinRead(_gpio_port, _gpio_pin))
-			json.add((bool) true);
-		else
-			json.add((bool) false);*/
 	}
 };
 
@@ -221,9 +222,6 @@ public:
 
 extern Uart *gUart0;
 
-class Main: public Handler {
-
-};
 PropMgr propMgr;
 
 int main(void) {
@@ -252,10 +250,7 @@ int main(void) {
 		// _________________________________________________________________handle all queued messages
 		while (MsgQueue::get(msg)) {
 			Handler::dispatchToChilds(msg);
-			if (msg.data != 0) {
-				if (msg.src == gUart0)
-					delete (MqttIn*) msg.data;
-			}
+
 		}
 
 	}
