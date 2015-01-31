@@ -64,8 +64,8 @@ public:
 	void getPrefix(Str& prefix);
 	void setPrefix(const char * prefix);
 	bool isConnected();
-	void* subscribe(Str& topic);
-	void* publish(Str& topic,Bytes& message,Flags flags);
+	Handler* subscribe(Str& topic);
+	Handler* publish(Str& topic,Bytes& message,Flags flags);
 private:
 	void sendSubscribe(uint8_t flags);
 };
@@ -100,7 +100,7 @@ class MqttPublisher: public Handler  {
 public:
 	MqttPublisher(Mqtt& mqtt);
 	bool dispatch(Msg& msg);
-	void* publish(Str& topic, Bytes& msg, Flags flags);
+	Handler* publish(Str& topic, Bytes& msg, Flags flags);
 	// will send PUB_OK,PUB_FAIL
 private:
 	void sendPublish();
@@ -120,7 +120,7 @@ class MqttSubscription: public Handler {
 public:
 	MqttSubscription(Mqtt& mqtt);
 	bool dispatch(Msg& msg);
-	void* subscribe(Str& topic);
+	Handler* subscribe(Str& topic);
 private:
 	Mqtt& _mqtt;
 	uint16_t _retries;

@@ -25,7 +25,7 @@ BipBuffer MsgQueue::bb;
  src = 0;
  }*/
 
-bool Msg::is(void * src, int sigMask, int param, void* data)
+bool Msg::is(Handler* src, int sigMask, int param, void* data)
 {
 	if (sigMask & this->signal)
 	{
@@ -41,7 +41,7 @@ bool Msg::is(void * src, int sigMask, int param, void* data)
 	return false;
 }
 
-bool Msg::is(void * src, int sigMask)
+bool Msg::is(Handler* src, int sigMask)
 {
 	if (sigMask & this->signal)
 	{
@@ -53,7 +53,7 @@ bool Msg::is(void * src, int sigMask)
 	return false;
 }
 
-bool Msg::is(void * src,Signal signal)
+bool Msg::is(Handler* src,Signal signal)
 {
 	if (signal == this->signal)
 	{
@@ -65,14 +65,14 @@ bool Msg::is(void * src,Signal signal)
 	return false;
 }
 
-void MsgQueue::publish(void *src, Signal signal, int param, void* data)
+void MsgQueue::publish(Handler* src, Signal signal, int param, void* data)
 {
 	Msg msg =
 	{ src, signal, param, data };
 	publish(msg);
 }
 
-void MsgQueue::publish(void *src, Signal signal)
+void MsgQueue::publish( Handler*  src, Signal signal)
 {
 	Msg msg =
 	{ src, signal, 0, 0 };

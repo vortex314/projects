@@ -17,7 +17,11 @@ public:
 	Json(uint32_t size);
 	virtual ~Json();
 
+	Json& clear();
+	Json& operator=(Json& src);
+
 	Json& add(int i);
+	Json& add(uint32_t i);
 	Json& add(float f);
 	Json& add(double d);
 	Json& add(Bytes& b);

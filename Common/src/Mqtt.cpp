@@ -48,7 +48,7 @@ Mqtt::Mqtt(Link& link) :
 Mqtt::~Mqtt() {
 }
 
-bool Mqtt::isConnected() {
+inline bool Mqtt::isConnected() {
 	return _isConnected;
 }
 
@@ -67,11 +67,11 @@ void Mqtt::sendConnect() {
 	_link.send(_mqttOut);
 }
 
-void* Mqtt::publish(Str& topic, Bytes& message, Flags flags) {
+Handler* Mqtt::publish(Str& topic, Bytes& message, Flags flags) {
 	return _mqttPublisher->publish(topic, message, flags);
 }
 
-void* Mqtt::subscribe(Str& topic) {
+Handler* Mqtt::subscribe(Str& topic) {
 	return _mqttSubscription->subscribe(topic);
 }
 
@@ -195,7 +195,7 @@ _retries = 0;
 _state = ST_READY;
 }
 
-void* MqttPublisher::publish(Str& topic, Bytes& msg, Flags flags) {
+Handler* MqttPublisher::publish(Str& topic, Bytes& msg, Flags flags) {
 if (!_mqtt.isConnected())
 return 0;
 if (isRunning())
@@ -380,8 +380,8 @@ _messageId = 0;
 // listen(&_mqtt);
 }
 
-void* MqttSubscription::subscribe(Str& topic) {
-if (isRunning())
+Handler* MqttSubscription::subscribe(Str& topic) {
+if (isRunning() || !_mqtt.isConnected())
 return 0;
 _topic = topic;
 restart();

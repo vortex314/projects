@@ -125,6 +125,7 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 				nextProp(p);
 			} else {
 				Str t(SIZE_TOPIC);
+				t << _prefix;
 				t << p->_name;
 				t << ".META";
 				Bytes msg(SIZE_MESSAGE);
@@ -168,6 +169,7 @@ bool PropMgr::dispatch(Msg& msg) {
 	SUB_PUT: {
 		sub.clear() << "PUT/" << _prefix << "#";
 		_src = _mqtt->subscribe(sub);
+		if (_src==0) goto DISCONNECTED;
 		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || !_mqtt->isConnected());
 		if (!msg.is(_src, SIG_ERC, 0, 0))
 			goto DISCONNECTED;
@@ -176,6 +178,7 @@ bool PropMgr::dispatch(Msg& msg) {
 	SUB_GET: {
 		sub.clear() << "GET/" << _prefix << "#";
 		_src = _mqtt->subscribe(sub);
+		if (_src==0) goto DISCONNECTED;
 		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || !_mqtt->isConnected());
 		if (!msg.is(_src, SIG_ERC, 0, 0))
 			goto DISCONNECTED;
