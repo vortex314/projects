@@ -77,7 +77,6 @@ void Handler::reg(Handler* hdlr)
 //       LISTENER LIST
 //_________________________________________________________________________________________________
 Handler* hdlr;
-Msg timeoutMsg = { 0, SIG_TIMEOUT, 0, 0 };
 void Handler::dispatchToChilds(Msg& msg)
 {
     Handler* hdlr;
