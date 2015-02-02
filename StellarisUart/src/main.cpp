@@ -226,7 +226,7 @@ int main(void) {
 	LedBlink ledBlink(&mqtt); // led blinks when mqtt is connected
 
 	propMgr.setMqtt(&mqtt);
-	propMgr.setPrefix("Stellaris-1/"); // should be after mqtt link, otherwise prefix doesn't get propagated
+	propMgr.setPrefix("Stellaris-2/"); // should be after setMqtt link, otherwise prefix doesn't get propagated
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines

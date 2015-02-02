@@ -197,6 +197,8 @@ bool PropMgr::dispatch(Msg& msg) {
 			_src = _mqtt->publish(_topic, _message, _cursor->_flags);
 			if (_src)
 				goto WAIT_ACK;
+			else
+				goto DISCONNECTED;
 		} else {
 			nextProp();
 		}
