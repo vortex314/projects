@@ -394,3 +394,35 @@ static void IntDefaultHandler(void) {
 		; // trap any handler not defined
 	}
 }
+
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
+#include "inc/hw_types.h"
+#include "inc/hw_i2c.h"
+#include "driverlib/gpio.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/timer.h"
+#include "driverlib/i2c.h"
+#include "utils/softi2c.h"
+#include "utils/uartstdio.h"
+ void I2C0IntHandler(void) {
+	unsigned long ulStatus;
+	ulStatus = I2CMasterIntStatus(I2C0_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntClear(I2C0_MASTER_BASE);
+}
+ void I2C1IntHandler(void) {
+	unsigned long ulStatus;
+	ulStatus = I2CMasterIntStatus(I2C1_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntClear(I2C1_MASTER_BASE);
+}
+ void I2C2IntHandler(void) {
+	unsigned long ulStatus;
+	ulStatus = I2CMasterIntStatus(I2C2_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntClear(I2C2_MASTER_BASE);
+}
+ void I2C3IntHandler(void) {
+	unsigned long ulStatus;
+	ulStatus = I2CMasterIntStatus(I2C3_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntClear(I2C3_MASTER_BASE);
+}

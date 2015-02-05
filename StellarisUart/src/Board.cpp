@@ -36,10 +36,12 @@ void Board::processorRevision(Bytes& b) {
 		uint32_t i32;
 		uint8_t b[4];
 	} v;
-	v.i32=SYSCTL_DID0_R;
-	b.write(v.b, 0, 4);
-	v.i32=SYSCTL_DID1_R;
-	b.write(v.b, 0, 4);
+	v.i32 = SYSCTL_DID0_R;
+	for (int i = 3; i >= 0; i--)
+		b.write(v.b[i]);
+	v.i32 = SYSCTL_DID1_R;
+	for (int i = 3; i >= 0; i--)
+		b.write(v.b[i]);
 }
 
 void Board::disableInterrupts() {
@@ -251,7 +253,7 @@ void AdcInit() {
 //	ADCIntDisable(ADC0_BASE, 1);
 	ADCIntEnable(ADC0_BASE, 1);
 //	IntDisable(INT_ADC0SS1);
- 	IntEnable(INT_ADC0SS1); //DISABLED
+	IntEnable(INT_ADC0SS1); //DISABLED
 	ADCSequenceEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 }
@@ -270,7 +272,7 @@ void Board::init() // initialize the board specifics
 	//
 	SysCtlClockSet(
 	SYSCTL_SYSDIV_1 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-    SysCtlDelay(16);	// can help to avoid FaultIsr I have read somewhere
+	SysCtlDelay(16);	// can help to avoid FaultIsr I have read somewhere
 	IntMasterEnable(); // Enable interrupts to the processor.
 	// Set up the period for the SysTick timer for 1 mS.
 	SysTickPeriodSet(SysCtlClockGet() / 1000);
@@ -312,7 +314,6 @@ float Board::getTemp() {
 //*****************************************************************************
 // The UART interrupt handler.
 //*****************************************************************************
-
 
 void Board::setLedOn(int32_t led, bool on) // light one of the Led's
 		{

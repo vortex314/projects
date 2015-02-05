@@ -138,9 +138,11 @@ for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
 	PT_YIELD_UNTIL(
 			msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_SUBACK, 0) || msg.is(&_mqtt._link, SIG_DISCONNECTED ) || timeout());
 	if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_SUBACK, 0)) {
-		MsgQueue::publish(this, SIG_ERC, 0, 0);
-		PT_EXIT()
-		;
+		if (((MqttIn*) msg.data)->messageId() == _messageId) {
+			MsgQueue::publish(this, SIG_ERC, 0, 0);
+			PT_EXIT()
+			;
+		}
 	} else if (msg.is(&_mqtt._link, SIG_DISCONNECTED)) {
 		MsgQueue::publish(this, SIG_ERC, ECONNABORTED, 0);
 		PT_EXIT()
@@ -258,9 +260,11 @@ sendPublish();
 timeout(TIME_WAIT_REPLY);
 PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBACK,0) || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBACK, 0)) {
-	MsgQueue::publish(this, SIG_ERC, 0, 0); //TODO check _messageId
-	PT_EXIT()
-	;
+	if (((MqttIn*) msg.data)->messageId() == _messageId) {
+		MsgQueue::publish(this, SIG_ERC, 0, 0);
+		PT_EXIT()
+		;
+	}
 }
 }
 MsgQueue::publish(this, SIG_ERC, ETIMEDOUT, 0);
@@ -273,7 +277,9 @@ sendPublish();
 timeout(TIME_WAIT_REPLY);
 PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREC,0) || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBREC, 0)) {
-	goto QOS2_COMP;
+	if (((MqttIn*) msg.data)->messageId() == _messageId) {
+		goto QOS2_COMP;
+	}
 }
 }
 MsgQueue::publish(this, SIG_ERC, ETIMEDOUT, 0);
@@ -286,9 +292,11 @@ sendPubRel();
 timeout(TIME_WAIT_REPLY);
 PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBCOMP,0) || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBCOMP, 0)) {
+	if (((MqttIn*) msg.data)->messageId() == _messageId) {
 	MsgQueue::publish(this, SIG_ERC, 0, 0);
 	PT_EXIT()
 	;
+	}
 }
 }
 MsgQueue::publish(this, SIG_ERC, ETIMEDOUT, 0);
@@ -326,47 +334,48 @@ PT_BEGIN()
 
 READY: {
 timeout(TIME_FOREVER);
-PT_YIELD_UNTIL(msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBLISH, 0) || !_mqtt.isConnected() || timeout());
+PT_YIELD_UNTIL(
+msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBLISH, 0) || !_mqtt.isConnected() || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBLISH, 0)) {
-	MqttIn* mqttIn=((MqttIn*) msg.data);
-	_topic = *mqttIn->topic();
-	_message = *mqttIn->message();
-	_messageId = mqttIn->messageId();
-	if (mqttIn->qos() == MQTT_QOS0_FLAG) {
+MqttIn* mqttIn = ((MqttIn*) msg.data);
+_topic = *mqttIn->topic();
+_message = *mqttIn->message();
+_messageId = mqttIn->messageId();
+if (mqttIn->qos() == MQTT_QOS0_FLAG) {
 
-			callBack();
-		} else if (mqttIn->qos() == MQTT_QOS1_FLAG) {
+callBack();
+} else if (mqttIn->qos() == MQTT_QOS1_FLAG) {
 
-			callBack();
-			_mqtt._mqttOut.PubAck(mqttIn->messageId());
-			_mqtt._link.send(_mqtt._mqttOut);
+callBack();
+_mqtt._mqttOut.PubAck(mqttIn->messageId());
+_mqtt._link.send(_mqtt._mqttOut);
 
-		} else if (mqttIn->qos() == MQTT_QOS2_FLAG) {
-			goto QOS2_WAIT_REL;
+} else if (mqttIn->qos() == MQTT_QOS2_FLAG) {
+goto QOS2_WAIT_REL;
 
-		}
-	} else if (!_mqtt.isConnected()) {
-		PT_EXIT()
-		;
-	}
-	goto READY;
-	}
+}
+} else if (!_mqtt.isConnected()) {
+PT_EXIT()
+;
+}
+goto READY;
+}
 QOS2_WAIT_REL: {
-	for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
-		sendPubRec();
-		timeout(TIME_WAIT_REPLY);
-		PT_YIELD_UNTIL(
-				!_mqtt.isConnected() || msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREL,0) || timeout());
-		if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBREL, 0)) {
-			callBack();
-			MqttIn* mqttIn=((MqttIn*) msg.data);
-			_mqtt._mqttOut.PubComp(mqttIn->messageId());
-			_mqtt._link.send(_mqtt._mqttOut);
-			goto READY;
-		}
-	}
-	goto READY;
-	}
+for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
+sendPubRec();
+timeout(TIME_WAIT_REPLY);
+PT_YIELD_UNTIL(
+	!_mqtt.isConnected() || msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREL,0) || timeout());
+if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBREL, 0)) {
+callBack();
+MqttIn* mqttIn = ((MqttIn*) msg.data);
+_mqtt._mqttOut.PubComp(mqttIn->messageId());
+_mqtt._link.send(_mqtt._mqttOut);
+goto READY;
+}
+}
+goto READY;
+}
 PT_END()
 }
 

@@ -217,6 +217,7 @@ public:
 extern Uart *gUart0;
 
 PropMgr propMgr;
+#include "Persistent.h"
 
 int main(void) {
 	Board::init();	// initialize usb
@@ -226,7 +227,14 @@ int main(void) {
 	LedBlink ledBlink(&mqtt); // led blinks when mqtt is connected
 
 	propMgr.setMqtt(&mqtt);
-	propMgr.setPrefix("Stellaris-2/"); // should be after setMqtt link, otherwise prefix doesn't get propagated
+	char prefix[100];
+
+
+	Persistent eeprom;
+	eeprom.put("mqtt/prefix","Stellaris-1/",sizeof("Stellaris-1/"),40);
+	eeprom.get("mqtt/prefix",prefix,sizeof(prefix));
+//	if ( !Persistent::get("prefix",prefix,sizeof(prefix))) strcpy(prefix,"Stellaris-1/");;
+//	propMgr.setPrefix("Stellaris-1/"); // should be after setMqtt link, otherwise prefix doesn't get propagated
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
