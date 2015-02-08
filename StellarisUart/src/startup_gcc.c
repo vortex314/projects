@@ -407,22 +407,18 @@ static void IntDefaultHandler(void) {
 #include "utils/softi2c.h"
 #include "utils/uartstdio.h"
  void I2C0IntHandler(void) {
-	unsigned long ulStatus;
-	ulStatus = I2CMasterIntStatus(I2C0_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntStatus(I2C0_MASTER_BASE, true); // Get the interrrupt status.
 	I2CMasterIntClear(I2C0_MASTER_BASE);
 }
  void I2C1IntHandler(void) {
-	unsigned long ulStatus;
-	ulStatus = I2CMasterIntStatus(I2C1_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntStatus(I2C1_MASTER_BASE, true); // Get the interrrupt status.
 	I2CMasterIntClear(I2C1_MASTER_BASE);
 }
  void I2C2IntHandler(void) {
-	unsigned long ulStatus;
-	ulStatus = I2CMasterIntStatus(I2C2_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntStatus(I2C2_MASTER_BASE, true); // Get the interrrupt status.
 	I2CMasterIntClear(I2C2_MASTER_BASE);
 }
  void I2C3IntHandler(void) {
-	unsigned long ulStatus;
-	ulStatus = I2CMasterIntStatus(I2C3_MASTER_BASE, true); // Get the interrrupt status.
+	I2CMasterIntStatus(I2C3_MASTER_BASE, true); // Get the interrrupt status.
 	I2CMasterIntClear(I2C3_MASTER_BASE);
 }

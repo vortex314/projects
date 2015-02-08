@@ -39,6 +39,7 @@ public:
 
 	bool get(double& d);
 	bool get(bool& bl);
+	bool get(Str& str);
 
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);

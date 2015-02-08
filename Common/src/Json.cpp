@@ -193,3 +193,20 @@ bool Json::get(bool & bl) {
 	return false;
 }
 
+bool Json::get(Str& str) {
+	jsmn_init(&parser);
+	jsmn_parse(&parser, _str.c_str(), _str.length(), tokens, 10);
+	if (tokens[0].type != JSMN_PRIMITIVE)
+		return false;
+	const char* s = _str.c_str() + tokens[0].start;
+	if ( s[tokens[0].start]=='"' && s[tokens[0].end]=='"' )
+	{
+		str.clear();
+		_str.offset(tokens[0].start);
+		for(int i=tokens[0].start;i< tokens[0].end;i++){
+			str.write(_str.read());
+		}
+	}
+	return false;
+}
+

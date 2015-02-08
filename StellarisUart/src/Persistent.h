@@ -9,24 +9,29 @@
 #define PERSISTENT_H_
 #include <stdint.h>
 
-
-
-struct {
-	char device[32];
-	uint8_t ipAddress[4];
-
-} aa;
+	enum PERS_ID {
+		PERS_0,PERS_MQTT_PREFIX, PERS_MQTT_HOST, PERS_MQTT_PORT
+	} ;
 
 class Persistent {
+private:
+	uint8_t* _flashStart;
+	uint8_t* _flashEnd;
+	uint8_t* _pageActive;
 public:
+
 	Persistent();
 	virtual ~Persistent();
 	static bool reset();
-	uint32_t readWord(uint16_t offset);
-	uint16_t find(const char*s );
-	uint16_t next(uint16_t offset);
-	bool put(const char* s, void* start, uint16_t length,uint16_t maxLength);
-	bool get(const char* s, void* start, uint16_t& length,uint16_t maxLength);
+
+	bool put(uint8_t index, uint8_t* data, uint8_t length);
+	bool get(uint8_t index, uint8_t* data, uint8_t& length);
+	bool isPageActive(uint8_t* ptr);
+	bool setPageActive(uint8_t* ptr);
+	bool findPageActive();
+	bool erasePage(uint8_t* ptr);
+	bool findTag(uint8_t tag, uint8_t** offset);
+	bool freeSpace(uint8_t** addr) ;
 };
 
 #endif /* PERSISTENT_H_ */

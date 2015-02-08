@@ -204,6 +204,43 @@ public:
 
 };
 
+#include "Persistent.h"
+
+class PropMqttPrefix: public Prop {
+public:
+	Str mqttPrefix;
+	PropMqttPrefix(const char* name) :
+			 Prop(name, (Flags )
+					{ T_STR, M_RW, T_10SEC, QOS_2, RETAIN }),mqttPrefix(20) {
+	}
+
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.get(mqttPrefix);
+		json.add(mqttPrefix);
+	}
+
+	void fromBytes(Bytes& message) {
+		Json json(message);
+		if (json.get(mqttPrefix)) {
+			Persistent pers;
+			pers.put(PERS_MQTT_PREFIX, mqttPrefix.data(), mqttPrefix.length());
+		}
+	}
+	Str& get() {
+		uint8_t length = mqttPrefix.capacity();
+		Persistent pers;
+		mqttPrefix.clear();
+		if (!pers.get(PERS_MQTT_PREFIX, mqttPrefix.data(), length))
+			mqttPrefix << "Stellaris-1/";
+		else
+			mqttPrefix.length(length);
+		return mqttPrefix;
+	}
+};
+
+PropMqttPrefix mqttPrefix("mqtt/prefix");
+
 //*****************************************************************************
 //
 // This is the main application entry function.
@@ -217,7 +254,6 @@ public:
 extern Uart *gUart0;
 
 PropMgr propMgr;
-#include "Persistent.h"
 
 int main(void) {
 	Board::init();	// initialize usb
@@ -227,14 +263,19 @@ int main(void) {
 	LedBlink ledBlink(&mqtt); // led blinks when mqtt is connected
 
 	propMgr.setMqtt(&mqtt);
-	char prefix[100];
+	/*	char prefix[100];
 
+	 #define PREFIX "pcacer_1/"
+	 Persistent clear;
+	 // clear.erasePage((uint8_t*)0x30000);
+	 // clear.put(PERS_MQTT_PREFIX,(uint8_t*)PREFIX,sizeof(PREFIX));
 
-	Persistent eeprom;
-	eeprom.put("mqtt/prefix","Stellaris-1/",sizeof("Stellaris-1/"),40);
-	eeprom.get("mqtt/prefix",prefix,sizeof(prefix));
-//	if ( !Persistent::get("prefix",prefix,sizeof(prefix))) strcpy(prefix,"Stellaris-1/");;
-//	propMgr.setPrefix("Stellaris-1/"); // should be after setMqtt link, otherwise prefix doesn't get propagated
+	 Persistent flash;
+	 uint8_t realLength = sizeof(prefix);
+	 if (flash.get(PERS_MQTT_PREFIX, (uint8_t*) prefix, realLength))
+	 strcpy(prefix, "Stellaris_1/");*/
+
+	propMgr.setPrefix(mqttPrefix.get().c_str()); // should be after setMqtt link, otherwise prefix doesn't get propagated
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
