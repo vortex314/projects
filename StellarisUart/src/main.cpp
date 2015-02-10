@@ -263,13 +263,13 @@ int main(void) {
 	LedBlink ledBlink(&mqtt); // led blinks when mqtt is connected
 
 	propMgr.setMqtt(&mqtt);
-	/*	char prefix[100];
+		char prefix[100];
 
 	 #define PREFIX "pcacer_1/"
 	 Persistent clear;
-	 // clear.erasePage((uint8_t*)0x30000);
-	 // clear.put(PERS_MQTT_PREFIX,(uint8_t*)PREFIX,sizeof(PREFIX));
-
+//	  clear.pageErase((uint8_t*)0x30000);
+	  clear.put(PERS_MQTT_PREFIX,(uint8_t*)PREFIX,sizeof(PREFIX));
+/*
 	 Persistent flash;
 	 uint8_t realLength = sizeof(prefix);
 	 if (flash.get(PERS_MQTT_PREFIX, (uint8_t*) prefix, realLength))

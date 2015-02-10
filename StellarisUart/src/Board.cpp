@@ -250,10 +250,14 @@ void AdcInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
 	ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
-//	ADCIntDisable(ADC0_BASE, 1);
+#define ADC_ON_
+#ifdef ADC_ON
 	ADCIntEnable(ADC0_BASE, 1);
-//	IntDisable(INT_ADC0SS1);
 	IntEnable(INT_ADC0SS1); //DISABLED
+#else
+	ADCIntDisable(ADC0_BASE, 1);
+	IntDisable(INT_ADC0SS1);
+#endif
 	ADCSequenceEnable(ADC0_BASE, 1);
 	ADCProcessorTrigger(ADC0_BASE, 1);
 }
@@ -273,6 +277,7 @@ void Board::init() // initialize the board specifics
 	SysCtlClockSet(
 	SYSCTL_SYSDIV_1 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
 	SysCtlDelay(16);	// can help to avoid FaultIsr I have read somewhere
+
 	IntMasterEnable(); // Enable interrupts to the processor.
 	// Set up the period for the SysTick timer for 1 mS.
 	SysTickPeriodSet(SysCtlClockGet() / 1000);
