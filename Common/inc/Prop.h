@@ -53,6 +53,8 @@ public:
 	}
 	;
 	void metaToBytes(Bytes& msg);
+	void nextToBytes(Bytes& msg);
+	void firstToBytes(Bytes& msg);
 
 	void updated();
 	bool hasToBePublished();
