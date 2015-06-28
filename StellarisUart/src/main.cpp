@@ -165,7 +165,7 @@ public:
 	LedBlink(Mqtt* mqtt) :
 			Handler("LedBlink") {
 		_isOn = false;
-		_msecInterval = 500;
+		_msecInterval = 100;
 		_mqtt = mqtt;
 	}
 
@@ -186,11 +186,11 @@ public:
 				break;
 			}
 			case SIG_CONNECTED: {
-				_msecInterval = 100;
+				_msecInterval = 500;
 				break;
 			}
 			case SIG_DISCONNECTED: {
-				_msecInterval = 500;
+				_msecInterval = 100;
 				break;
 			}
 			default: {
@@ -268,7 +268,7 @@ int main(void) {
 	 #define PREFIX "pcacer_1/"
 	 Persistent clear;
 //	  clear.pageErase((uint8_t*)0x30000);
-	  clear.put(PERS_MQTT_PREFIX,(uint8_t*)PREFIX,sizeof(PREFIX));
+//	  clear.put(PERS_MQTT_PREFIX,(uint8_t*)PREFIX,sizeof(PREFIX));
 /*
 	 Persistent flash;
 	 uint8_t realLength = sizeof(prefix);

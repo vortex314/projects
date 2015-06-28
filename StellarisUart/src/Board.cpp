@@ -250,7 +250,7 @@ void AdcInit() {
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
 	ADCSequenceStepConfigure(ADC0_BASE, 1, 3,
 	ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
-#define ADC_ON_
+#define ADC_ON
 #ifdef ADC_ON
 	ADCIntEnable(ADC0_BASE, 1);
 	IntEnable(INT_ADC0SS1); //DISABLED

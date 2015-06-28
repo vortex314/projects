@@ -72,6 +72,22 @@ void Prop::metaToBytes(Bytes& message) {
 	msg.addBreak();
 }
 
+void Prop::nextToBytes(Bytes& message) {
+	if (_next == 0)
+		return;
+	Json msg(message);
+	int r;
+	msg.add(_next->_name);
+}
+
+void Prop::firstToBytes(Bytes& message) {
+	if (_first == 0)
+		return;
+	Json msg(message);
+	int r;
+	msg.add(_first->_name);
+}
+
 #include <cstdlib>
 
 Prop* Prop::findProp(Str& name) {
@@ -127,11 +143,31 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 				Str t(SIZE_TOPIC);
 				t << _prefix;
 				t << p->_name;
-				t << ".META";
-				Bytes msg(SIZE_MESSAGE);
-				p->metaToBytes(msg);
-				_mqtt->publish(t, msg, (Flags )
-						{ T_MAP, M_READ, T_100SEC, QOS_0, NO_RETAIN });
+				if (message.equals((uint8_t*) "META", 4)) {
+					t << ".META";
+					Bytes msg(SIZE_MESSAGE);
+					p->metaToBytes(msg);
+					_mqtt->publish(t, msg, (Flags )
+							{ T_MAP, M_READ, T_100SEC, QOS_0, NO_RETAIN });
+				} else if (message.equals((uint8_t*) "NEXT", 4)) {
+					Str t(SIZE_TOPIC);
+					t << _prefix;
+					t << p->_name;
+					t << ".NEXT";
+					Bytes msg(SIZE_MESSAGE);
+					p->nextToBytes(msg);
+					_mqtt->publish(t, msg, (Flags )
+							{ T_MAP, M_READ, T_100SEC, QOS_0, NO_RETAIN });
+				} else if (message.equals((uint8_t*) "FIRST", 5)) {
+					Str t(SIZE_TOPIC);
+					t << _prefix;
+					t << p->_name;
+					t << ".FIRST";
+					Bytes msg(SIZE_MESSAGE);
+					p->firstToBytes(msg);
+					_mqtt->publish(t, msg, (Flags )
+							{ T_MAP, M_READ, T_100SEC, QOS_0, NO_RETAIN });
+				}
 			}
 		}
 
@@ -169,7 +205,8 @@ bool PropMgr::dispatch(Msg& msg) {
 	SUB_PUT: {
 		sub.clear() << "PUT/" << _prefix << "#";
 		_src = _mqtt->subscribe(sub);
-		if (_src==0) goto DISCONNECTED;
+		if (_src == 0)
+			goto DISCONNECTED;
 		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || !_mqtt->isConnected());
 		if (!msg.is(_src, SIG_ERC, 0, 0))
 			goto DISCONNECTED;
@@ -178,7 +215,8 @@ bool PropMgr::dispatch(Msg& msg) {
 	SUB_GET: {
 		sub.clear() << "GET/" << _prefix << "#";
 		_src = _mqtt->subscribe(sub);
-		if (_src==0) goto DISCONNECTED;
+		if (_src == 0)
+			goto DISCONNECTED;
 		PT_YIELD_UNTIL(msg.is(_src, SIG_ERC) || !_mqtt->isConnected());
 		if (!msg.is(_src, SIG_ERC, 0, 0))
 			goto DISCONNECTED;
