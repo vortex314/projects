@@ -109,7 +109,7 @@ void USBD_static_free(void *p);
                             printf(__VA_ARGS__);\
                             printf("\n");
 #else
-#define USBD_ErrLog(...)   
+#define USBD_ErrLog(...)   while(1)
 #endif 
                             
                             
@@ -118,7 +118,7 @@ void USBD_static_free(void *p);
                             printf(__VA_ARGS__);\
                             printf("\n");
 #else
-#define USBD_DbgLog(...)                         
+#define USBD_DbgLog(...)      while(1)
 #endif
                             
 /**

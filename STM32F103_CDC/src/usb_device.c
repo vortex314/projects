@@ -51,8 +51,16 @@ void MX_USB_DEVICE_Init(void) {
 	 PA11     ------> USB_OTG_FS_DM
 	 PA12     ------> USB_OTG_FS_DP
 	 */
+	__GPIOA_CLK_ENABLE(); // LMR
 	GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_HIGH; /*GPIO_SPEED_LOW*/
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	__GPIOA_CLK_ENABLE(); // LMR DISCONNECT PIN
+	GPIO_InitStruct.Pin = GPIO_PIN_8 ;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_HIGH; /*GPIO_SPEED_LOW*/
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
