@@ -12,16 +12,29 @@
 #ifdef __cplusplus
 #include <CircBuf.h>
 #include <Handler.h>
-class Usb {
+#include <Link.h>
+#include <MqttIn.h>
+class Usb : public Link {
 public:
 	Usb();
 	virtual ~Usb();
 	bool _isConnected;
-	CircBuf _txData;
-	CircBuf _rxData;
-
+	MqttIn _mqttIn;
+	CircBuf _out;
+	CircBuf _in;
+	Handler* _device;
+	static void init();
+	void reset();
+	Erc connect();
+	Erc disconnect();
+	Erc send(Bytes& bytes);
+	Erc recv(Bytes& bytes);
+	uint8_t read();
+	uint32_t hasData();
+	bool dispatch(Msg& event) ;
 };
 #endif
+// calleable from C code and interrupt routines
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,5 +46,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif /* SRC_USB_H_ */

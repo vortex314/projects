@@ -42,12 +42,12 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 ErrorStatus HSEStartUpStatus;
-USART_InitTypeDef USART_InitStructure;
+// USART_InitTypeDef USART_InitStructure;
 EXTI_InitTypeDef EXTI_InitStructure;
-uint8_t  USART_Rx_Buffer [USART_RX_DATA_SIZE]; 
-uint32_t USART_Rx_ptr_in = 0;
-uint32_t USART_Rx_ptr_out = 0;
-uint32_t USART_Rx_length  = 0;
+// uint8_t  USART_Rx_Buffer [USART_RX_DATA_SIZE];
+// uint32_t USART_Rx_ptr_in = 0;
+// uint32_t USART_Rx_ptr_out = 0;
+// uint32_t USART_Rx_length  = 0;
 
 uint8_t  USB_Tx_State = 0;
 static void IntToUnicode (uint32_t value , uint8_t *pbuf , uint8_t len);
@@ -301,18 +301,18 @@ void USB_Cable_Config (FunctionalState NewState)
 * Description    :  configure the EVAL_COM1 with default values.
 * Input          :  None.
 * Return         :  None.
-*******************************************************************************/
+*******************************************************************************
 void USART_Config_Default(void)
 {
-  /* EVAL_COM1 default configuration */
-  /* EVAL_COM1 configured as follow:
-        - BaudRate = 9600 baud  
-        - Word Length = 8 Bits
-        - One Stop Bit
-        - Parity Odd
-        - Hardware flow control disabled
-        - Receive and transmit enabled
-  */
+  // EVAL_COM1 default configuration *
+  // EVAL_COM1 configured as follow:
+  //      - BaudRate = 9600 baud
+   //     - Word Length = 8 Bits
+    //    - One Stop Bit
+  //      - Parity Odd
+  //      - Hardware flow control disabled
+  //      - Receive and transmit enabled
+
   USART_InitStructure.USART_BaudRate = 9600;
   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
   USART_InitStructure.USART_StopBits = USART_StopBits_1;
@@ -320,12 +320,12 @@ void USART_Config_Default(void)
   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 
-  /* Configure and enable the USART */
+  // Configure and enable the USART
   STM_EVAL_COMInit(COM1, &USART_InitStructure);
 
-  /* Enable the USART Receive interrupt */
+  // Enable the USART Receive interrupt
   USART_ITConfig(EVAL_COM1, USART_IT_RXNE, ENABLE);
-}
+} */
 
 /*******************************************************************************
 * Function Name  :  USART_Config.
@@ -334,11 +334,11 @@ void USART_Config_Default(void)
 * Return         :  Configuration status
                     TRUE : configuration done with success
                     FALSE : configuration aborted.
-*******************************************************************************/
+*******************************************************************************
 bool USART_Config(void)
 {
 
-  /* set the Stop bit*/
+  // set the Stop bit
   switch (linecoding.format)
   {
     case 0:
@@ -357,7 +357,7 @@ bool USART_Config(void)
     }
   }
 
-  /* set the parity bit*/
+  // set the parity bit
   switch (linecoding.paritytype)
   {
     case 0:
@@ -376,11 +376,11 @@ bool USART_Config(void)
     }
   }
 
-  /*set the data type : only 8bits and 9bits is supported */
+  // set the data type : only 8bits and 9bits is supported
   switch (linecoding.datatype)
   {
     case 0x07:
-      /* With this configuration a parity (Even or Odd) should be set */
+      // With this configuration a parity (Even or Odd) should be set
       USART_InitStructure.USART_WordLength = USART_WordLength_8b;
       break;
     case 0x08:
@@ -405,11 +405,11 @@ bool USART_Config(void)
   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
  
-  /* Configure and enable the USART */
+  // Configure and enable the USART
   STM_EVAL_COMInit(COM1, &USART_InitStructure);
 
   return (TRUE);
-}
+}*/
 
 /*******************************************************************************
 * Function Name  : USB_To_USART_Send_Data.
@@ -418,7 +418,7 @@ bool USART_Config(void)
                    Nb_bytes: number of bytes to send.
 * Return         : none.
 *******************************************************************************/
-void USB_To_USART_Send_Data(uint8_t* data_buffer, uint8_t Nb_bytes)
+/*void USB_To_USART_Send_Data(uint8_t* data_buffer, uint8_t Nb_bytes)
 {
   
   uint32_t i;
@@ -428,7 +428,7 @@ void USB_To_USART_Send_Data(uint8_t* data_buffer, uint8_t Nb_bytes)
     USART_SendData(EVAL_COM1, *(data_buffer + i));
     while(USART_GetFlagStatus(EVAL_COM1, USART_FLAG_TXE) == RESET); 
   }  
-}
+}*/
 
 /*******************************************************************************
 * Function Name  : Handle_USBAsynchXfer.
@@ -505,7 +505,7 @@ void Handle_USBAsynchXfer (void)
 * Input          : None.
 * Return         : none.
 *******************************************************************************/
-void USART_To_USB_Send_Data(void)
+/* void USART_To_USB_Send_Data(void)
 {
   
   if (linecoding.datatype == 7)
@@ -519,12 +519,12 @@ void USART_To_USB_Send_Data(void)
   
   USART_Rx_ptr_in++;
   
-  /* To avoid buffer overflow */
+  // To avoid buffer overflow
   if(USART_Rx_ptr_in == USART_RX_DATA_SIZE)
   {
     USART_Rx_ptr_in = 0;
   }
-}
+}*/
 
 /*******************************************************************************
 * Function Name  : Get_SerialNum.

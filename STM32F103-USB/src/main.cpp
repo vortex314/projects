@@ -48,22 +48,37 @@
  * Return         : None.
  *******************************************************************************/
 extern "C" void initBoard();
+
+#include "Timer.h"
+#include "Msg.h"
+#include "Handler.h"
 #include "Usb.h"
+#include "Mqtt.h"
+
 extern Usb usb;
+
 int main(void) {
-	/*  Set_System();
-	 Set_USBClock();
-	 USB_Interrupts_Config();
-	 int i,j;
-	 for(i=0;i<100000;i++)
-	 for(j=0;j<10;j++);
-	 USB_Init();
-	 */
 	initBoard();
-	uint8_t ch;
-	for (ch = 'A'; ch < 'Z'; ch++)
-		usb._txData.write(ch);
+
+	Mqtt mqtt(usb);
+
+	uint64_t clock = Sys::upTime() + 100;
+	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
+	Msg msg;
+
 	while (1) {
+		if (Sys::upTime() > clock) {
+			clock += 10;		// 10 msec timer tick
+			MsgQueue::publish(0, SIG_TICK, 0, 0); // check timeouts every 10 msec
+		}
+		if (usb.hasData())	// if UART has received data alert uart receiver
+			MsgQueue::publish(&usb, SIG_START);
+		// _________________________________________________________________handle all queued messages
+		while (MsgQueue::get(msg)) {
+			Handler::dispatchToChilds(msg);
+
+		}
+
 	}
 }
 #ifdef USE_FULL_ASSERT

@@ -182,20 +182,20 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void EVAL_COM1_IRQHandler(void)
+/*void EVAL_COM1_IRQHandler(void)
 {
   if (USART_GetITStatus(EVAL_COM1, USART_IT_RXNE) != RESET)
   {
-    /* Send the received data to the PC Host*/
+    // Send the received data to the PC Host
     USART_To_USB_Send_Data();
   }
 
-  /* If overrun condition occurs, clear the ORE flag and recover communication */
+  // If overrun condition occurs, clear the ORE flag and recover communication
   if (USART_GetFlagStatus(EVAL_COM1, USART_FLAG_ORE) != RESET)
   {
     (void)USART_ReceiveData(EVAL_COM1);
   }
-}
+} */
 
 /*******************************************************************************
 * Function Name  : USB_FS_WKUP_IRQHandler
