@@ -189,6 +189,7 @@ uint32_t Usb::hasData()
         logger.level(Logger::WARN).perror("ioctl() ");
         logger.flush();
         isConnected(false);
+        MsgQueue::publish(0,SIG_DISCONNECTED,_fd,0);
         return 0;
     }
     return count;

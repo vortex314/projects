@@ -130,7 +130,15 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
 
 MqttIn mqttIn(new Bytes(256));
 MqttOut mqttOut(256);
+/*_______________________________________________________________________________
 
+Gateway role :
+    - takes usb/tcp input message and send to tcp/usb
+    - if connection request from usb , check if tcp is already open and send dummy connect_ok
+    - msg.data points to a parsed MqttIn structure
+    - if usb messages ( other then connect ) are received when tcp is not connected, they are discarded
+    - if connect is received and tcp is not yet connected, make a connection on tcp
+________________________________________________________________________________*/
 
 class Gateway : public Handler
 {
@@ -206,11 +214,18 @@ public:
         PT_END (  );
     }
 };
+/*_______________________________________________________________________________
+
+UsbConnection  role :
+    - establish usb connection ( repeat on failure with intermediary sleep )
+    - wait for usb disconnection -> disconnect tcp
+________________________________________________________________________________*/
 
 class UsbConnection : public Handler
 {
 private:
     MqttOut msg;
+    uint32_t _sleepTime;
 public:
 
     UsbConnection (  ) :msg(256)
@@ -223,8 +238,12 @@ public:
         PT_BEGIN (  );
         while(true)
         {
-            usb.connect();
-            PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0) );
+            while ( usb.connect() != E_OK ) {
+                _sleepTime=0;
+                PT_YIELD_UNTIL ( msg.is(0,SIG_TICK,0,0) && _sleepTime++>1000) ;
+            }
+
+            PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0)  || msg.is(0,SIG_DISCONNECTED,usb.fd(),0));
             tcp.disconnect();
         }
         PT_END (  );
@@ -232,7 +251,15 @@ public:
 
 };
 
+/*_______________________________________________________________________________
 
+loadOptions  role :
+    - parse commandline otions
+    h : host of mqtt server
+    p : port
+    d : the serial device "/dev/ttyACM*"
+    b : the baudrate set ( only usefull for a usb2serial box or a real serial port )
+________________________________________________________________________________*/
 
 #include "Tcp.h"
 

@@ -66,6 +66,7 @@
 		<Unit filename="include/MqttHandler.h" />
 		<Unit filename="include/Signal.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="../StellarisUart/src/Flags.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
