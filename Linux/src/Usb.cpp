@@ -207,7 +207,7 @@ bool Usb::dispatch(Msg& msg)
         logger.level(Logger::WARN) << " error occured. Reconnecting.";
         logger.flush();
         disconnect();
-        connect();
+//        connect();
         return 0;
     }
     PT_BEGIN ( );
@@ -225,6 +225,8 @@ bool Usb::dispatch(Msg& msg)
                     b=read();
                     inBuffer.write(b);
                 }
+                logger.level(Logger::DEBUG)<< "recvd: " << inBuffer.size() << " bytes.";
+                        logger.flush();
                 while( inBuffer.hasData() )
                 {
                     if ( _inBytes.Feed(inBuffer.read()))

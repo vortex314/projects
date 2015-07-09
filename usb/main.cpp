@@ -69,7 +69,7 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     if ( tcpFd )  FD_SET(tcpFd,&efds);
 
     /* Wait up to 1000 msec. */
-    uint64_t delta=1000;
+    uint64_t delta=1;
     if ( sleepTill > Sys::upTime())
     {
         delta = sleepTill- Sys::upTime();
@@ -117,14 +117,14 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     {
         //TODO publish TIMER_TICK
         MsgQueue::publish(0,SIG_TICK,0,0);
-        strEvents << " TIM_OUT ";
+        strEvents << " SIG_TICK ";
 
     }
     uint64_t waitTime=Sys::upTime()-start;
     if ( waitTime > 1 )
     {
-        logger.info() << "waited " << waitTime << " / "<< delta << " msec." << strEvents ;
-        logger.flush();
+//        logger.info() << "waited " << waitTime << " / "<< delta << " msec." << strEvents ;
+//        logger.flush();
     }
 }
 
@@ -225,7 +225,7 @@ class UsbConnection : public Handler
 {
 private:
     MqttOut msg;
-    uint32_t _sleepTime;
+    uint64_t wakeTime;
 public:
 
     UsbConnection (  ) :msg(256)
@@ -239,8 +239,8 @@ public:
         while(true)
         {
             while ( usb.connect() != E_OK ) {
-                _sleepTime=0;
-                PT_YIELD_UNTIL ( msg.is(0,SIG_TICK,0,0) && _sleepTime++>1000) ;
+                wakeTime=Sys::upTime()+5000;
+                PT_YIELD_UNTIL ( wakeTime < Sys::upTime()) ;
             }
 
             PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0)  || msg.is(0,SIG_DISCONNECTED,usb.fd(),0));
@@ -324,6 +324,8 @@ void interceptAllSignals()
 
 extern bool testBytes();
 
+#define TIMER_TICK 1000
+
 int main(int argc, char *argv[] )
 {
 
@@ -342,13 +344,13 @@ int main(int argc, char *argv[] )
 
     UsbConnection usbConnection;
     Gateway gtw(&usb,&tcp);
-    uint64_t sleepTill=Sys::upTime()+1000;
+    uint64_t sleepTill=Sys::upTime()+TIMER_TICK;
     MsgQueue::publish(0,SIG_INIT);
     Msg msg;
     while(true)
     {
         poller(usb.fd(),tcp.fd(),sleepTill);
-        sleepTill = Sys::upTime()+100000;
+        sleepTill = Sys::upTime()+TIMER_TICK; // was 100000
         while (MsgQueue::get(msg)) {
 			Handler::dispatchToChilds(msg);
 		}
