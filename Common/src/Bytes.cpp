@@ -228,6 +228,14 @@ void Bytes::clear() {
 	_limit = 0;
 }
 
+bool Bytes::equals(const uint8_t* pb,uint32_t length){
+	if ( length != _limit ) return false;
+	for(uint32_t i=0;i<length;i++){
+		if ( _start[i] != pb[i]) return false;
+	}
+	return true;
+}
+
 //PUBLIC
 //_________________________________________________________________________
 

@@ -27,8 +27,6 @@ public:
 	}
 };
 
-
-
 class HardwareTopic: public Prop {
 public:
 	HardwareTopic() :
@@ -53,8 +51,6 @@ public:
 	}
 };
 
-
-
 class UptimeTopic: public Prop {
 public:
 	UptimeTopic() :
@@ -67,7 +63,6 @@ public:
 		json.add(Sys::upTime());
 	}
 };
-
 
 static uint64_t bootTime;
 class RealTimeTopic: public Prop {
@@ -92,8 +87,6 @@ public:
 		}
 	}
 };
-
-
 
 class SystemOnlineTopic: public Prop {
 public:
@@ -143,14 +136,14 @@ public:
 
 	void fromBytes(Bytes& message) {
 		Json json(message);
-		 bool bl;
-		 if (json.get(bl)) {
-		 _value = bl;
-		 if (bl)
-		 GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
-		 else
-		 GPIOPinWrite(_gpio_port, _gpio_pin, 0);
-		 }
+		bool bl;
+		if (json.get(bl)) {
+			_value = bl;
+			if (bl)
+				GPIOPinWrite(_gpio_port, _gpio_pin, _gpio_pin);
+			else
+				GPIOPinWrite(_gpio_port, _gpio_pin, 0);
+		}
 	}
 	void toBytes(Bytes& message) {
 		Json json(message);
@@ -167,14 +160,13 @@ GpioOutTopic gpioF3("GPIO/F3", GPIO_PORTF_BASE, GPIO_PIN_3);
 class LedBlink: public Handler {
 	bool _isOn;
 	uint32_t _msecInterval;
-	Link* _link;
+	Mqtt* _mqtt;
 public:
-	LedBlink(Link* link) :
+	LedBlink(Mqtt* mqtt) :
 			Handler("LedBlink") {
 		_isOn = false;
-		_msecInterval = 500;
-		_link = link;
-
+		_msecInterval = 100;
+		_mqtt = mqtt;
 	}
 
 	virtual ~LedBlink() {
@@ -182,33 +174,72 @@ public:
 
 	bool dispatch(Msg& msg) {
 		PT_BEGIN()
-			while (true) {
-				timeout(_msecInterval);
-				PT_YIELD_UNTIL(	msg.is(_link, SIG_CONNECTED | SIG_DISCONNECTED)
-								|| timeout());
-				switch (msg.signal) {
-				case SIG_TIMEOUT: {
-					Board::setLedOn(Board::LED_GREEN, _isOn);
-					_isOn = !_isOn;
-					break;
-				}
-				case SIG_CONNECTED: {
-					_msecInterval = 100;
-					break;
-				}
-				case SIG_DISCONNECTED: {
-					_msecInterval = 500;
-					break;
-				}
-				default: {
-				}
-				}
-
+		while (true) {
+			timeout(_msecInterval);
+			PT_YIELD_UNTIL(
+					msg.is(_mqtt, SIG_CONNECTED)
+							|| msg.is(_mqtt, SIG_DISCONNECTED) || timeout());
+			switch (msg.signal) {
+			case SIG_TICK: {
+				Board::setLedOn(Board::LED_GREEN, _isOn);
+				_isOn = !_isOn;
+				break;
 			}
-		PT_END();
+			case SIG_CONNECTED: {
+				_msecInterval = 500;
+				break;
+			}
+			case SIG_DISCONNECTED: {
+				_msecInterval = 100;
+				break;
+			}
+			default: {
+			}
+			}
+
+		}
+	PT_END()
+	;
 }
 
 };
+
+#include "Persistent.h"
+
+class PropMqttPrefix: public Prop {
+public:
+	Str mqttPrefix;
+	PropMqttPrefix(const char* name) :
+			 Prop(name, (Flags )
+					{ T_STR, M_RW, T_10SEC, QOS_2, RETAIN }),mqttPrefix(20) {
+	}
+
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.get(mqttPrefix);
+		json.add(mqttPrefix);
+	}
+
+	void fromBytes(Bytes& message) {
+		Json json(message);
+		if (json.get(mqttPrefix)) {
+			Persistent pers;
+			pers.put(PERS_MQTT_PREFIX, mqttPrefix.data(), mqttPrefix.length());
+		}
+	}
+	Str& get() {
+		uint8_t length = mqttPrefix.capacity();
+		Persistent pers;
+		mqttPrefix.clear();
+		if (!pers.get(PERS_MQTT_PREFIX, mqttPrefix.data(), length))
+			mqttPrefix << "Stellaris-1/";
+		else
+			mqttPrefix.length(length);
+		return mqttPrefix;
+	}
+};
+
+PropMqttPrefix mqttPrefix("mqtt/prefix");
 
 //*****************************************************************************
 //
@@ -228,13 +259,23 @@ int main(void) {
 	Board::init();	// initialize usb
 	Uart::init();
 
-	LedBlink ledBlink(gUart0);
-
 	Mqtt mqtt(*gUart0);	// mqtt active object
+	LedBlink ledBlink(&mqtt); // led blinks when mqtt is connected
 
-
-	propMgr.setPrefix("Stellaris-1/");
 	propMgr.setMqtt(&mqtt);
+		char prefix[100];
+
+	 #define PREFIX "pcacer_1/"
+	 Persistent clear;
+//	  clear.pageErase((uint8_t*)0x30000);
+//	  clear.put(PERS_MQTT_PREFIX,(uint8_t*)PREFIX,sizeof(PREFIX));
+/*
+	 Persistent flash;
+	 uint8_t realLength = sizeof(prefix);
+	 if (flash.get(PERS_MQTT_PREFIX, (uint8_t*) prefix, realLength))
+	 strcpy(prefix, "Stellaris_1/");*/
+
+	propMgr.setPrefix(mqttPrefix.get().c_str()); // should be after setMqtt link, otherwise prefix doesn't get propagated
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines

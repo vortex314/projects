@@ -16,7 +16,7 @@ typedef enum Signal {
 	SIG_INIT = 1 << 0,
 	SIG_IDLE = 1 << 1,
 	SIG_ERC = 1 << 2,
-	SIG_TIMEOUT = 1 << 3,
+//	SIG_TIMEOUT = 1 << 3,
 	SIG_TICK = 1 << 4,
 	SIG_CONNECTED = 1 << 5,
 	SIG_DISCONNECTED = 1 << 6,
