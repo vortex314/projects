@@ -39,6 +39,7 @@ public:
 	bool is(Handler * src, int sigMask, int param, void* data);
 	bool is(Handler * src, int sigMask);
 	bool is(Handler * src, Signal signal);
+	Signal sig();
 };
 
 class MsgQueue {

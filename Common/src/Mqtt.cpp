@@ -324,7 +324,7 @@ timeout(TIME_WAIT_REPLY);
 extern PropMgr propMgr;
 
 void MqttSubscriber::callBack() {
-propMgr.onPublish(_topic, _message);
+// propMgr.onPublish(_topic, _message);
 }
 
 // #define PT_WAIT_FOR( ___pt, ___signals, ___timeout ) listen(___signals,___timeout);PT_YIELD(___pt);

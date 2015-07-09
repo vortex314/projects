@@ -27,6 +27,7 @@ public:
 //	static const int CONNECTED, DISCONNECTED, RXD, MQTT_MESSAGE, FREE;
 	CircBuf _out;
 	CircBuf _in;
+	void* _device;
 	Usb();
 	static void init();
 	void reset();

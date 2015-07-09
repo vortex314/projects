@@ -54,6 +54,10 @@ bool Msg::is(Handler* src,Signal signal)
 	return false;
 }
 
+Signal Msg::sig(){
+	return this->signal;
+}
+
 void MsgQueue::publish(Handler* src, Signal signal, int param, void* data)
 {
 	Msg msg =

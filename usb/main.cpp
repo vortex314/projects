@@ -69,7 +69,7 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     if ( tcpFd )  FD_SET(tcpFd,&efds);
 
     /* Wait up to 1000 msec. */
-    uint64_t delta=1000;
+    uint64_t delta=1;
     if ( sleepTill > Sys::upTime())
     {
         delta = sleepTill- Sys::upTime();
@@ -117,20 +117,28 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     {
         //TODO publish TIMER_TICK
         MsgQueue::publish(0,SIG_TICK,0,0);
-        strEvents << " TIM_OUT ";
+        strEvents << " SIG_TICK ";
 
     }
     uint64_t waitTime=Sys::upTime()-start;
     if ( waitTime > 1 )
     {
-        logger.info() << "waited " << waitTime << " / "<< delta << " msec." << strEvents ;
-        logger.flush();
+//        logger.info() << "waited " << waitTime << " / "<< delta << " msec." << strEvents ;
+//        logger.flush();
     }
 }
 
 MqttIn mqttIn(new Bytes(256));
 MqttOut mqttOut(256);
+/*_______________________________________________________________________________
 
+Gateway role :
+    - takes usb/tcp input message and send to tcp/usb
+    - if connection request from usb , check if tcp is already open and send dummy connect_ok
+    - msg.data points to a parsed MqttIn structure
+    - if usb messages ( other then connect ) are received when tcp is not connected, they are discarded
+    - if connect is received and tcp is not yet connected, make a connection on tcp
+________________________________________________________________________________*/
 
 class Gateway : public Handler
 {
@@ -206,11 +214,18 @@ public:
         PT_END (  );
     }
 };
+/*_______________________________________________________________________________
+
+UsbConnection  role :
+    - establish usb connection ( repeat on failure with intermediary sleep )
+    - wait for usb disconnection -> disconnect tcp
+________________________________________________________________________________*/
 
 class UsbConnection : public Handler
 {
 private:
     MqttOut msg;
+    uint64_t wakeTime;
 public:
 
     UsbConnection (  ) :msg(256)
@@ -223,8 +238,12 @@ public:
         PT_BEGIN (  );
         while(true)
         {
-            usb.connect();
-            PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0) );
+            while ( usb.connect() != E_OK ) {
+                wakeTime=Sys::upTime()+5000;
+                PT_YIELD_UNTIL ( wakeTime < Sys::upTime()) ;
+            }
+
+            PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0)  || msg.is(0,SIG_DISCONNECTED,usb.fd(),0));
             tcp.disconnect();
         }
         PT_END (  );
@@ -232,7 +251,15 @@ public:
 
 };
 
+/*_______________________________________________________________________________
 
+loadOptions  role :
+    - parse commandline otions
+    h : host of mqtt server
+    p : port
+    d : the serial device "/dev/ttyACM*"
+    b : the baudrate set ( only usefull for a usb2serial box or a real serial port )
+________________________________________________________________________________*/
 
 #include "Tcp.h"
 
@@ -297,6 +324,8 @@ void interceptAllSignals()
 
 extern bool testBytes();
 
+#define TIMER_TICK 1000
+
 int main(int argc, char *argv[] )
 {
 
@@ -315,13 +344,13 @@ int main(int argc, char *argv[] )
 
     UsbConnection usbConnection;
     Gateway gtw(&usb,&tcp);
-    uint64_t sleepTill=Sys::upTime()+1000;
+    uint64_t sleepTill=Sys::upTime()+TIMER_TICK;
     MsgQueue::publish(0,SIG_INIT);
     Msg msg;
     while(true)
     {
         poller(usb.fd(),tcp.fd(),sleepTill);
-        sleepTill = Sys::upTime()+100000;
+        sleepTill = Sys::upTime()+TIMER_TICK; // was 100000
         while (MsgQueue::get(msg)) {
 			Handler::dispatchToChilds(msg);
 		}
