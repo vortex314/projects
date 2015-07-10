@@ -73,7 +73,7 @@ int main(void) {
 			MsgQueue::publish(0, SIG_TICK, 0, 0); // check timeouts every 10 msec
 		}
 		if (usb.hasData())	// if UART has received data alert uart receiver
-			MsgQueue::publish(&usb, SIG_START);
+			MsgQueue::publish(&usb, SIG_RXD);
 		// _________________________________________________________________handle all queued messages
 		while (MsgQueue::get(msg)) {
 			Handler::dispatchToChilds(msg);

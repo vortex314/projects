@@ -154,8 +154,10 @@ void PendSV_Handler(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
+extern void SysTickIntHandler();
 void SysTick_Handler(void)
 {
+	SysTickIntHandler();
 }
 
 /*******************************************************************************

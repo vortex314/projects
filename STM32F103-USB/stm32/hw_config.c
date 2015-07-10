@@ -58,10 +58,15 @@ extern LINE_CODING linecoding;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 void initBoard(){
+	  int i,j;
+	USB_Cable_Config(DISABLE);
+	for(i=0;i<100000;i++)
+			  for(j=0;j<10;j++);
+	USB_Cable_Config(ENABLE);
 	Set_System();
 	  Set_USBClock();
 	  USB_Interrupts_Config();
-	  int i,j;
+
 	  for(i=0;i<100000;i++)
 		  for(j=0;j<10;j++);
 	  USB_Init();

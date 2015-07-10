@@ -201,7 +201,7 @@ Str& Str::append(double d) {
 	for (i = 0; i < decpt; i++)
 		append(buf[i]);
 	append('.');
-	for (int j = 0; (j + i < strlen(buf)) && j < 6; j++)
+	for (uint32_t j = 0; (j + i < strlen(buf)) && j < 6; j++)
 		append(buf[j + i]);
 	return *this;
 }
