@@ -17,11 +17,49 @@ void * operator new[](size_t size) {
 void operator delete[](void * ptr) {
 	free(ptr);
 }
-/*void *__dso_handle = 0;
-void _init(){
+void *__dso_handle = 0;
+extern "C" void _init() {
+//	while(1);
 
-}*/
+}
 #endif
+
+typedef char *caddr_t;
+
+extern "C" caddr_t _sbrk(int incr)
+{
+	extern char end asm("__malloc_start");
+	extern char _estack;
+#define MAX_STACK_SIZE 0x400
+	static char *heap_end;
+	char *prev_heap_end;
+
+	if (heap_end == 0)
+		heap_end = &end;
+
+	prev_heap_end = heap_end;
+
+#ifdef FreeRTOS
+	/* Use the NVIC offset register to locate the main stack pointer. */
+	min_stack_ptr = (char*)(*(unsigned int *)*(unsigned int *)0xE000ED08);
+	/* Locate the STACK bottom address */
+	min_stack_ptr -= MAX_STACK_SIZE;
+
+	if (heap_end + incr > min_stack_ptr)
+#else
+	if (heap_end + incr > (&_estack - MAX_STACK_SIZE))
+#endif
+	{
+//		write(1, "Heap and stack collision\n", 25);
+//		abort();
+		errno = ENOMEM;
+		return (caddr_t) -1;
+	}
+
+	heap_end += incr;
+
+	return (caddr_t) prev_heap_end;
+}
 
 /* A replacement malloc with:
  - Much reduced code size;
@@ -154,27 +192,25 @@ register void * stack_pointer asm ("r15");
    : sz + sizeof (size_t) + M_ALIGN(sz, sizeof (size_t)))
 
 #ifdef DEFINE_MALLOC
-
+//====================================================================================
 uint64_t m_count_called = 0;
 extern uint32_t __malloc_start;
 extern uint32_t _end;
 fle __malloc_end = (fle) (&__malloc_start);
-
+//====================================================================================
 // void * __malloc_end = &_end;
 fle __malloc_freelist;
-#include "Prop.h"
+// #include "Prop.h" ASSERT(!isInterrupt());
+extern bool isInterrupt();
 
 void *
-malloc(size_t sz) {
+malloc_old(size_t sz) {
 	fle *nextfree;
 	fle block;
 
 	/* real_size is the size we actually have to allocate, allowing for
 	 overhead and alignment.  */
 	size_t real_size = REAL_SIZE(sz);
-	m_count_called++;
-//	if (m_count_called > 50)
-//		Sys::warn(E2BIG, "malloc");
 
 	/* Look for the first block on the freelist that is large enough.  */
 	for (nextfree = &__malloc_freelist; *nextfree; nextfree =
@@ -207,9 +243,9 @@ malloc(size_t sz) {
 
 			*nextfree = NULL;
 			if (MALLOC_DIRECTION < 0) {
-				block = __malloc_end = (fle) ((size_t) block - moresize);
+				block = __malloc_end = (fle) (void *) ((size_t) block - moresize);
 			} else {
-				__malloc_end = (fle) ((size_t) block + real_size);
+				__malloc_end = (fle) (void *) ((size_t) block + real_size);
 			}
 
 			goto done;
@@ -223,10 +259,10 @@ malloc(size_t sz) {
 		return NULL;
 
 	if (MALLOC_DIRECTION > 0) {
-		block = (fle) (__malloc_end);
-		__malloc_end = (fle) ((size_t) __malloc_end + real_size);
+		block = __malloc_end;
+		__malloc_end = (fle) (void *) ((size_t) __malloc_end + real_size);
 	} else {
-		block = __malloc_end = (fle) ((size_t) __malloc_end - real_size);
+		block = __malloc_end = (fle) (void *) ((size_t) __malloc_end - real_size);
 	}
 	done: block->size = real_size;
 	return (void *) &block->next;
@@ -236,14 +272,13 @@ malloc(size_t sz) {
 
 #ifdef DEFINE_FREE
 
-void free(void *block_p) {
+void free_old(void *block_p) {
 	fle *nextfree;
-
 	fle block = (fle) ((size_t) block_p - offsetof(struct freelist_entry, next));
 
 	if (block_p == NULL)
 		return;
-	m_count_called--;
+
 	/* Look on the freelist to see if there's a free block just before
 	 or just after this block.  */
 	for (nextfree = &__malloc_freelist; *nextfree; nextfree =

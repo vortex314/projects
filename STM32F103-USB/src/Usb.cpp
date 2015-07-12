@@ -8,10 +8,15 @@
 #include "Usb.h"
 
 Usb usb;
+class UsbDevice : public Handler {
+	bool dispatch(Msg& event){
+		return true;
+	}
+
+};
 Usb::Usb() :
 		_mqttIn(100), _out(100), _in(100) {
-	_isConnected = false;
-	_device = (Handler*) malloc(1);
+	_device = new UsbDevice();
 }
 
 Usb::~Usb() {
@@ -115,7 +120,7 @@ void onUsbRxData(uint8_t* pData, uint32_t length) {
 	MsgQueue::publish(usb._device, SIG_RXD);
 }
 uint32_t usbTxDataSize() {
-	if (!usb._isConnected)
+	if (!usb.isConnected())
 		return 0;
 	return usb._out.size();
 }

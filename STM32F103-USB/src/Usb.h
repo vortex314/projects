@@ -19,7 +19,6 @@ class Usb : public Link {
 public:
 	Usb();
 	virtual ~Usb();
-	bool _isConnected;
 	MqttIn _mqttIn;
 	CircBuf _out;
 	CircBuf _in;

@@ -15,13 +15,17 @@ extern "C" void SysTickIntHandler(void) {
 	Sys::_upTime++;
 }
 
-uint64_t Sys::_upTime=0;
-
-uint64_t Sys::upTime(){
+extern "C" uint64_t getSysUpTime() {
 	return Sys::_upTime;
 }
 
-uint32_t Sys::_errorCount=0;
-void Sys::warn(int err,const char* s){
-_errorCount++;
+uint64_t Sys::_upTime = 0;
+
+uint64_t Sys::upTime() {
+	return Sys::_upTime;
+}
+
+uint32_t Sys::_errorCount = 0;
+void Sys::warn(int err, const char* s) {
+	_errorCount++;
 }

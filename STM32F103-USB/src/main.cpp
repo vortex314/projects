@@ -63,6 +63,8 @@ int main(void) {
 
 	Mqtt mqtt(usb);
 
+	mqtt.setPrefix("limero1/");
+
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
 	Msg msg;

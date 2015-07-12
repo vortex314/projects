@@ -5,8 +5,7 @@
 #include "BipBuffer.h"
 #include "Msg.h"
 
-typedef struct
-{
+typedef struct {
 	uint16_t length;
 } Envelope;
 
@@ -14,14 +13,10 @@ BipBuffer MsgQueue::bb;
 
 #define ENVELOPE_SIZE	sizeof(Msg)
 
-bool Msg::is(Handler* src, int sigMask, int param, void* data)
-{
-	if (sigMask & this->signal)
-	{
-		if (src == 0 || src == this->src)
-		{
-			if (param == 0 || param == this->param)
-			{
+bool Msg::is(Handler* src, int sigMask, int param, void* data) {
+	if (sigMask & this->signal) {
+		if (src == 0 || src == this->src) {
+			if (param == 0 || param == this->param) {
 				if (data == 0 || data == this->data)
 					return true;
 			}
@@ -30,50 +25,38 @@ bool Msg::is(Handler* src, int sigMask, int param, void* data)
 	return false;
 }
 
-bool Msg::is(Handler* src, int sigMask)
-{
-	if (sigMask & this->signal)
-	{
-		if (src == 0 || src == this->src )
-		{
+bool Msg::is(Handler* src, int sigMask) {
+	if (src == 0 || src == this->src) {
+		if ((sigMask & this->signal) || (sigMask == 0))
+			return true;
+	}
+	return false;
+}
+
+bool Msg::is(Handler* src, Signal signal) {
+	if (signal == this->signal) {
+		if (src == 0 || src == this->src) {
 			return true;
 		}
 	}
 	return false;
 }
 
-bool Msg::is(Handler* src,Signal signal)
-{
-	if (signal == this->signal)
-	{
-		if (src == 0 || src == this->src)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-Signal Msg::sig(){
+Signal Msg::sig() {
 	return this->signal;
 }
 
-void MsgQueue::publish(Handler* src, Signal signal, int param, void* data)
-{
-	Msg msg =
-	{ src, signal, param, data };
+void MsgQueue::publish(Handler* src, Signal signal, int param, void* data) {
+	Msg msg = { src, signal, param, data };
 	publish(msg);
 }
 
-void MsgQueue::publish( Handler*  src, Signal signal)
-{
-	Msg msg =
-	{ src, signal, 0, 0 };
+void MsgQueue::publish(Handler* src, Signal signal) {
+	Msg msg = { src, signal, 0, 0 };
 	publish(msg);
 }
 
-void MsgQueue::publish(Msg& msg)
-{
+void MsgQueue::publish(Msg& msg) {
 	uint8_t* _bufferStart;
 	if (!bb.IsInitialized())
 		bb.AllocateBuffer(1024);
@@ -86,19 +69,16 @@ void MsgQueue::publish(Msg& msg)
 	bb.Commit(sizeof(Msg));
 }
 
-bool MsgQueue::get(Msg& msg)
-{
+bool MsgQueue::get(Msg& msg) {
 	uint8_t* _bufferStart;
 	uint32_t size = sizeof(Msg);
 	_bufferStart = bb.GetContiguousBlock(size);
 
 	if (size < sizeof(Msg))   		// map to these bytes
-	{
+			{
 		msg.signal = SIG_IDLE;
 		return false;
-	}
-	else
-	{
+	} else {
 		memcpy(&msg, _bufferStart, sizeof(Msg));
 		bb.DecommitBlock(sizeof(Msg));
 		return true;

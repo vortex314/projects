@@ -33,6 +33,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "platform_config.h"
 #include "usb_type.h"
+#include <stm32f10x.h>
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
@@ -58,6 +59,7 @@ void USART_To_USB_Send_Data(void);
 void Handle_USBAsynchXfer (void);
 void Get_SerialNum(void);
 void initBoard(void);
+bool isInterrupt();
 
 /* External variables --------------------------------------------------------*/
 

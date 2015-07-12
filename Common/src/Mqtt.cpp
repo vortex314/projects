@@ -293,9 +293,9 @@ timeout(TIME_WAIT_REPLY);
 PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBCOMP,0) || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBCOMP, 0)) {
 	if (((MqttIn*) msg.data)->messageId() == _messageId) {
-	MsgQueue::publish(this, SIG_ERC, 0, 0);
-	PT_EXIT()
-	;
+		MsgQueue::publish(this, SIG_ERC, 0, 0);
+		PT_EXIT()
+		;
 	}
 }
 }

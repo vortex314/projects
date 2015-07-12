@@ -62,26 +62,7 @@ void EP1_IN_Callback (void)
 {
 //  uint16_t USB_Tx_ptr;
   uint16_t USB_Tx_length;
-  if(USB_Tx_State == 1) // transmitting
-   {
-
- 	 if ( usbTxDataSize()==0) {
- 		 USB_Tx_State = 0;
- 		       return;
- 	 }
-
- 	 USB_Tx_length = usbTxDataSize();
-     if ( USB_Tx_length > VIRTUAL_COM_PORT_DATA_SIZE ) {
-     	USB_Tx_length = VIRTUAL_COM_PORT_DATA_SIZE;
-     }
-  
-     USB_Tx_State = 1;
-     uint8_t buffer[VIRTUAL_COM_PORT_DATA_SIZE];
-     usbGetTxData(buffer,USB_Tx_length);
-     UserToPMABufferCopy(buffer, ENDP1_TXADDR, USB_Tx_length);
-     SetEPTxCount(ENDP1, USB_Tx_length);
-     SetEPTxValid(ENDP1);
-   }
+  Handle_USBAsynchXfer();
   /*
   if (USB_Tx_State == 1)
   {
