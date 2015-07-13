@@ -22,9 +22,11 @@ public:
 	MqttIn _mqttIn;
 	CircBuf _out;
 	CircBuf _in;
+	Bytes _inBuffer;
 	Handler* _device;
 	static void init();
 	void reset();
+	void free(void* ptr);
 	Erc connect();
 	Erc disconnect();
 	Erc send(Bytes& bytes);

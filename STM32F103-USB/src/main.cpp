@@ -1,4 +1,3 @@
-
 /**
  ******************************************************************************
  * @file    main.c
@@ -58,12 +57,97 @@ extern "C" void initBoard();
 
 extern Usb usb;
 
+class MqttClient: public Handler {
+	Mqtt* _mqtt;
+	Str sub;
+public:
+	MqttClient(Mqtt* mqtt) :sub(30){
+		_mqtt = mqtt;
+
+	}
+	bool dispatch(Msg& event) {
+		PT_BEGIN()
+		START: {
+
+			PT_WAIT_UNTIL(event.is(_mqtt, SIG_CONNECTED));
+			sub.clear();
+			sub << "limero1/+";
+			_mqtt->subscribe(sub);
+		}
+		END: {
+			PT_WAIT_UNTIL(event.is(_mqtt, SIG_DISCONNECTED));
+			goto START;
+		}
+
+	PT_END()
+	return true;
+}
+
+};
+#include "Prop.h"
+static uint64_t bootTime;
+class UptimeTopic: public Prop {
+public:
+	UptimeTopic() :
+			Prop("system/uptime", (Flags )
+					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.add(Sys::upTime());
+	}
+};
+
+UptimeTopic uptime;
+class RealTimeTopic: public Prop {
+public:
+
+	RealTimeTopic() :
+			Prop("system/now", (Flags )
+					{ T_UINT64, M_RW, T_1SEC, QOS_0, NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.add(bootTime + Sys::upTime());
+	}
+	void fromBytes(Bytes& message) {
+		Json json(message);
+		double d;
+		uint64_t now;
+		if (json.get(d)) {
+			now = d;
+			bootTime = now - Sys::upTime();
+		}
+	}
+};
+RealTimeTopic rt;
+class SystemOnlineTopic: public Prop {
+public:
+	SystemOnlineTopic() :
+			Prop("system/online", (Flags )
+					{ T_BOOL, M_READ, T_10SEC, QOS_1, NO_RETAIN }) {
+	}
+
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.add(true);
+	}
+};
+SystemOnlineTopic systemOnline;
+
 int main(void) {
 	initBoard();
 
 	Mqtt mqtt(usb);
-
+	MqttClient mqc(&mqtt);
 	mqtt.setPrefix("limero1/");
+	PropMgr propMgr;
+	propMgr.setMqtt(&mqtt);
+	propMgr.setPrefix("limero1/");
+
+
 
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines

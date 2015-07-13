@@ -39,6 +39,7 @@ public:
 	Prop(const char* name, Flags flags);
 	Prop(const char* name, const char* value);
 	Prop(const char* name, uint64_t& value);
+	~Prop(){};
 	void init(const char* name, Flags flags);
 
 	static Prop* findProp(Str& name);

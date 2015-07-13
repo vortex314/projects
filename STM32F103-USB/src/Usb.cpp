@@ -15,12 +15,16 @@ class UsbDevice : public Handler {
 
 };
 Usb::Usb() :
-		_mqttIn(100), _out(100), _in(100) {
+		_mqttIn(100), _out(100), _in(100) , _inBuffer(256){
 	_device = new UsbDevice();
 }
 
 Usb::~Usb() {
 
+}
+
+void Usb::free(void* ptr){
+	delete (MqttIn*)ptr;
 }
 
 void Usb::reset() {
@@ -84,19 +88,32 @@ bool Usb::dispatch(Msg& event) {
 
 		{
 			uint8_t b;
-			while (hasData()) {
-				b = read();
-				if (_mqttIn.getBytes()->Feed(b)) {
-					_mqttIn.getBytes()->Decode();
-					if (_mqttIn.getBytes()->isGoodCrc()) {
-						_mqttIn.getBytes()->RemoveCrc();
-						_mqttIn.parse();
-						MsgQueue::publish(this, SIG_RXD, 0, (void*) &_mqttIn);
-
-					} else
-						_mqttIn.reset();
-				}
-			}
+			while (_in.hasData())
+					{
+						b = _in.read();
+						if (_inBuffer.Feed(b))
+						{
+							_inBuffer.Decode();
+							if (_inBuffer.isGoodCrc())
+							{
+								_inBuffer.RemoveCrc();
+								MqttIn* mqttIn = new MqttIn(_inBuffer.length());
+								_inBuffer.offset(0);
+								if (mqttIn == 0)
+									while (1)
+										;
+								while (_inBuffer.hasData())
+									mqttIn->Feed(_inBuffer.read());
+								mqttIn->parse();
+								MsgQueue::publish(this, SIG_RXD, mqttIn->type(), mqttIn);
+							}
+							else
+							{
+								Sys::warn(EIO, "USB_CRC");
+							}
+							_inBuffer.clear();
+						}
+					}
 			break;
 		}
 		default: {
