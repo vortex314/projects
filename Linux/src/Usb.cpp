@@ -172,6 +172,7 @@ uint8_t Usb::read()
     {
         logger.level(Logger::WARN).perror("read() failed : ");
         logger.flush();
+        disconnect();
         return 0;
     }
 //   fprintf(stdout,".");
@@ -188,7 +189,7 @@ uint32_t Usb::hasData()
     {
         logger.level(Logger::WARN).perror("ioctl() ");
         logger.flush();
-        isConnected(false);
+        disconnect();
         MsgQueue::publish(0,SIG_DISCONNECTED,_fd,0);
         return 0;
     }

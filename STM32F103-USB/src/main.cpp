@@ -25,6 +25,7 @@
  ******************************************************************************
  */
 
+
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
 //#include "hw_config.h"
@@ -137,6 +138,8 @@ public:
 };
 SystemOnlineTopic systemOnline;
 
+extern uint16_t measure();
+
 int main(void) {
 	initBoard();
 
@@ -146,7 +149,6 @@ int main(void) {
 	PropMgr propMgr;
 	propMgr.setMqtt(&mqtt);
 	propMgr.setPrefix("limero1/");
-
 
 
 	uint64_t clock = Sys::upTime() + 100;
