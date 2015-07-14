@@ -39,7 +39,8 @@ public:
 	Prop(const char* name, Flags flags);
 	Prop(const char* name, const char* value);
 	Prop(const char* name, uint64_t& value);
-	~Prop(){};
+	 ~Prop() {
+	}
 	void init(const char* name, Flags flags);
 
 	static Prop* findProp(Str& name);
@@ -49,10 +50,8 @@ public:
 
 	virtual void toBytes(Bytes& msg) {
 	}
-	;
 	virtual void fromBytes(Bytes& msg) {
 	}
-	;
 	void metaToBytes(Bytes& msg);
 	void nextToBytes(Bytes& msg);
 	void firstToBytes(Bytes& msg);

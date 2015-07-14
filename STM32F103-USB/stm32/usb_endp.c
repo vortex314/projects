@@ -61,7 +61,6 @@ extern uint8_t  USB_Tx_State;
 void EP1_IN_Callback (void)
 {
 //  uint16_t USB_Tx_ptr;
-  uint16_t USB_Tx_length;
   Handle_USBAsynchXfer();
   /*
   if (USB_Tx_State == 1)

@@ -29,3 +29,14 @@ uint32_t Sys::_errorCount = 0;
 void Sys::warn(int err, const char* s) {
 	_errorCount++;
 }
+
+#include <stm32f10x.h>
+#include <core_cm3.h>
+
+void Sys::interruptDisable(){
+	__disable_irq();
+}
+
+void Sys::interruptEnable(){
+	__enable_irq();
+}

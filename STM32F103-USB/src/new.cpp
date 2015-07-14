@@ -204,7 +204,7 @@ fle __malloc_freelist;
 extern bool isInterrupt();
 
 void *
-malloc_old(size_t sz) {
+malloc(size_t sz) {
 	fle *nextfree;
 	fle block;
 
@@ -272,7 +272,7 @@ malloc_old(size_t sz) {
 
 #ifdef DEFINE_FREE
 
-void free_old(void *block_p) {
+void free(void *block_p) {
 	fle *nextfree;
 	fle block = (fle) ((size_t) block_p - offsetof(struct freelist_entry, next));
 

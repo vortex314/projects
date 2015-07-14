@@ -32,10 +32,10 @@ int CircBuf::write(uint8_t b) {
     uint16_t newPos = (writePos + 1) % limit;
     if (newPos == readPos)
         return -EAGAIN;
-//    Board::disableInterrupts();
+    Sys::interruptDisable();
     start[writePos] = b;
     writePos = newPos; // last operation ( hopefully atomic to ISR)
-//    Board::enableInterrupts();
+   Sys::interruptEnable();
     return 0;
 }
 

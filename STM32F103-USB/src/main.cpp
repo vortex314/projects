@@ -25,7 +25,6 @@
  ******************************************************************************
  */
 
-
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
 //#include "hw_config.h"
@@ -62,7 +61,8 @@ class MqttClient: public Handler {
 	Mqtt* _mqtt;
 	Str sub;
 public:
-	MqttClient(Mqtt* mqtt) :sub(30){
+	MqttClient(Mqtt* mqtt) :
+			sub(30) {
 		_mqtt = mqtt;
 
 	}
@@ -70,13 +70,13 @@ public:
 		PT_BEGIN()
 		START: {
 
-			PT_WAIT_UNTIL(event.is(_mqtt, SIG_CONNECTED));
+			PT_YIELD_UNTIL(event.is(_mqtt, SIG_CONNECTED));
 			sub.clear();
 			sub << "limero1/+";
 			_mqtt->subscribe(sub);
 		}
-		END: {
-			PT_WAIT_UNTIL(event.is(_mqtt, SIG_DISCONNECTED));
+		{
+			PT_YIELD_UNTIL(event.is(_mqtt, SIG_DISCONNECTED));
 			goto START;
 		}
 
@@ -86,21 +86,41 @@ public:
 
 };
 #include "Prop.h"
-static uint64_t bootTime;
-class UptimeTopic: public Prop {
-public:
-	UptimeTopic() :
-			Prop("system/uptime", (Flags )
-					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
-	}
 
+typedef uint64_t (*pfu64)(void);
+class UInt64Topic: public Prop {
+	pfu64 _fp;
+public:
+	UInt64Topic(const char *name, pfu64 fp) :
+			Prop(name, (Flags )
+					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
+		_fp = fp;
+	}
 	void toBytes(Bytes& message) {
 		Json json(message);
-		json.add(Sys::upTime());
+		json.add(_fp());
 	}
+
 };
 
-UptimeTopic uptime;
+uint64_t memoryAllocated() {
+	return mallinfo().arena;
+}
+
+uint64_t memoryFreeBlocks() {
+	return mallinfo().ordblks;
+}
+
+static uint64_t bootTime;
+
+uint64_t now() {
+	return bootTime + Sys::upTime();
+}
+
+UInt64Topic uptimeProp("system/uptime", Sys::upTime);
+UInt64Topic memProp("system/memory/allocated", memoryAllocated);
+UInt64Topic memFreeProp("system/memory/freeBlocks", memoryFreeBlocks);
+
 class RealTimeTopic: public Prop {
 public:
 
@@ -150,7 +170,6 @@ int main(void) {
 	propMgr.setMqtt(&mqtt);
 	propMgr.setPrefix("limero1/");
 
-
 	uint64_t clock = Sys::upTime() + 100;
 	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
 	Msg msg;
@@ -160,8 +179,8 @@ int main(void) {
 			clock += 10;		// 10 msec timer tick
 			MsgQueue::publish(0, SIG_TICK, 0, 0); // check timeouts every 10 msec
 		}
-		if (usb.hasData())	// if UART has received data alert uart receiver
-			MsgQueue::publish(&usb, SIG_RXD);
+		/*		if (usb.hasData())	// if UART has received data alert uart receiver
+		 MsgQueue::publish(&usb, SIG_RXD);*/
 		// _________________________________________________________________handle all queued messages
 		while (MsgQueue::get(msg)) {
 			Handler::dispatchToChilds(msg);

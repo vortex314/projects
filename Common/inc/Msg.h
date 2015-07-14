@@ -49,6 +49,7 @@ public:
 
 public:
 	static void publish(Msg& msg);
+	static void publishFromIsr(Msg& msg);
 	static void publish(Handler* src, Signal signal);
 	static void publish(Handler* src, Signal signal, int param, void* data);
 	static bool get(Msg& msg);

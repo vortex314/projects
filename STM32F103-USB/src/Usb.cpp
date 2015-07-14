@@ -59,14 +59,10 @@ Erc Usb::recv(Bytes& bytes) {
 
 uint8_t Usb::read() {
 	return _in.read();
-	/*	uint8_t b;
-	 USBBufferRead((tUSBBuffer *) &g_sRxBuffer, &b, 1);
-	 return b;*/
 }
 
 uint32_t Usb::hasData() {
 	return _in.hasData();
-//	return USBBufferDataAvailable((tUSBBuffer *) &g_sRxBuffer);
 }
 
 bool Usb::dispatch(Msg& event) {

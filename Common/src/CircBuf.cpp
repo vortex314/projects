@@ -7,6 +7,7 @@
 //#include "base.h"
 #include "CircBuf.h"
 #include "Sys.h"
+#include "Board.h"
 
 //#include "Message.h"
 //#include "assert.h"
