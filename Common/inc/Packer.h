@@ -33,8 +33,10 @@ class Packer {
 public:
 
 	virtual Packer& add(int i)=0;
+#ifdef DOUBLE
 	virtual Packer& add(float f)=0;
 	virtual Packer& add(double d)=0;
+#endif
 	virtual Packer& add(Bytes& b)=0;
 	virtual Packer& add(Str& str)=0;
 	virtual Packer& add( char const* s)=0;

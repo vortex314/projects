@@ -54,6 +54,33 @@ extern "C" void initBoard();
 #include "Handler.h"
 #include "Usb.h"
 #include "Mqtt.h"
+#include <stdlib.h>
+#include "Gpio.h"
+#include "Prop.h"
+
+Gpio gpioLed(Gpio::PORT_C, 13);
+
+class GpioTopic: public Prop {
+	Gpio& _gpio;
+public:
+
+	GpioTopic(const char* szGpio, Gpio& gpio) :
+			Prop(szGpio, (Flags )
+					{ T_UINT8, M_RW, T_1SEC, QOS_0, NO_RETAIN }),_gpio(gpio) {
+//		_gpio = gpio;
+	}
+
+	void toBytes(Bytes& message) {
+		Str str(message);
+		str.append((uint32_t) _gpio.read());
+	}
+	void fromBytes(Bytes& message) {
+		Str str(message);
+		_gpio.write(atol(str.c_str()));
+	}
+};
+
+GpioTopic ledGpioTopc("system/led", gpioLed);
 
 extern Usb usb;
 
@@ -85,7 +112,7 @@ public:
 }
 
 };
-#include "Prop.h"
+
 
 typedef uint64_t (*pfu64)(void);
 class UInt64Topic: public Prop {
@@ -100,8 +127,39 @@ public:
 		Json json(message);
 		json.add(_fp());
 	}
-
 };
+class StringTopic: public Prop {
+	const char *_s;
+public:
+	StringTopic(const char *name, const char *s) :
+			Prop(name, (Flags )
+					{ T_STR, M_READ, T_10SEC, QOS_0, NO_RETAIN }) {
+		_s = s;
+	}
+	void toBytes(Bytes& message) {
+		Json json(message);
+		json.add(_s);
+	}
+};
+StringTopic systemVersion("system/version", __DATE__ " " __TIME__);
+// GET SERIAL NUMBER
+class SerialTopic: public Prop {
+public:
+	SerialTopic() :
+			Prop("system/id", (Flags )
+					{ T_STR, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
+	}
+	void toBytes(Bytes& message) {
+		Json json(message);
+		uint8_t* start = (uint8_t*) (0x1FFFF7E8);
+		Str str(20);
+		for (int i = 0; i < 12; i++)
+			str.appendHex(*(start + i));
+		json.add(str);
+	}
+};
+
+SerialTopic st;
 
 uint64_t memoryAllocated() {
 	return mallinfo().arena;
@@ -135,8 +193,8 @@ public:
 	}
 	void fromBytes(Bytes& message) {
 		Json json(message);
-		double d;
 		uint64_t now;
+		int64_t d;
 		if (json.get(d)) {
 			now = d;
 			bootTime = now - Sys::upTime();
@@ -162,6 +220,9 @@ extern uint16_t measure();
 
 int main(void) {
 	initBoard();
+
+	gpioLed.init(Gpio::OUTPUT_PP);
+	gpioLed.write(0);
 
 	Mqtt mqtt(usb);
 	MqttClient mqc(&mqtt);

@@ -22,8 +22,10 @@ public:
 
 	Json& add(int i);
 	Json& add(uint32_t i);
+#ifdef DOUBLE
 	Json& add(float f);
 	Json& add(double d);
+#endif
 	Json& add(Bytes& b);
 	Json& add(Str& str);
 	Json& add( char const* s);
@@ -40,6 +42,7 @@ public:
 	bool get(double& d);
 	bool get(bool& bl);
 	bool get(Str& str);
+	bool get(int64_t& ul);
 
 	Erc readToken(PackType& type,Variant& variant);
 	Erc toString(Str& str);
