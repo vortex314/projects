@@ -57,6 +57,13 @@ void MsgQueue::publish(Handler* src, Signal signal) {
 }
 
 void MsgQueue::publish(Msg& msg) {
+	Sys::interruptDisable();
+	publishFromIsr(msg);
+	Sys::interruptEnable();
+}
+
+void MsgQueue::publishFromIsr(Msg& msg) {
+	Sys::interruptDisable();
 	uint8_t* _bufferStart;
 	if (!bb.IsInitialized())
 		bb.AllocateBuffer(1024);
@@ -67,9 +74,12 @@ void MsgQueue::publish(Msg& msg) {
 	else
 		Sys::warn(EINVAL, "MSG");
 	bb.Commit(sizeof(Msg));
+	Sys::interruptEnable();
 }
 
 bool MsgQueue::get(Msg& msg) {
+	bool bReturn = false;
+	Sys::interruptDisable();
 	uint8_t* _bufferStart;
 	uint32_t size = sizeof(Msg);
 	_bufferStart = bb.GetContiguousBlock(size);
@@ -77,11 +87,13 @@ bool MsgQueue::get(Msg& msg) {
 	if (size < sizeof(Msg))   		// map to these bytes
 			{
 		msg.signal = SIG_IDLE;
-		return false;
+		bReturn = false;
 	} else {
 		memcpy(&msg, _bufferStart, sizeof(Msg));
 		bb.DecommitBlock(sizeof(Msg));
-		return true;
+		bReturn = true;
 	}
+	Sys::interruptEnable();
+	return bReturn;
 }
 

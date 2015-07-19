@@ -17,7 +17,7 @@
 //
 #define CVTBUFSIZE 30
 // eflag : exponent flag
-
+#ifdef DOUBLE
 static char *cvt(double arg, int ndigits, int *decpt, int *sign, char *buf,
 		int eflag) {
 	int r2;
@@ -89,10 +89,12 @@ static char *cvt(double arg, int ndigits, int *decpt, int *sign, char *buf,
 	*p = '\0';
 	return buf;
 }
+#endif
 
 Str::Str() :
 		Bytes(0) {
 }
+
 
 Str::Str(int size) :
 		Bytes(size) {
@@ -174,7 +176,7 @@ Str& Str::operator<<(Str& s) {
 	write(s._start, 0, s._limit);
 	return *this;
 }
-
+#ifdef DOUBLE
 Str& Str::operator<<(double d) {
 	append(d);
 	return *this;
@@ -184,11 +186,13 @@ Str& Str::operator<<(float d) {
 	append(d);
 	return *this;
 }
+#endif
 
 Str& Str::operator+(Str& s) {
 	*this << s;
 	return *this;
 }
+#ifdef DOUBLE
 #include <cstdio>
 Str& Str::append(double d) {
 	char buf[80];
@@ -205,11 +209,14 @@ Str& Str::append(double d) {
 		append(buf[j + i]);
 	return *this;
 }
+
 Str& Str::append(float f) {
 	double d = f;
 	append(d);
 	return *this;
 }
+
+#endif
 Str& Str::operator=(Str& s) {
 	clear();
 	s.offset(0);

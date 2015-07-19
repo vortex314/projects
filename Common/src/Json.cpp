@@ -70,7 +70,7 @@ Json& Json::add(uint32_t i) {
 	_str.append((long) i);
 	return *this;
 }
-
+#ifdef DOUBLE
 Json& Json::add(float fl) {
 	_str.append(fl);
 	return *this;
@@ -79,6 +79,7 @@ Json& Json::add(double d) {
 	_str.append(d);
 	return *this;
 }
+#endif
 Json& Json::add(Bytes& b) {
 	_str.append('"');
 	b.offset(0);
@@ -166,6 +167,16 @@ Json& Json::addNull() {
 #include <stdlib.h>
 jsmn_parser parser;
 jsmntok_t tokens[10];
+bool Json::get(int64_t& ll){
+	jsmn_init(&parser);
+	jsmn_parse(&parser, _str.c_str(), _str.length(), tokens, 10);
+	if (tokens[0].type != JSMN_PRIMITIVE)
+		return false;
+	Str value;
+	value.map(_str.data() + tokens[0].start, tokens[0].end);
+	ll = atoll(value.c_str());
+	return true;
+}
 bool Json::get(double & d) {
 	jsmn_init(&parser);
 	jsmn_parse(&parser, _str.c_str(), _str.length(), tokens, 10);

@@ -36,7 +36,7 @@
 class MqttPublisher;
 class MqttSubscriber;
 class MqttSubscription;
-class MqttPinger;
+//class MqttPinger;
 class Mqtt;
 
 class Mqtt: public Handler {
@@ -46,7 +46,7 @@ public:
 	MqttSubscriber* _mqttSubscriber;
 	MqttPublisher* _mqttPublisher;
 	MqttSubscription* _mqttSubscription;
-	MqttPinger* _mqttPinger;
+//	MqttPinger* _mqttPinger;
 //	MqttIn _mqttIn; // temp storage in one event call
 	MqttOut _mqttOut; // "
 	bool _isConnected;
@@ -128,7 +128,7 @@ private:
 	Str _topic;
 	void sendSubscribe();
 };
-
+/*
 class MqttPinger: public Handler {
 public:
 	MqttPinger(Mqtt& mqtt);
@@ -136,6 +136,6 @@ public:
 private:
 	Mqtt& _mqtt;
 	uint32_t _retries;
-};
+};*/
 
 #endif /* MQTT_H_ */

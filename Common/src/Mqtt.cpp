@@ -34,7 +34,7 @@ Mqtt::Mqtt(Link& link) :
 	_mqttPublisher = new MqttPublisher(*this);
 	_mqttSubscriber = new MqttSubscriber(*this);
 	_mqttSubscription = new MqttSubscription(*this);
-	_mqttPinger = new MqttPinger(*this);
+//	_mqttPinger = new MqttPinger(*this);
 
 	_mqttPublisher->stop();
 	_mqttSubscriber->stop();
@@ -83,18 +83,18 @@ Handler* Mqtt::subscribe(Str& topic) {
 bool Mqtt::dispatch(Msg& msg) {
 	PT_BEGIN()
 	DISCONNECTED: {
+		_link.disconnect();
 		_isConnected = false;
-		_mqttPublisher->stop();
-		_mqttPinger->stop();
+//		_mqttPublisher->stop(); don't start if nothing to publish !!
+		_mqttSubscriber->stop();
+//		_mqttPinger->stop();
 		_mqttSubscription->stop();
 		MsgQueue::publish(this, SIG_DISCONNECTED, 0, 0);
-		_isConnected = false;
 		while (true) // DISCONNECTED STATE
 		{
-
 			_link.connect();
 			timeout(TIME_FOREVER);
-			PT_YIELD_UNTIL(msg.is(&_link, SIG_CONNECTED, 0, 0) || timeout()); //  wait Uart connected
+			PT_YIELD_UNTIL(_link.isConnected() || timeout()); //  wait Uart connected
 			goto LINK_CONNECTED;
 		}
 	}
@@ -104,26 +104,36 @@ bool Mqtt::dispatch(Msg& msg) {
 			sendConnect();
 			timeout(TIME_WAIT_CONNECT);
 			PT_YIELD_UNTIL(
-					msg.is(&_link, SIG_RXD, MQTT_MSG_CONNACK, 0) || msg.is(&_link, SIG_DISCONNECTED) || timeout()); // wait reply or timeout on connect send
-			if (msg.is(&_link, SIG_DISCONNECTED))
+					msg.is(&_link, SIG_RXD, MQTT_MSG_CONNACK, 0) || !_link.isConnected() || timeout()); // wait reply or timeout on connect send
+			if (!_link.isConnected())
 				goto DISCONNECTED;
 			if (msg.is(&_link, SIG_RXD, MQTT_MSG_CONNACK, 0)) {
 				MsgQueue::publish(this, SIG_CONNECTED);
 				_isConnected = true;
-				goto MQTT_CONNECTED;
+				_mqttSubscriber->restart();
+				goto PING_SLEEP;
 			}
 		}
 	}
-	MQTT_CONNECTED: {
-		while (true) // MQTT_CONNECTED
-		{
-			_mqttPinger->restart();
-			_mqttSubscriber->restart();
-			timeout(TIME_FOREVER);
-			PT_YIELD_UNTIL(msg.is(&_link, SIG_DISCONNECTED)); // wait for disconnect or message
-			if (msg.is(&_link, SIG_DISCONNECTED))
-				goto DISCONNECTED;
+	PING_SLEEP: {
+		timeout(TIME_PING);
+		PT_YIELD_UNTIL(timeout() || !_link.isConnected());
+		if (!_link.isConnected())
+			goto DISCONNECTED;
+		_retries = 0;
+		goto PINGING;
+	}
+	PINGING: {
+		for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
+			_mqttOut.PingReq();
+			_link.send(_mqttOut);
+			timeout(TIME_WAIT_REPLY);
+			PT_YIELD_UNTIL(
+					(msg.is(&_link ,SIG_RXD,MQTT_MSG_PINGRESP, 0) || timeout()));
+			if (msg.sig() == SIG_RXD)
+				goto PING_SLEEP;
 		}
+		goto DISCONNECTED;
 	}
 PT_END()
 }
@@ -158,7 +168,7 @@ PT_END()
 //____________________________________________________________________________
 //       PINGER
 //____________________________________________________________________________
-MqttPinger::MqttPinger(Mqtt& mqtt) :
+/*MqttPinger::MqttPinger(Mqtt& mqtt) :
 Handler("Pinger"), _mqtt(mqtt) {
 _retries = 0;
 }
@@ -185,7 +195,7 @@ _mqtt._link.disconnect();
 stop();
 }
 PT_END()
-}
+}*/
 //____________________________________________________________________________
 //       PUBLISHER
 //____________________________________________________________________________
@@ -238,7 +248,8 @@ _mqtt._link.send(_mqtt._mqttOut);
 
 bool MqttPublisher::dispatch(Msg& msg) {
 PT_BEGIN()
-READY: {
+/*READY:*/
+{
 _state = ST_READY;
 PT_YIELD_UNTIL(msg.is(0, SIG_TICK));
 _state = ST_BUSY;
@@ -324,7 +335,7 @@ timeout(TIME_WAIT_REPLY);
 extern PropMgr propMgr;
 
 void MqttSubscriber::callBack() {
-// propMgr.onPublish(_topic, _message);
+propMgr.onPublish(_topic, _message);
 }
 
 // #define PT_WAIT_FOR( ___pt, ___signals, ___timeout ) listen(___signals,___timeout);PT_YIELD(___pt);

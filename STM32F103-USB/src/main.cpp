@@ -71,11 +71,11 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Str str(message);
+		Str& str=((Str&)message);
 		str.append((uint32_t) _gpio.read());
 	}
 	void fromBytes(Bytes& message) {
-		Str str(message);
+		Str& str=((Str&)message);
 		_gpio.write(atol(str.c_str()));
 	}
 };
@@ -99,7 +99,7 @@ public:
 
 			PT_YIELD_UNTIL(event.is(_mqtt, SIG_CONNECTED));
 			sub.clear();
-			sub << "limero1/+";
+			sub << "limero1/#";
 			_mqtt->subscribe(sub);
 		}
 		{
@@ -124,8 +124,10 @@ public:
 		_fp = fp;
 	}
 	void toBytes(Bytes& message) {
-		Json json(message);
-		json.add(_fp());
+		Str& str=(Str&)message;
+		str.append(_fp());
+//		Json json(message);
+//		json.add(_fp());
 	}
 };
 class StringTopic: public Prop {
@@ -137,8 +139,9 @@ public:
 		_s = s;
 	}
 	void toBytes(Bytes& message) {
-		Json json(message);
-		json.add(_s);
+		((Str&)message).append(_s);
+//		Json json(message);
+//		json.add(_s);
 	}
 };
 StringTopic systemVersion("system/version", __DATE__ " " __TIME__);
@@ -150,12 +153,11 @@ public:
 					{ T_STR, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
 	}
 	void toBytes(Bytes& message) {
-		Json json(message);
+		Str& str=(Str&)message;
 		uint8_t* start = (uint8_t*) (0x1FFFF7E8);
-		Str str(20);
 		for (int i = 0; i < 12; i++)
 			str.appendHex(*(start + i));
-		json.add(str);
+
 	}
 };
 
@@ -188,17 +190,13 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Json json(message);
-		json.add(bootTime + Sys::upTime());
+		Str& str=(Str&)message;
+		str.append(bootTime + Sys::upTime());
 	}
 	void fromBytes(Bytes& message) {
-		Json json(message);
-		uint64_t now;
-		int64_t d;
-		if (json.get(d)) {
-			now = d;
-			bootTime = now - Sys::upTime();
-		}
+		Str& str=(Str&)message;
+		uint64_t now = atoll(str.c_str());
+		bootTime = now - Sys::upTime();
 	}
 };
 RealTimeTopic rt;
@@ -210,13 +208,14 @@ public:
 	}
 
 	void toBytes(Bytes& message) {
-		Json json(message);
-		json.add(true);
+		Str& str=(Str&)message;
+		str.append(true);
 	}
 };
 SystemOnlineTopic systemOnline;
 
 extern uint16_t measure();
+PropMgr propMgr;
 
 int main(void) {
 	initBoard();

@@ -76,7 +76,6 @@ void Prop::nextToBytes(Bytes& message) {
 	if (_next == 0)
 		return;
 	Json msg(message);
-	int r;
 	msg.add(_next->_name);
 }
 
@@ -84,7 +83,6 @@ void Prop::firstToBytes(Bytes& message) {
 	if (_first == 0)
 		return;
 	Json msg(message);
-	int r;
 	msg.add(_first->_name);
 }
 
