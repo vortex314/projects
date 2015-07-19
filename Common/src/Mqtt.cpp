@@ -38,7 +38,7 @@ Mqtt::Mqtt(Link& link) :
 
 	_mqttPublisher->stop();
 	_mqttSubscriber->stop();
-	_mqttPinger->stop();
+//	_mqttPinger->stop();
 	_mqttSubscription->stop();
 
 	_retries = 0;
@@ -87,7 +87,6 @@ bool Mqtt::dispatch(Msg& msg) {
 		_isConnected = false;
 //		_mqttPublisher->stop(); don't start if nothing to publish !!
 		_mqttSubscriber->stop();
-//		_mqttPinger->stop();
 		_mqttSubscription->stop();
 		MsgQueue::publish(this, SIG_DISCONNECTED, 0, 0);
 		while (true) // DISCONNECTED STATE
@@ -140,7 +139,6 @@ PT_END()
 
 bool MqttSubscription::dispatch(Msg& msg) {
 PT_BEGIN()
-
 _messageId = Mqtt::nextMessageId();
 for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
 	sendSubscribe();
@@ -163,39 +161,10 @@ MsgQueue::publish(this, SIG_ERC, EAGAIN, 0);
 PT_EXIT()
 ;
 PT_END()
+;
 }
 
-//____________________________________________________________________________
-//       PINGER
-//____________________________________________________________________________
-/*MqttPinger::MqttPinger(Mqtt& mqtt) :
-Handler("Pinger"), _mqtt(mqtt) {
-_retries = 0;
-}
 
-bool MqttPinger::dispatch(Msg& msg) {
-PT_BEGIN()
-PING_SLEEP: {
-timeout(TIME_PING);
-PT_YIELD_UNTIL(timeout());
-_retries = 0;
-goto PINGING;
-}
-PINGING: {
-for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
-	_mqtt._mqttOut.PingReq();
-	_mqtt._link.send(_mqtt._mqttOut);
-	timeout(TIME_WAIT_REPLY);
-	PT_YIELD_UNTIL(
-			(msg.is(&_mqtt._link ,SIG_RXD,MQTT_MSG_PINGRESP, 0) || timeout()));
-	if (msg.signal == SIG_RXD)
-		goto PING_SLEEP;
-}
-_mqtt._link.disconnect();
-stop();
-}
-PT_END()
-}*/
 //____________________________________________________________________________
 //       PUBLISHER
 //____________________________________________________________________________
@@ -254,29 +223,30 @@ _state = ST_READY;
 PT_YIELD_UNTIL(msg.is(0, SIG_TICK));
 _state = ST_BUSY;
 if (_flags.qos == QOS_0) {
-sendPublish();
-MsgQueue::publish(this, SIG_ERC, 0, 0);
-PT_EXIT()
-;
+	sendPublish();
+	MsgQueue::publish(this, SIG_ERC, 0, 0);
+	PT_EXIT()
+	;
 } else if (_flags.qos == QOS_1)
-goto QOS1_ACK;
+	goto QOS1_ACK;
 else if (_flags.qos == QOS_2)
-goto QOS2_REC;
+	goto QOS2_REC;
 PT_EXIT()
 ;
 }
 QOS1_ACK: {
 for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
-sendPublish();
-timeout(TIME_WAIT_REPLY);
-PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBACK,0) || timeout());
-if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBACK, 0)) {
-	if (((MqttIn*) msg.data)->messageId() == _messageId) {
-		MsgQueue::publish(this, SIG_ERC, 0, 0);
-		PT_EXIT()
-		;
+	sendPublish();
+	timeout(TIME_WAIT_REPLY);
+	PT_YIELD_UNTIL(
+			msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBACK,0) || timeout());
+	if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBACK, 0)) {
+		if (((MqttIn*) msg.data)->messageId() == _messageId) {
+			MsgQueue::publish(this, SIG_ERC, 0, 0);
+			PT_EXIT()
+			;
+		}
 	}
-}
 }
 MsgQueue::publish(this, SIG_ERC, ETIMEDOUT, 0);
 PT_EXIT()
@@ -284,14 +254,15 @@ PT_EXIT()
 }
 QOS2_REC: {
 for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
-sendPublish();
-timeout(TIME_WAIT_REPLY);
-PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREC,0) || timeout());
-if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBREC, 0)) {
-	if (((MqttIn*) msg.data)->messageId() == _messageId) {
-		goto QOS2_COMP;
+	sendPublish();
+	timeout(TIME_WAIT_REPLY);
+	PT_YIELD_UNTIL(
+			msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREC,0) || timeout());
+	if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBREC, 0)) {
+		if (((MqttIn*) msg.data)->messageId() == _messageId) {
+			goto QOS2_COMP;
+		}
 	}
-}
 }
 MsgQueue::publish(this, SIG_ERC, ETIMEDOUT, 0);
 PT_EXIT()
@@ -299,16 +270,17 @@ PT_EXIT()
 }
 QOS2_COMP: {
 for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
-sendPubRel();
-timeout(TIME_WAIT_REPLY);
-PT_YIELD_UNTIL(msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBCOMP,0) || timeout());
-if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBCOMP, 0)) {
-	if (((MqttIn*) msg.data)->messageId() == _messageId) {
-		MsgQueue::publish(this, SIG_ERC, 0, 0);
-		PT_EXIT()
-		;
+	sendPubRel();
+	timeout(TIME_WAIT_REPLY);
+	PT_YIELD_UNTIL(
+			msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBCOMP,0) || timeout());
+	if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBCOMP, 0)) {
+		if (((MqttIn*) msg.data)->messageId() == _messageId) {
+			MsgQueue::publish(this, SIG_ERC, 0, 0);
+			PT_EXIT()
+			;
+		}
 	}
-}
 }
 MsgQueue::publish(this, SIG_ERC, ETIMEDOUT, 0);
 PT_EXIT()
@@ -346,7 +318,7 @@ PT_BEGIN()
 READY: {
 timeout(TIME_FOREVER);
 PT_YIELD_UNTIL(
-msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBLISH, 0) || !_mqtt.isConnected() || timeout());
+	msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBLISH, 0) || !_mqtt.isConnected() || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBLISH, 0)) {
 MqttIn* mqttIn = ((MqttIn*) msg.data);
 _topic = *mqttIn->topic();
@@ -354,15 +326,15 @@ _message = *mqttIn->message();
 _messageId = mqttIn->messageId();
 if (mqttIn->qos() == MQTT_QOS0_FLAG) {
 
-callBack();
+	callBack();
 } else if (mqttIn->qos() == MQTT_QOS1_FLAG) {
 
-callBack();
-_mqtt._mqttOut.PubAck(mqttIn->messageId());
-_mqtt._link.send(_mqtt._mqttOut);
+	callBack();
+	_mqtt._mqttOut.PubAck(mqttIn->messageId());
+	_mqtt._link.send(_mqtt._mqttOut);
 
 } else if (mqttIn->qos() == MQTT_QOS2_FLAG) {
-goto QOS2_WAIT_REL;
+	goto QOS2_WAIT_REL;
 
 }
 } else if (!_mqtt.isConnected()) {
@@ -376,13 +348,13 @@ for (_retries = 0; _retries < MAX_RETRIES; _retries++) {
 sendPubRec();
 timeout(TIME_WAIT_REPLY);
 PT_YIELD_UNTIL(
-	!_mqtt.isConnected() || msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREL,0) || timeout());
+		!_mqtt.isConnected() || msg.is(&_mqtt._link,SIG_RXD ,MQTT_MSG_PUBREL,0) || timeout());
 if (msg.is(&_mqtt._link, SIG_RXD, MQTT_MSG_PUBREL, 0)) {
-callBack();
-MqttIn* mqttIn = ((MqttIn*) msg.data);
-_mqtt._mqttOut.PubComp(mqttIn->messageId());
-_mqtt._link.send(_mqtt._mqttOut);
-goto READY;
+	callBack();
+	MqttIn* mqttIn = ((MqttIn*) msg.data);
+	_mqtt._mqttOut.PubComp(mqttIn->messageId());
+	_mqtt._link.send(_mqtt._mqttOut);
+	goto READY;
 }
 }
 goto READY;

@@ -214,7 +214,6 @@ public:
 };
 SystemOnlineTopic systemOnline;
 
-extern uint16_t measure();
 PropMgr propMgr;
 
 int main(void) {

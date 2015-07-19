@@ -110,6 +110,7 @@ public:
 		return _ptLine != LineNumberInvalid;
 	}
 
+
 	// Run next part of protothread or return immediately if it's still
 	// waiting. Return true if protothread is still running, false if it
 	// has finished. Implement this method in your Protothread subclass.

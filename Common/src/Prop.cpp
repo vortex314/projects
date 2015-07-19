@@ -104,6 +104,9 @@ PropMgr::PropMgr() :
 	_cursor = Prop::_first;
 	_state = ST_DISCONNECTED;
 	_next = 0;
+	_publishMeta = false;
+	_mqtt = NULL;
+	_src = NULL;
 	restart();
 }
 
