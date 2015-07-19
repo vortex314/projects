@@ -112,13 +112,13 @@ uint8_t Tcp::read()
 Erc Tcp::send(Bytes& bytes)
 {
     int n;
-//   signal(SIGPIPE, SIG_IGN);
+   signal(SIGPIPE, SIG_IGN);     // will be detected in n < 0
 //   Log::log().message("TCP send : " ,bytes);
     n=write(_sockfd,bytes.data(),bytes.length()) ;
     if (n < 0)
     {
         logger.perror("write()");
-        _connected=false;
+        disconnect();
         return E_CONN_LOSS;
     }
     return E_OK;

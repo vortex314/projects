@@ -8,6 +8,11 @@ const char *sLevel[]= {"DEBUG","INFO ","WARN ","ERROR","FATAL"};
 Logger::Logger(int size) : _str(size)
 {
     _module ="";
+    _logLevel=DEBUG;
+    _level=INFO;
+}
+void Logger::setLevel(Level l){
+_logLevel=l;
 }
 Logger& Logger::level(int level)
 {
@@ -23,7 +28,8 @@ Logger& Logger::module(const char * m)
 Logger& Logger::log(const char *s)
 {
     int slen=strlen(s);
-    for (int i=0; i< slen;i++){
+    for (int i=0; i< slen; i++)
+    {
         if ( s[i]=='\n') flush();
         else _str.append(s[i]);
     }
@@ -57,14 +63,17 @@ Logger& Logger::operator<<(int i )
 }
 Logger& Logger::flush()
 {
-    std::cout << logTime() ;
-    std::cout << " | ";
-    std::cout<< sLevel[_level]<< " | ";
-    std::cout<< _module << " - ";
-    _str.offset(0);
-    while(_str.hasData())
-        std::cout << _str.read();
-    std::cout  <<   std::endl;
+    if ( _level >= _logLevel )
+    {
+        std::cout << logTime() ;
+        std::cout << " | ";
+        std::cout<< sLevel[_level]<< " | ";
+        std::cout<< _module << " - ";
+        _str.offset(0);
+        while(_str.hasData())
+            std::cout << _str.read();
+        std::cout  <<   std::endl;
+    }
     _str.clear();
     return *this;
 }

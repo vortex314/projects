@@ -207,6 +207,7 @@ public:
                     {
                         logger.info()<< "dropped packet, not connected.";
                         logger.flush();
+                        usb.disconnect();
                     }
                 }
             }
@@ -238,13 +239,15 @@ public:
         PT_BEGIN (  );
         while(true)
         {
-            while ( usb.connect() != E_OK ) {
+            while ( usb.connect() != E_OK )
+            {
                 wakeTime=Sys::upTime()+5000;
                 PT_YIELD_UNTIL ( wakeTime < Sys::upTime()) ;
             }
 
-            PT_YIELD_UNTIL ( msg.is(0,SIG_ERC,usb.fd(),0)  || msg.is(0,SIG_DISCONNECTED,usb.fd(),0));
+            PT_YIELD_UNTIL (  msg.is(0,SIG_DISCONNECTED,usb.fd(),0) || msg.is(0,SIG_DISCONNECTED,tcp.fd(),0));
             tcp.disconnect();
+            usb.disconnect();
         }
         PT_END (  );
     }
@@ -266,7 +269,7 @@ ________________________________________________________________________________
 void loadOptions(int argc,char* argv[])
 {
     int c;
-    while ((c = getopt (argc, argv, "h:p:d:b:")) != -1)
+    while ((c = getopt (argc, argv, "h:p:d:b:l:")) != -1)
         switch (c)
         {
         case 'h':
@@ -280,6 +283,14 @@ void loadOptions(int argc,char* argv[])
             break;
         case 'b':
             context.baudrate= atoi(optarg);
+            break;
+        case 'l':
+            if ( strcmp(optarg,"DEBUG")==0) context.logLevel = Logger::DEBUG;
+            if ( strcmp(optarg,"INFO")==0) context.logLevel = Logger::INFO;
+            if ( strcmp(optarg,"WARN")==0) context.logLevel = Logger::WARN;
+            if ( strcmp(optarg,"ERROR")==0) context.logLevel = Logger::ERROR;
+            if ( strcmp(optarg,"FATAL")==0) context.logLevel = Logger::FATAL;
+            logger.setLevel(context.logLevel);
             break;
         case '?':
             if (optopt == 'c')
@@ -320,6 +331,7 @@ void interceptAllSignals()
     signal(SIGINT, SignalHandler);
     signal(SIGSEGV, SignalHandler);
     signal(SIGTERM, SignalHandler);
+    signal(SIGPIPE,SignalHandler);
 }
 
 extern bool testBytes();
@@ -351,11 +363,13 @@ int main(int argc, char *argv[] )
     {
         poller(usb.fd(),tcp.fd(),sleepTill);
         sleepTill = Sys::upTime()+TIMER_TICK; // was 100000
-        while (MsgQueue::get(msg)) {
-			Handler::dispatchToChilds(msg);
-		}
+        while (MsgQueue::get(msg))
+        {
+            Handler::dispatchToChilds(msg);
+        }
     }
 }
+
 
 
 

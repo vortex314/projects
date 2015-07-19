@@ -11,6 +11,8 @@
 
 #include <math.h>
 
+#define DOUBLE
+
 //
 // cvt.c - IEEE floating point formatting routines for FreeBSD
 // from GNU libc-4.6.27
