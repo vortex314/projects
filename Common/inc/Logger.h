@@ -10,6 +10,7 @@ public :
     enum Level { DEBUG, INFO,WARN,ERROR, FATAL};
     Logger(int size) ;
     Logger& level(int level);
+    void setLevel(Level l);
     Logger& module(const char * m);
     Logger& log(const char *s);
     Logger& log(int i);
@@ -49,6 +50,7 @@ public :
 
 private :
     int _level;
+    int _logLevel;
     const char* _module;
     time_t _time;
     Str _str;

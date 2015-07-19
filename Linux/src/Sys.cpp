@@ -84,6 +84,12 @@ Str& Sys::getDeviceName() {
         fprintf(stderr," Sys::warn(%d ,%s)",err,s);
     }
 
+void Sys::interruptDisable(){
+}
+
+void Sys::interruptEnable(){
+}
+
 
 
 
