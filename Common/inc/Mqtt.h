@@ -25,6 +25,7 @@
 //************************************** CONSTANTS ****************************
 #define TIME_KEEP_ALIVE 10000
 #define TIME_WAIT_REPLY 2000
+#define TIME_CONNECT 5000
 #define TIME_WAIT_CONNECT 5000
 #define	TIME_PING ( TIME_KEEP_ALIVE /3 )
 #define TIME_FOREVER UINT32_MAX
@@ -46,9 +47,7 @@ public:
 	MqttSubscriber* _mqttSubscriber;
 	MqttPublisher* _mqttPublisher;
 	MqttSubscription* _mqttSubscription;
-//	MqttPinger* _mqttPinger;
-//	MqttIn _mqttIn; // temp storage in one event call
-	MqttOut _mqttOut; // "
+	MqttOut _mqttOut; //
 	bool _isConnected;
 
 private:
@@ -128,14 +127,6 @@ private:
 	Str _topic;
 	void sendSubscribe();
 };
-/*
-class MqttPinger: public Handler {
-public:
-	MqttPinger(Mqtt& mqtt);
-	bool dispatch(Msg& msg);
-private:
-	Mqtt& _mqtt;
-	uint32_t _retries;
-};*/
+
 
 #endif /* MQTT_H_ */

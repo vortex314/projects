@@ -23,10 +23,11 @@ public:
 	Gpio();
 	Gpio(Port port, uint32_t pin);
 	virtual ~Gpio();
-	void init(Mode mode);
+	void init();
 	void write(int v);
 	int read();
-	void mode(Mode mode);
+	void setMode(Mode mode);
+	Mode getMode();
 private:
 	Port _port;
 	uint32_t _pin;

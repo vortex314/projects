@@ -48,39 +48,10 @@
  * Return         : None.
  *******************************************************************************/
 extern "C" void initBoard();
-
-#include "Timer.h"
-#include "Msg.h"
-#include "Handler.h"
-#include "Usb.h"
-#include "Mqtt.h"
-#include <stdlib.h>
-#include "Gpio.h"
-#include "Prop.h"
-
-Gpio gpioLed(Gpio::PORT_C, 13);
-
-class GpioTopic: public Prop {
-	Gpio& _gpio;
-public:
-
-	GpioTopic(const char* szGpio, Gpio& gpio) :
-			Prop(szGpio, (Flags )
-					{ T_UINT8, M_RW, T_1SEC, QOS_0, NO_RETAIN }),_gpio(gpio) {
-//		_gpio = gpio;
-	}
-
-	void toBytes(Bytes& message) {
-		Str& str=((Str&)message);
-		str.append((uint32_t) _gpio.read());
-	}
-	void fromBytes(Bytes& message) {
-		Str& str=((Str&)message);
-		_gpio.write(atol(str.c_str()));
-	}
-};
-
-GpioTopic ledGpioTopc("system/led", gpioLed);
+#include <Handler.h>
+#include <Usb.h>
+#include <Mqtt.h>
+#include <Prop.h>
 
 extern Usb usb;
 
@@ -110,119 +81,16 @@ public:
 	PT_END()
 	return true;
 }
-
 };
-
-
-typedef uint64_t (*pfu64)(void);
-class UInt64Topic: public Prop {
-	pfu64 _fp;
-public:
-	UInt64Topic(const char *name, pfu64 fp) :
-			Prop(name, (Flags )
-					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
-		_fp = fp;
-	}
-	void toBytes(Bytes& message) {
-		Str& str=(Str&)message;
-		str.append(_fp());
-//		Json json(message);
-//		json.add(_fp());
-	}
-};
-class StringTopic: public Prop {
-	const char *_s;
-public:
-	StringTopic(const char *name, const char *s) :
-			Prop(name, (Flags )
-					{ T_STR, M_READ, T_10SEC, QOS_0, NO_RETAIN }) {
-		_s = s;
-	}
-	void toBytes(Bytes& message) {
-		((Str&)message).append(_s);
-//		Json json(message);
-//		json.add(_s);
-	}
-};
-StringTopic systemVersion("system/version", __DATE__ " " __TIME__);
-// GET SERIAL NUMBER
-class SerialTopic: public Prop {
-public:
-	SerialTopic() :
-			Prop("system/id", (Flags )
-					{ T_STR, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
-	}
-	void toBytes(Bytes& message) {
-		Str& str=(Str&)message;
-		uint8_t* start = (uint8_t*) (0x1FFFF7E8);
-		for (int i = 0; i < 12; i++)
-			str.appendHex(*(start + i));
-
-	}
-};
-
-SerialTopic st;
-
-uint64_t memoryAllocated() {
-	return mallinfo().arena;
-}
-
-uint64_t memoryFreeBlocks() {
-	return mallinfo().ordblks;
-}
-
-static uint64_t bootTime;
-
-uint64_t now() {
-	return bootTime + Sys::upTime();
-}
-
-UInt64Topic uptimeProp("system/uptime", Sys::upTime);
-UInt64Topic memProp("system/memory/allocated", memoryAllocated);
-UInt64Topic memFreeProp("system/memory/freeBlocks", memoryFreeBlocks);
-
-class RealTimeTopic: public Prop {
-public:
-
-	RealTimeTopic() :
-			Prop("system/now", (Flags )
-					{ T_UINT64, M_RW, T_1SEC, QOS_0, NO_RETAIN }) {
-	}
-
-	void toBytes(Bytes& message) {
-		Str& str=(Str&)message;
-		str.append(bootTime + Sys::upTime());
-	}
-	void fromBytes(Bytes& message) {
-		Str& str=(Str&)message;
-		uint64_t now = atoll(str.c_str());
-		bootTime = now - Sys::upTime();
-	}
-};
-RealTimeTopic rt;
-class SystemOnlineTopic: public Prop {
-public:
-	SystemOnlineTopic() :
-			Prop("system/online", (Flags )
-					{ T_BOOL, M_READ, T_10SEC, QOS_1, NO_RETAIN }) {
-	}
-
-	void toBytes(Bytes& message) {
-		Str& str=(Str&)message;
-		str.append(true);
-	}
-};
-SystemOnlineTopic systemOnline;
 
 PropMgr propMgr;
+Mqtt mqtt(usb);
+
 
 int main(void) {
 	initBoard();
 
-	gpioLed.init(Gpio::OUTPUT_PP);
-	gpioLed.write(0);
 
-	Mqtt mqtt(usb);
 	MqttClient mqc(&mqtt);
 	mqtt.setPrefix("limero1/");
 	PropMgr propMgr;
@@ -236,7 +104,7 @@ int main(void) {
 	while (1) {
 		if (Sys::upTime() > clock) {
 			clock += 10;		// 10 msec timer tick
-			MsgQueue::publish(0, SIG_TICK, 0, 0); // check timeouts every 10 msec
+			MsgQueue::publish(0, SIG_TICK, 0, 0);// check timeouts every 10 msec
 		}
 		/*		if (usb.hasData())	// if UART has received data alert uart receiver
 		 MsgQueue::publish(&usb, SIG_RXD);*/

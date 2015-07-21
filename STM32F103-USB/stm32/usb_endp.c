@@ -56,38 +56,7 @@ uint8_t USB_Rx_Buffer[VIRTUAL_COM_PORT_DATA_SIZE];
 *******************************************************************************/
 void EP1_IN_Callback (void)
 {
-//  uint16_t USB_Tx_ptr;
   Handle_USBAsynchXfer();
-  /*
-  if (USB_Tx_State == 1)
-  {
-	  if ( usbTxDataSize()) {
-	  		 USB_Tx_State = 0;
-	  		       return;
-	  	 }
-    else 
-    {
-      if (USART_Rx_length > VIRTUAL_COM_PORT_DATA_SIZE){
-        USB_Tx_ptr = USART_Rx_ptr_out;
-        USB_Tx_length = VIRTUAL_COM_PORT_DATA_SIZE;
-        
-        USART_Rx_ptr_out += VIRTUAL_COM_PORT_DATA_SIZE;
-        USART_Rx_length -= VIRTUAL_COM_PORT_DATA_SIZE;    
-      }
-      else 
-      {
-        USB_Tx_ptr = USART_Rx_ptr_out;
-        USB_Tx_length = USART_Rx_length;
-        
-        USART_Rx_ptr_out += USART_Rx_length;
-        USART_Rx_length = 0;
-      }
-      UserToPMABufferCopy(&USART_Rx_Buffer[USB_Tx_ptr], ENDP1_TXADDR, USB_Tx_length);
-      SetEPTxCount(ENDP1, USB_Tx_length);
-      SetEPTxValid(ENDP1); 
-    }
-  }
-  */
 }
 
 /*******************************************************************************
@@ -107,7 +76,7 @@ void EP3_OUT_Callback(void)
   /* USB data will be immediately processed, this allow next USB traffic being 
   NAKed till the end of the USART Xfer */
   
-//  USB_To_USART_Send_Data(USB_Rx_Buffer, USB_Rx_Cnt);
+//  USB_To_buffer
   onUsbRxData(USB_Rx_Buffer,USB_Rx_Cnt);
  
   /* Enable the receive of data on EP3 */

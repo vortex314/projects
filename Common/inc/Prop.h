@@ -74,7 +74,6 @@ private:
 	Str _topic;
 	Bytes _message;
 	Prop* _cursor;
-	Prop* _next;
 	Handler *_src;
 	bool _publishMeta;
 	enum State {
@@ -88,7 +87,7 @@ public:
 
 	bool dispatch(Msg& msg);
 	void nextProp();
-	void nextProp(Prop* p);
+//	void nextProp(Prop* p);
 	void onPublish(Str& topic, Bytes& message);
 	void setMqtt(Mqtt* mqtt) {
 		_mqtt = mqtt;

@@ -26,9 +26,9 @@ void Prop::init(const char* name, Flags flags) {
 	_flags = flags;
 	_flags.doPublish = true;
 	_lastPublished = 0;
-	if (_first == 0)
+	if (_first == 0) {
 		_first = this;
-	else {
+	} else {
 		Prop* cursor = _first;
 		while (cursor->_next != 0) {
 			cursor = cursor->_next;
@@ -103,7 +103,6 @@ PropMgr::PropMgr() :
 		SIZE_TOPIC), _topic(SIZE_TOPIC), _message(SIZE_MESSAGE) {
 	_cursor = Prop::_first;
 	_state = ST_DISCONNECTED;
-	_next = 0;
 	_publishMeta = false;
 	_mqtt = NULL;
 	_src = NULL;
@@ -130,7 +129,6 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 			message.offset(0);
 			p->fromBytes(message);
 			p->doPublish();
-			nextProp(p);
 		}
 	} else if (topic.startsWith(_getPrefix))     // "GET/<device>/<topic>
 			{
@@ -139,7 +137,6 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 		if (p) {
 			if (message.length() == 0) {
 				p->doPublish();
-				nextProp(p);
 			} else {
 				Str t(SIZE_TOPIC);
 				t << _prefix;
@@ -180,18 +177,9 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 }
 
 void PropMgr::nextProp() {
-	if (_next) {
-		_cursor = _next;
-		_next = 0;
-	} else {
-		_cursor = _cursor->_next;
-		if (_cursor == 0)
-			_cursor = Prop::_first;
-	}
-}
-
-void PropMgr::nextProp(Prop* next) {
-	_next = next;
+	_cursor = _cursor->_next;
+	if (_cursor == 0)
+		_cursor = Prop::_first;
 }
 
 bool PropMgr::dispatch(Msg& msg) {
@@ -224,8 +212,8 @@ bool PropMgr::dispatch(Msg& msg) {
 	}
 
 	PUBLISH: {
-		timeout(10);
-		PT_YIELD_UNTIL(!_mqtt->isConnected() || timeout()); // sleep between prop publishing
+		PT_YIELD_UNTIL(
+				!_mqtt->isConnected() || !_mqtt->_mqttPublisher->isRunning()); // sleep between prop publishing
 		if (!_mqtt->isConnected())
 			goto DISCONNECTED;
 		if (_cursor->hasToBePublished()) {
@@ -237,9 +225,14 @@ bool PropMgr::dispatch(Msg& msg) {
 			if (_src)
 				goto WAIT_ACK;
 			else
-				goto DISCONNECTED;
+				goto PUBLISH;
+			// busy with previous
 		} else {
 			nextProp();
+			if (_cursor == Prop::_first) {
+				timeout(10);
+				PT_YIELD_UNTIL(timeout()); // slep 10 msec between scans
+			}
 		}
 		goto PUBLISH;
 	}

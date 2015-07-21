@@ -36,7 +36,17 @@ void Usb::reset() {
 Erc Usb::connect() {
 	return E_OK;
 }
+#include "hw_config.h"
+#include "stm32_it.h"
+#include "usb_lib.h"
+#include "usb_prop.h"
+#include "usb_desc.h"
+#include "hw_config.h"
+#include "usb_pwr.h"
 Erc Usb::disconnect() {
+/*	USB_Cable_Config(DISABLE);
+	sleep(10);
+	USB_Cable_Config(ENABLE);*/
 	return E_OK;
 }
 
@@ -133,8 +143,8 @@ void onUsbRxData(uint8_t* pData, uint32_t length) {
 	MsgQueue::publish(usb._device, SIG_RXD);
 }
 uint32_t usbTxDataSize() {
-	if (!usb.isConnected())
-		return 0;
+//	if (!usb.isConnected())
+//		return 0;
 	return usb._out.size();
 }
 uint32_t usbGetTxData(uint8_t* pData, uint32_t length) {

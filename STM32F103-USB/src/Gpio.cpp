@@ -23,9 +23,29 @@ Gpio::Gpio(Port port, uint32_t pin) {
 	_pin = 1 << pin;
 	_mode = INPUT;
 }
-void Gpio::init(Mode mode) {
-	GPIO_InitTypeDef GPIO_InitStructure;
+void Gpio::init() {
 	RCC_APB2PeriphClockCmd(ports[_port].clock, ENABLE);
+	setMode(INPUT);
+}
+
+void Gpio::write(int i) {
+	if (i)
+		GPIO_SetBits(ports[_port].base, _pin);
+	else
+		GPIO_ResetBits(ports[_port].base, _pin);
+}
+
+int Gpio::read() {
+	return GPIO_ReadInputDataBit(ports[_port].base, _pin);
+}
+
+Gpio::Mode Gpio::getMode() {
+	return _mode;
+}
+
+void Gpio::setMode(Mode mode) {
+	_mode = mode;
+	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = _pin;
 	if (mode == INPUT) {
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
@@ -38,17 +58,6 @@ void Gpio::init(Mode mode) {
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	}
 	GPIO_Init(ports[_port].base, &GPIO_InitStructure);
-}
-
-void Gpio::write(int i) {
-	if (i)
-		GPIO_SetBits(ports[_port].base, _pin);
-	else
-		GPIO_ResetBits(ports[_port].base, _pin);
-}
-
-int Gpio::read() {
-	return GPIO_ReadInputDataBit(ports[_port].base, _pin);
 }
 
 Gpio::~Gpio() {

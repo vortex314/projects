@@ -48,7 +48,7 @@ Mqtt::Mqtt(Link& link) :
 Mqtt::~Mqtt() {
 }
 
-inline bool Mqtt::isConnected() {
+bool Mqtt::isConnected() {
 	return _isConnected;
 }
 
@@ -92,7 +92,7 @@ bool Mqtt::dispatch(Msg& msg) {
 		while (true) // DISCONNECTED STATE
 		{
 			_link.connect();
-			timeout(TIME_FOREVER);
+			timeout(TIME_CONNECT);
 			PT_YIELD_UNTIL(_link.isConnected() || timeout()); //  wait Uart connected
 			goto LINK_CONNECTED;
 		}
@@ -104,7 +104,7 @@ bool Mqtt::dispatch(Msg& msg) {
 			timeout(TIME_WAIT_CONNECT);
 			PT_YIELD_UNTIL(
 					msg.is(&_link, SIG_RXD, MQTT_MSG_CONNACK, 0) || !_link.isConnected() || timeout()); // wait reply or timeout on connect send
-			if (!_link.isConnected())
+			if (!_link.isConnected() || timeout())
 				goto DISCONNECTED;
 			if (msg.is(&_link, SIG_RXD, MQTT_MSG_CONNACK, 0)) {
 				MsgQueue::publish(this, SIG_CONNECTED);
