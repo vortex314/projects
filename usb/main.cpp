@@ -43,6 +43,53 @@ struct
 
 Usb usb("/dev/ttyACM0");
 Tcp tcp("localhost",1883);
+class System : public Handler
+{
+public:
+    System(): Handler("OS")
+    {
+    }
+    bool dispatch(Msg& msg)
+    {
+        return true;
+    }
+} ;
+Handler* os=new System();
+
+struct SignalEntry
+{
+    uint32_t value;
+    const char *szValue;
+} sigTable[]=
+{
+    { SIG_INIT ,"SIG_INIT" },
+    { SIG_IDLE ,"SIG_DILE" },
+    { SIG_ERC ,"SIG_ERC" },
+//	{ SIG_TIMEOUT = 1 << 3,
+    { SIG_TICK ,"SIG_TICK"},
+    { SIG_CONNECTED ,"SIG_CONNECTED"},
+    { SIG_DISCONNECTED ,"SIG_DISCONNECTED"},
+    { SIG_RXD ,"SIG_RXD"},
+    { SIG_TXD ,"SIG_TXD"},
+    { SIG_START ,"SIG_START"},
+    { SIG_STOP ,"SIG_STOP"},
+    { SIG_DO ,"SIG_DO"}
+};
+
+const char* signalToString(uint32_t signal)
+{
+    uint32_t i;
+    for(i=0; i<sizeof(sigTable)/sizeof(struct SignalEntry); i++)
+        if (sigTable[i].value==signal) return sigTable[i].szValue;
+    return "UNKNOWN";
+       }
+
+       void logMsg(Msg& msg)
+{
+    logger.debug() << " Msg : (" << msg.src->getName() << ","<< signalToString(msg.signal) << "," << msg.param <<")";
+    logger.flush();
+}
+
 //_______________________________________________________________________________________
 //
 // simulates RTOS generating events into queue : Timer::TICK,Usb::RXD,Usb::CONNECTED,...
@@ -58,73 +105,83 @@ void poller(int usbFd,int tcpFd,uint64_t sleepTill)
     int retval;
     uint64_t start;
     Str strEvents(100);
-
-    /* Watch stdin (fd 0) to see when it has input. */
-    FD_ZERO(&rfds);
-    FD_ZERO(&wfds);
-    FD_ZERO(&efds);
-    if ( usbFd ) FD_SET(usbFd, &rfds);
-    if ( tcpFd ) FD_SET(tcpFd,&rfds);
-    if ( usbFd ) FD_SET(usbFd, &efds);
-    if ( tcpFd )  FD_SET(tcpFd,&efds);
-
-    /* Wait up to 1000 msec. */
-    uint64_t delta=1;
-    if ( sleepTill > Sys::upTime())
+    uint64_t delta=1000;
+    if ( usbFd == 0 && tcpFd==0 )
     {
-        delta = sleepTill- Sys::upTime();
-    }
-
-    tv.tv_sec = delta/1000;
-    tv.tv_usec = (delta*1000)%1000000;
-
-    int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
-    maxFd+=1;
-
-    start=Sys::upTime();
-
-    retval = select(maxFd, &rfds, NULL, &efds, &tv);
-
-    if (retval < 0 )
-    {
-        logger.perror("select()");
         sleep(1);
-    }
-    else if (retval>0)   // one of the fd was set
-    {
-        if ( FD_ISSET(usbFd,&rfds) )
-        {
-            MsgQueue::publish(0,SIG_RXD,usbFd,0);
-            strEvents << " USB_RXD ";
-        }
-        if ( FD_ISSET(tcpFd,&rfds) )
-        {
-            MsgQueue::publish(0,SIG_RXD,tcpFd,0);
-            strEvents << " TCP_RXD ";
-        }
-        if ( FD_ISSET(usbFd,&efds) )
-        {
-            MsgQueue::publish(0,SIG_ERC,usbFd,0);
-            strEvents << " USB_ERR ";
-        }
-        if ( FD_ISSET(tcpFd,&efds) )
-        {
-            MsgQueue::publish(0,SIG_ERC,tcpFd,0);
-            strEvents << " TCP_ERR ";
-        }
+        MsgQueue::publish(os,SIG_TICK,0,0);
+        strEvents << " SIG_TICK ";
     }
     else
     {
-        //TODO publish TIMER_TICK
-        MsgQueue::publish(0,SIG_TICK,0,0);
-        strEvents << " SIG_TICK ";
 
+        /* Watch usbFd and tcpFd  to see when it has input. */
+        FD_ZERO(&rfds);
+        FD_ZERO(&wfds);
+        FD_ZERO(&efds);
+        if ( usbFd ) FD_SET(usbFd, &rfds);
+        if ( tcpFd ) FD_SET(tcpFd,&rfds);
+        if ( usbFd ) FD_SET(usbFd, &efds);
+        if ( tcpFd )  FD_SET(tcpFd,&efds);
+
+        /* Wait up to 1000 msec. */
+        uint64_t delta=1000;
+        if ( sleepTill > Sys::upTime())
+        {
+            delta = sleepTill- Sys::upTime();
+        }
+
+        tv.tv_sec = delta/1000;
+        tv.tv_usec = (delta*1000)%1000000;
+
+        int maxFd = usbFd < tcpFd ? tcpFd : usbFd;
+        maxFd+=1;
+
+        start=Sys::upTime();
+
+        retval = select(maxFd, &rfds, NULL, &efds, &tv);
+
+        if (retval < 0 )
+        {
+            logger.perror("select()");
+            sleep(1);
+        }
+        else if (retval>0)   // one of the fd was set
+        {
+            if ( FD_ISSET(usbFd,&rfds) )
+            {
+                MsgQueue::publish(os,SIG_RXD,usbFd,0);
+                strEvents << " USB_RXD ";
+            }
+            if ( FD_ISSET(tcpFd,&rfds) )
+            {
+                MsgQueue::publish(os,SIG_RXD,tcpFd,0);
+                strEvents << " TCP_RXD ";
+            }
+            if ( FD_ISSET(usbFd,&efds) )
+            {
+                MsgQueue::publish(os,SIG_ERC,usbFd,0);
+                strEvents << " USB_ERR ";
+            }
+            if ( FD_ISSET(tcpFd,&efds) )
+            {
+                MsgQueue::publish(os,SIG_ERC,tcpFd,0);
+                strEvents << " TCP_ERR ";
+            }
+        }
+        else
+        {
+            //TODO publish TIMER_TICK
+            MsgQueue::publish(os,SIG_TICK,0,0);
+            strEvents << " SIG_TICK ";
+
+        }
     }
     uint64_t waitTime=Sys::upTime()-start;
     if ( waitTime > 1 )
     {
 //        logger.info() << "waited " << waitTime << " / "<< delta << " msec." << strEvents ;
-//        logger.flush();
+ //       logger.flush();
     }
 }
 
@@ -227,10 +284,12 @@ class UsbConnection : public Handler
 private:
     MqttOut msg;
     uint64_t wakeTime;
+    Usb* _usb;
 public:
 
-    UsbConnection (  ) :msg(256)
+    UsbConnection ( Usb* usb ) :msg(256)
     {
+        _usb = usb;
         restart();
     }
 
@@ -245,9 +304,7 @@ public:
                 PT_YIELD_UNTIL ( wakeTime < Sys::upTime()) ;
             }
 
-            PT_YIELD_UNTIL (  msg.is(0,SIG_DISCONNECTED,usb.fd(),0) || msg.is(0,SIG_DISCONNECTED,tcp.fd(),0));
-            tcp.disconnect();
-            usb.disconnect();
+            PT_YIELD_UNTIL (  msg.is(_usb,SIG_DISCONNECTED,usb.fd(),0) );
         }
         PT_END (  );
     }
@@ -331,7 +388,6 @@ void interceptAllSignals()
     signal(SIGINT, SignalHandler);
     signal(SIGSEGV, SignalHandler);
     signal(SIGTERM, SignalHandler);
-    signal(SIGPIPE,SignalHandler);
 }
 
 extern bool testBytes();
@@ -354,10 +410,10 @@ int main(int argc, char *argv[] )
     tcp.setHost(context.host);
     tcp.setPort(context.port);
 
-    UsbConnection usbConnection;
+    UsbConnection usbConnection(&usb);
     Gateway gtw(&usb,&tcp);
     uint64_t sleepTill=Sys::upTime()+TIMER_TICK;
-    MsgQueue::publish(0,SIG_INIT);
+    MsgQueue::publish(os,SIG_INIT);
     Msg msg;
     while(true)
     {
@@ -365,6 +421,7 @@ int main(int argc, char *argv[] )
         sleepTill = Sys::upTime()+TIMER_TICK; // was 100000
         while (MsgQueue::get(msg))
         {
+            logMsg(msg);
             Handler::dispatchToChilds(msg);
         }
     }

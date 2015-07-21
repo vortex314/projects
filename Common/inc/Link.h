@@ -9,6 +9,7 @@ class Link : public Handler
 {
     public:
 //	static const int CONNECTED,DISCONNECTED,RXD,MESSAGE,ERROR;
+        Link(const char* s) : Handler(s) {};
         Link();
         virtual ~Link();
         virtual bool isConnected() { return _isConnected; }

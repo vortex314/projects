@@ -26,6 +26,7 @@ public:
 	void timeout(uint32_t msec);
 	bool timeout();
 	uint64_t getTimeout();
+	const char* getName();
 
 	virtual void free(void* ptr) {
 		::free(ptr);
