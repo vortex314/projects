@@ -27,7 +27,7 @@ class Mqtt;
 class Prop {
 public:
 
-	const char* _name;
+	char* _name;
 	Flags _flags;
 	uint64_t _lastPublished;
 	Prop* _next;
@@ -48,9 +48,9 @@ public:
 //	static void xdrUint64(void* addr, Cmd cmd, Bytes& strp);
 //	static void xdrString(void* addr, Cmd cmd, Bytes& strp);
 
-	virtual void toBytes(Bytes& msg) {
+	virtual void toBytes(Str& topic,Bytes& msg) {
 	}
-	virtual void fromBytes(Bytes& msg) {
+	virtual void fromBytes(Str& topic,Bytes& msg) {
 	}
 	void metaToBytes(Bytes& msg);
 	void nextToBytes(Bytes& msg);

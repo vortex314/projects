@@ -18,11 +18,13 @@ const char* sType[] = { "UINT8", "UINT16", "UINT32", "UINT64", "INT8", "INT16",
 const char* sMode[] = { "READ", "WRITE", "RW" };
 
 Prop::Prop(const char* name, Flags flags) {
+	_next=0;
 	init(name, flags);
 }
 
 void Prop::init(const char* name, Flags flags) {
-	_name = name;
+	_name = (char*)malloc(strlen(name)+1);
+	strcpy(_name,name);
 	_flags = flags;
 	_flags.doPublish = true;
 	_lastPublished = 0;
@@ -91,7 +93,7 @@ void Prop::firstToBytes(Bytes& message) {
 Prop* Prop::findProp(Str& name) {
 	Prop* cursor = _first;
 	while (cursor != 0) {
-		if (name.equals(cursor->_name))
+		if (name.startsWith(cursor->_name))
 			return cursor;
 		cursor = cursor->_next;
 	}
@@ -127,7 +129,7 @@ void PropMgr::onPublish(Str& topic, Bytes& message) {
 		Prop* p = Prop::findProp(str);
 		if (p) {
 			message.offset(0);
-			p->fromBytes(message);
+			p->fromBytes(topic,message);
 			p->doPublish();
 		}
 	} else if (topic.startsWith(_getPrefix))     // "GET/<device>/<topic>
@@ -220,7 +222,7 @@ bool PropMgr::dispatch(Msg& msg) {
 			_topic = _prefix;
 			_topic << _cursor->_name;
 			_message.clear();
-			_cursor->toBytes(_message);
+			_cursor->toBytes(_topic,_message);
 			_src = _mqtt->publish(_topic, _message, _cursor->_flags);
 			if (_src)
 				goto WAIT_ACK;

@@ -64,21 +64,26 @@ void sleep(uint32_t msec) {
 		;
 }
 
-inline bool isInterrupt()
-{
-    return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) != 0 ;
+inline bool isInterrupt() {
+	return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) != 0;
+}
+#include "usb_pwr.h"
+
+void resumeUsb() {
+	Resume(RESUME_INTERNAL);
 }
 void initBoard() {
-	SystemInit();
+//	SystemInit();
 	SysTick_Config(SystemCoreClock / 1000);
-	sleep(100);
+	sleep(10);
 	USB_Cable_Config(DISABLE);
-	sleep(100);
+	sleep(10);
 	USB_Cable_Config(ENABLE);
 	Set_System();
 	Set_USBClock();
 	USB_Interrupts_Config();
 	USB_Init();
+
 }
 /*******************************************************************************
  * Function Name  : Set_System
@@ -277,6 +282,9 @@ void USB_Interrupts_Config(void) {
  * Input          : None.
  * Return         : Status
  *******************************************************************************/
+#define MAPLE
+// #define MINIMAL_BOARD
+
 void USB_Cable_Config(FunctionalState NewState) {
 #if defined(STM32L1XX_MD) || defined (STM32L1XX_HD)|| (STM32L1XX_MD_PLUS)
 	if (NewState != DISABLE)
@@ -288,7 +296,7 @@ void USB_Cable_Config(FunctionalState NewState) {
 		STM32L15_USB_DISCONNECT;
 	}
 
-#else /* USE_STM3210B_EVAL or USE_STM3210E_EVAL */
+#elif defined(MINIMAL_BOARD)/* USE_STM3210B_EVAL or USE_STM3210E_EVAL */
 	GPIO_InitTypeDef GPIO_InitStructure;
 	if (NewState != DISABLE) {
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_DISCONNECT, ENABLE);
@@ -300,14 +308,32 @@ void USB_Cable_Config(FunctionalState NewState) {
 		GPIO_Init(USB_DISCONNECT, &GPIO_InitStructure);
 		GPIO_SetBits(USB_DISCONNECT, USB_DISCONNECT_PIN);
 	} else {
-		/* USB_DISCONNECT used as USB pull-up */
+		/* USB_DISCONNECT used as USB floating */
 		GPIO_InitStructure.GPIO_Pin = USB_DISCONNECT_PIN;
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 		GPIO_Init(USB_DISCONNECT, &GPIO_InitStructure);
-//    GPIO_ResetBits(USB_DISCONNECT, USB_DISCONNECT_PIN);
+		GPIO_ResetBits(USB_DISCONNECT, USB_DISCONNECT_PIN);
 	}
-#endif /* STM32L1XX_MD */
+#elif defined(MAPLE) /* STM32L1XX_MD */
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	if (NewState == DISABLE) {
+		/* USB_DISCONNECT used as USB pull-up */
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+		GPIO_Init(GPIOB, &GPIO_InitStructure);
+		GPIO_SetBits(GPIOB, GPIO_Pin_9);
+	} else {
+		/* USB_DISCONNECT used as USB pull_down */
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+		GPIO_Init(USB_DISCONNECT, &GPIO_InitStructure);
+		GPIO_ResetBits(GPIOB, GPIO_Pin_9);
+	}
+#endif
 }
 
 /*******************************************************************************

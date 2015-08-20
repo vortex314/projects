@@ -8,14 +8,14 @@
 #include "Usb.h"
 
 Usb usb;
-class UsbDevice : public Handler {
-	bool dispatch(Msg& event){
+class UsbDevice: public Handler {
+	bool dispatch(Msg& event) {
 		return true;
 	}
 
 };
 Usb::Usb() :
-		_mqttIn(100), _out(100), _in(100) , _inBuffer(256){
+		_mqttIn(100), _out(100), _in(100), _inBuffer(256) {
 	_device = new UsbDevice();
 }
 
@@ -23,8 +23,8 @@ Usb::~Usb() {
 
 }
 
-void Usb::free(void* ptr){
-	delete (MqttIn*)ptr;
+void Usb::free(void* ptr) {
+	delete (MqttIn*) ptr;
 }
 
 void Usb::reset() {
@@ -44,9 +44,9 @@ Erc Usb::connect() {
 #include "hw_config.h"
 #include "usb_pwr.h"
 Erc Usb::disconnect() {
-/*	USB_Cable_Config(DISABLE);
-	sleep(10);
-	USB_Cable_Config(ENABLE);*/
+	/*	USB_Cable_Config(DISABLE);
+	 sleep(10);
+	 USB_Cable_Config(ENABLE);*/
 	return E_OK;
 }
 
@@ -82,44 +82,40 @@ bool Usb::dispatch(Msg& event) {
 		case SIG_CONNECTED: {
 			reset();
 			isConnected(true);
-			MsgQueue::publish(this,SIG_CONNECTED);
+			MsgQueue::publish(this, SIG_CONNECTED);
 			break;
 		}
 		case SIG_DISCONNECTED: {
 			isConnected(false);
-			MsgQueue::publish(this,SIG_DISCONNECTED);
+			MsgQueue::publish(this, SIG_DISCONNECTED);
 			break;
 		}
 		case (SIG_RXD):
 
 		{
 			uint8_t b;
-			while (_in.hasData())
-					{
-						b = _in.read();
-						if (_inBuffer.Feed(b))
-						{
-							_inBuffer.Decode();
-							if (_inBuffer.isGoodCrc())
-							{
-								_inBuffer.RemoveCrc();
-								MqttIn* mqttIn = new MqttIn(_inBuffer.length());
-								_inBuffer.offset(0);
-								if (mqttIn == 0)
-									while (1)
-										;
-								while (_inBuffer.hasData())
-									mqttIn->Feed(_inBuffer.read());
-								mqttIn->parse();
-								MsgQueue::publish(this, SIG_RXD, mqttIn->type(), mqttIn);
-							}
-							else
-							{
-								Sys::warn(EIO, "USB_CRC");
-							}
-							_inBuffer.clear();
-						}
+			while (_in.hasData()) {
+				b = _in.read();
+				if (_inBuffer.Feed(b)) {
+					_inBuffer.Decode();
+					if (_inBuffer.isGoodCrc()) {
+						_inBuffer.RemoveCrc();
+						MqttIn* mqttIn = new MqttIn(_inBuffer.length());
+						_inBuffer.offset(0);
+						if (mqttIn == 0)
+							while (1)
+								;
+						while (_inBuffer.hasData())
+							mqttIn->Feed(_inBuffer.read());
+						mqttIn->parse();
+						MsgQueue::publish(this, SIG_RXD, mqttIn->type(),
+								mqttIn);
+					} else {
+						Sys::warn(EIO, "USB_CRC");
 					}
+					_inBuffer.clear();
+				}
+			}
 			break;
 		}
 		default: {
@@ -130,8 +126,10 @@ bool Usb::dispatch(Msg& event) {
 }
 
 extern "C" {
+extern bool Virtual_Com_Port_IsHostPortOpen();
 void onUsbConnected() {
-	MsgQueue::publish(usb._device, SIG_CONNECTED);
+	if (Virtual_Com_Port_IsHostPortOpen())
+		MsgQueue::publish(usb._device, SIG_CONNECTED);
 }
 void onUsbDisconnected() {
 	MsgQueue::publish(usb._device, SIG_DISCONNECTED);
@@ -143,8 +141,9 @@ void onUsbRxData(uint8_t* pData, uint32_t length) {
 	MsgQueue::publish(usb._device, SIG_RXD);
 }
 uint32_t usbTxDataSize() {
-//	if (!usb.isConnected())
-//		return 0;
+	if (!usb.isConnected())
+		if (Virtual_Com_Port_IsHostPortOpen())
+			onUsbConnected();
 	return usb._out.size();
 }
 uint32_t usbGetTxData(uint8_t* pData, uint32_t length) {

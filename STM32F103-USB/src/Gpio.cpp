@@ -7,7 +7,7 @@
 
 #include <Gpio.h>
 
-const struct {
+static const struct {
 	Gpio::Port port;
 	uint32_t clock;
 	GPIO_TypeDef* base;

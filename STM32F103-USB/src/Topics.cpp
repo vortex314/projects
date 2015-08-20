@@ -45,11 +45,11 @@ public:
 					{ T_UINT64, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
 		_fp = fp;
 	}
-	void toBytes(Bytes& message) {
+	void toBytes(Str& topic,Bytes& message) {
 		Str& str = (Str&) message;
 		str.append(_fp(0));
 	}
-	void fromBytes(Bytes& message) {
+	void fromBytes(Str& topic,Bytes& message) {
 		Str& str = (Str&) message;
 		_fp(atoll(str.c_str()));
 	}
@@ -64,7 +64,7 @@ public:
 					{ T_STR, M_READ, T_10SEC, QOS_0, NO_RETAIN }) {
 		_s = s;
 	}
-	void toBytes(Bytes& message) {
+	void toBytes(Str& topic,Bytes& message) {
 		((Str&) message).append(_s);
 	}
 };
@@ -77,7 +77,7 @@ public:
 			Prop("system/id", (Flags )
 					{ T_STR, M_READ, T_1SEC, QOS_0, NO_RETAIN }) {
 	}
-	void toBytes(Bytes& message) {
+	void toBytes(Str& topic,Bytes& message) {
 		Str& str = (Str&) message;
 		uint8_t* start = (uint8_t*) (0x1FFFF7E8);
 		for (int i = 0; i < 12; i++)
@@ -96,11 +96,11 @@ public:
 		bootTime = 0;
 	}
 
-	void toBytes(Bytes& message) {
+	void toBytes(Str& topic,Bytes& message) {
 		Str& str = (Str&) message;
 		str.append(bootTime + Sys::upTime());
 	}
-	void fromBytes(Bytes& message) {
+	void fromBytes(Str& topic,Bytes& message) {
 		Str& str = (Str&) message;
 		uint64_t now = atoll(str.c_str());
 		bootTime = now - Sys::upTime();
@@ -115,7 +115,7 @@ public:
 					{ T_BOOL, M_READ, T_1SEC, QOS_1, NO_RETAIN }) {
 	}
 
-	void toBytes(Bytes& message) {
+	void toBytes(Str& topic,Bytes& message) {
 		Str& str = (Str&) message;
 		str.append(true);
 	}
@@ -139,12 +139,12 @@ GpioModeProp(const char *name, Gpio& gpio, EnumEntry* pe, uint32_t count,
 	_count = count;
 
 }
-void toBytes(Bytes& message) {
+void toBytes(Str& topic,Bytes& message) {
 	Str& str = (Str&) message;
 	enumToStr(str, gpioModeEnum, sizeof(gpioModeEnum) / sizeof(EnumEntry),
 			_gpio.getMode());
 }
-void fromBytes(Bytes& message) {
+void fromBytes(Str& topic,Bytes& message) {
 	Str& str = (Str&) message;
 	Gpio::Mode mode;
 	if (strToEnum((uint32_t&) mode, gpioModeEnum,
@@ -190,7 +190,12 @@ SystemOnlineTopic systemOnline;
 StringTopic systemVersion("system/version", __DATE__ " " __TIME__);
 SerialTopic st;
 RealTimeTopic rt;
+#define MAPLE
+#ifdef MAPLE
+Gpio gpioLed(Gpio::PORT_B, 1);
+#elif defined(MINIMAL_SYSTEM)
 Gpio gpioLed(Gpio::PORT_C, 13);
+#endif
 //GpioTopics ledTopic("gpio/PC13", gpioLed);
 
 class LedBlink: public Handler {
