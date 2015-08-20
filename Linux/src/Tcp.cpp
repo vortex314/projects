@@ -16,7 +16,7 @@ static Logger logger(256);
 extern Tcp tcp;
 
 void SigPipeHandler(int signal_number){
-    MsgQueue::publish(&tcp,SIG_DISCONNECTED);
+//    MsgQueue::publish(&tcp,SIG_DISCONNECTED);
         logger.info() <<  "SIGPIPE detected " ;
     logger.flush();
 }

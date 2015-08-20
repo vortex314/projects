@@ -308,13 +308,13 @@ Property* Property::find(void* pv)
 #include "Log.h"
 void Property::set( Str* name, Strpack* message)
 {
-    Log::log().clear().append(" SET ").append(name).append(" = ").append(message);
+ /*   Log::log().clear().append(" SET ").append(name).append(" = ").append(message);
     Log::log().flush();
 
     Property* p = find(name);
 
     Str prefix=Sys::getDeviceName();
-    /*Str str;
+    Str str;
     name->offset(prefix.length());
     str.sub(name,name->length()-prefix.length());
     if ( name->endsWith(".set"))
