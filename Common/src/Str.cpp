@@ -97,7 +97,6 @@ Str::Str() :
 		Bytes(0) {
 }
 
-
 Str::Str(int size) :
 		Bytes(size) {
 }
@@ -130,6 +129,14 @@ bool Str::equals(const char* s) {
 		if (s[i] != peek(i))
 			return false;
 	return true;
+}
+#include <cstring>
+bool Str::find(const char* s) {
+	char* pch = strstr(c_str(), s);
+	if (pch) {
+		return  true;
+	}
+	return false;
 }
 
 bool Str::endsWith(const char* s) {

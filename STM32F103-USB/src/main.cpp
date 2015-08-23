@@ -115,8 +115,6 @@ const SymbolEntry keywordTable[] = { { HIGH, "HIGH" }, //
 //SymbolList keywords(keywordTable, SZT(keywordTable));
 #include "Gpio.h"
 
-
-
 class GpioOut: public Prop {
 	Gpio& _gpio;
 public:
@@ -165,9 +163,12 @@ public:
 	}
 	void toBytes(Str& topic, Bytes& bytes) {
 		Str& str = (Str&) bytes;
-		if ( _gpio.getMode()==Gpio::INPUT ) str.append("INPUT");
-		if ( _gpio.getMode()==Gpio::OUTPUT_OD ) str.append("OUTPUT_OD");
-		if ( _gpio.getMode()==Gpio::OUTPUT_PP ) str.append("OUTPUT_PP");
+		if (_gpio.getMode() == Gpio::INPUT)
+			str.append("INPUT");
+		if (_gpio.getMode() == Gpio::OUTPUT_OD)
+			str.append("OUTPUT_OD");
+		if (_gpio.getMode() == Gpio::OUTPUT_PP)
+			str.append("OUTPUT_PP");
 	}
 	void fromBytes(Str& topic, Bytes& bytes) {
 		Str& str = (Str&) bytes;
@@ -183,22 +184,22 @@ public:
 class GpioProperty {
 	Gpio& _gpio;
 public:
-	GpioProperty(Gpio& gpio, const char* name) : _gpio(gpio) {
+	GpioProperty(Gpio& gpio, const char* name) :
+			_gpio(gpio) {
 		Str str(40);
 		str.set(name).append("/out");
-		new GpioOut(gpio,str.c_str());
+		new GpioOut(gpio, str.c_str());
 		str.set(name).append("/in");
-		new GpioIn(gpio,str.c_str());
+		new GpioIn(gpio, str.c_str());
 		str.set(name).append("/mode");
-		new GpioMode(gpio,str.c_str());
+		new GpioMode(gpio, str.c_str());
 	}
 };
 
-GpioProperty propPC13(*(new Gpio(Gpio::PORT_C, 13)),"GPIO/PC13");
-GpioProperty propPA1(*(new Gpio(Gpio::PORT_A, 1)),"GPIO/PA1");
-GpioProperty propPA2(*(new Gpio(Gpio::PORT_A, 2)),"GPIO/PA2");
-GpioProperty propPA3(*(new Gpio(Gpio::PORT_A, 3)),"GPIO/PA3");
-
+GpioProperty propPC13(*(new Gpio(Gpio::PORT_C, 13)), "GPIO/PC13");
+GpioProperty propPA1(*(new Gpio(Gpio::PORT_A, 1)), "GPIO/PA1");
+GpioProperty propPA2(*(new Gpio(Gpio::PORT_A, 2)), "GPIO/PA2");
+GpioProperty propPA3(*(new Gpio(Gpio::PORT_A, 3)), "GPIO/PA3");
 
 extern Usb usb;
 
@@ -229,9 +230,7 @@ public:
 	return true;
 }
 };
-
-
-
+extern "C" void sleep(uint32_t sl);
 #include "Uart.h"
 Gpio _reset(Gpio::PORT_B, 12);
 Gpio _gpio0(Gpio::PORT_B, 6);
@@ -241,19 +240,83 @@ Uart _uart(1);
 class ESP8266 {
 
 public:
-	ESP8266(){
-		_reset.init();
-		_gpio0.setMode(Gpio::INPUT);
+	ESP8266() {
+
 	}
-};
+	void init() {
+		_reset.init();
+		_gpio0.init();
+		_gpio2.init();
+		_uart.init();
+		_reset.setMode(Gpio::OUTPUT_PP);
+		_gpio0.setMode(Gpio::INPUT);
+		_gpio2.setMode(Gpio::INPUT);
+	}
+	void connect() {
+		while (true) {
+			uint32_t bauds[] = { 9600, 57600, 76800, 115200 };
+			for (uint32_t i = 0; i < sizeof(bauds) / 4; i++) {
+				_uart._in.clear();
+				_uart._out.clear();
+				_reset.write(0);
+				sleep(100);
+				_reset.write(1);
+				sleep(100);
+				_uart.setBaud(bauds[i]);
+				_uart.send("AT+RST\r\n");
+				if (waitFor("ready", 5000))
+					break;
+			}
+			_uart.send("AT+CWMODE=1\r\n");	// setup as Wifi Station
+			waitFor("OK",2000);
+			_uart.send("AT+CWLAP\r\n");	// list wifi SSID's
+			waitFor("Merckx", 30000);
+			_uart.send("AT+CIPMUX=0\r\n");	// only 1 connection at a time
+			waitFor("OK",2000);
+			_uart.send("AT+CWJAP=\"Merckx\",\"LievenMarletteEwoutRonald\"");
+			waitFor("OK", 5000);
+			_uart.send("AT+CIPSTART=\"TCP\",\"test.mosquitto.org\",1883");
+			waitFor("Linked",10000);
+		}
+
+	}
+	void send(Bytes& bytes) {
+		Str str(100);
+		str.append("AT+CIPSEND=");
+		str.append(bytes.length());
+		_uart.send(str);
+		waitFor(">", 2000);
+	}
+	bool waitFor(const char *s, uint32_t msec) {
+		Str str(100);
+		char ch;
+		uint64_t end = Sys::upTime() + msec;
+		while (end > Sys::upTime()) {
+			while (_uart.hasData()) {
+				str.append(ch = (char) _uart.read());
+				if (ch == '\n') {
+					if (str.find(s))
+						return true;
+					else
+						str.clear();
+				}
+			}
+		}
+		return false;
+	}
+}
+;
 
 PropMgr propMgr;
 Mqtt mqtt(usb);
+ESP8266 esp1;
 
 extern "C" void resumeUsb();
 
 int main(void) {
 	initBoard();
+	esp1.init();
+	esp1.connect();
 
 	MqttClient mqc(&mqtt);
 	mqtt.setPrefix("limero1/");
@@ -261,10 +324,10 @@ int main(void) {
 	propMgr.setPrefix("limero1/");
 
 	uint64_t clock = Sys::upTime() + 100;
-	MsgQueue::publish(0, SIG_INIT, 0, 0);				// kickoff all engines
+	MsgQueue::publish(0, SIG_INIT, 0, 0);		// kickoff all engines
 	Msg msg;
 
-	uint64_t usbClock =Sys::upTime() + 5000;
+	uint64_t usbClock = Sys::upTime() + 5000;
 
 	while (1) {
 		if (Sys::upTime() > clock) {
@@ -272,9 +335,9 @@ int main(void) {
 			MsgQueue::publish(0, SIG_TICK, 0, 0);// check timeouts every 10 msec
 		}
 		if (Sys::upTime() > usbClock) {
-					usbClock += 5000;
+			usbClock += 5000;
 //					resumeUsb();// check timeouts every 10 msec
-				}
+		}
 		/*		if (usb.hasData())	// if UART has received data alert uart receiver
 		 MsgQueue::publish(&usb, SIG_RXD);*/
 		// _________________________________________________________________handle all queued messages
