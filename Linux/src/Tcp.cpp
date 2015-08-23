@@ -13,7 +13,15 @@
 #include "Logger.h"
 static Logger logger(256);
 
-Tcp::Tcp( const char *host,uint16_t port)
+extern Tcp tcp;
+
+void SigPipeHandler(int signal_number){
+//    MsgQueue::publish(&tcp,SIG_DISCONNECTED);
+        logger.info() <<  "SIGPIPE detected " ;
+    logger.flush();
+}
+
+Tcp::Tcp( const char *host,uint16_t port) : Link("TCP")
 {
     _mqttIn= new MqttIn(256);
     logger.module("Tcp");
@@ -77,6 +85,7 @@ Erc Tcp::connect()
     _connected=true;
     logger.info() <<  "connect() connected to " << _host << " : " << _port;
     logger.flush();
+    signal(SIGPIPE, SigPipeHandler);
     MsgQueue::publish(this,SIG_CONNECTED);
 
 //    signal(SIGPIPE, sigTcpHandler);;
@@ -109,10 +118,12 @@ uint8_t Tcp::read()
     return b;
 }
 
+
+
 Erc Tcp::send(Bytes& bytes)
 {
     int n;
-   signal(SIGPIPE, SIG_IGN);     // will be detected in n < 0
+   signal(SIGPIPE, SigPipeHandler);     // will be detected in n < 0
 //   Log::log().message("TCP send : " ,bytes);
     n=write(_sockfd,bytes.data(),bytes.length()) ;
     if (n < 0)
@@ -138,6 +149,8 @@ uint32_t Tcp::hasData()
     return count;
 }
 
+extern Handler* os;
+
 
 bool Tcp::dispatch ( Msg& msg )
 {
@@ -145,12 +158,17 @@ bool Tcp::dispatch ( Msg& msg )
     PT_BEGIN ( );
     while(true)
     {
-        PT_YIELD_UNTIL(msg.is(0,SIG_CONNECTED,fd(),0));
+        PT_YIELD_UNTIL(_connected);
         while( true)
         {
-            PT_YIELD_UNTIL(msg.is(0,SIG_RXD,fd(),0)|| msg.is(0,SIG_ERC,fd(),0) );
-            if ( msg.is(0,SIG_RXD,fd(),0) && _mqttIn->complete() == false )
+            PT_YIELD_UNTIL(msg.is(os,SIG_RXD,fd(),0)|| msg.is(os,SIG_ERC,fd(),0) );
+            if ( msg.is(os,SIG_RXD,fd(),0) && !_mqttIn->complete() )
             {
+                if ( hasData()==0 ) {
+                    logger.debug()<<" No data at read TCP " ;
+                            logger.flush();
+                            disconnect();
+                }
                 while( hasData() )
                 {
                     b=read();
@@ -174,8 +192,10 @@ bool Tcp::dispatch ( Msg& msg )
                     }
                 }
             }
-            else if( msg.is(0,SIG_ERC,fd(),0))
+            else if( msg.is(os,SIG_ERC,fd(),0)) {
+                disconnect();
                 break;
+            }
         }
     }
     PT_END ( );

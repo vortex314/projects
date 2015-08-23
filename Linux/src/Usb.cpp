@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include "Logger.h"
 static Logger logger(256);
+extern Handler* os;
 
 typedef struct
 {
@@ -50,7 +51,7 @@ BAUDRATE BAUDRATES[]=
     {4000000,  B4000000 }
 };
 
-Usb::Usb(const char* device) : _inBytes(256),_outBuffer(256),inBuffer(256)
+Usb::Usb(const char* device) :  Link("USB"),_inBytes(256),_outBuffer(256),inBuffer(256)
 {
     logger.module("Usb");
     _device =  device;
@@ -138,7 +139,8 @@ Erc Usb::disconnect()
 {
     isConnected(false);
     _isComplete=false;
-    if ( ::close(_fd) < 0 )   return errno;
+    ::close(_fd) ;
+    _fd=0;
     MsgQueue::publish(this,SIG_DISCONNECTED);
     return E_OK;
 }
@@ -190,7 +192,6 @@ uint32_t Usb::hasData()
         logger.level(Logger::WARN).perror("ioctl() ");
         logger.flush();
         disconnect();
-        MsgQueue::publish(0,SIG_DISCONNECTED,_fd,0);
         return 0;
     }
     return count;
@@ -203,7 +204,7 @@ bool Usb::dispatch(Msg& msg)
     uint32_t i;
     uint32_t count;
 
-    if ( msg.is(0,SIG_ERC,fd(),0))
+    if ( msg.is(os,SIG_ERC,fd(),0))
     {
         logger.level(Logger::WARN) << " error occured. Reconnecting.";
         logger.flush();
@@ -217,8 +218,8 @@ bool Usb::dispatch(Msg& msg)
         PT_YIELD_UNTIL ( msg.is(this,SIG_CONNECTED));
         while( true )
         {
-            PT_YIELD_UNTIL(msg.is(0,SIG_RXD,fd(),0)|| msg.is(0,SIG_ERC,fd(),0));//event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
-            if ( msg.is(0,SIG_RXD,fd(),0)  &&  hasData())
+            PT_YIELD_UNTIL(msg.is(os,SIG_RXD,fd(),0)|| msg.is(os,SIG_ERC,fd(),0));//event->is(RXD) || event->is(FREE) || ( inBuffer.hasData() && (_isComplete==false)) );
+            if ( msg.is(os,SIG_RXD,fd(),0)  &&  hasData())
             {
                 count =hasData();
                 for(i=0; i<count; i++)
@@ -227,7 +228,7 @@ bool Usb::dispatch(Msg& msg)
                     inBuffer.write(b);
                 }
                 logger.level(Logger::DEBUG)<< "recvd: " << inBuffer.size() << " bytes.";
-                        logger.flush();
+                logger.flush();
                 while( inBuffer.hasData() )
                 {
                     if ( _inBytes.Feed(inBuffer.read()))
@@ -270,7 +271,7 @@ bool Usb::dispatch(Msg& msg)
                     }
                 }
             }
-            else if ( msg.is(0,SIG_ERC,fd(),0) )
+            else if ( msg.is(os,SIG_ERC,fd(),0) )
             {
                 _inBytes.clear();
                 break;

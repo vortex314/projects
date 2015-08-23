@@ -43,6 +43,10 @@ uint64_t Handler::getTimeout()
 {
     return _timeout;
 }
+
+const char* Handler::getName(){
+return _name;
+}
 //_________________________________________________________________________________________________
 //
 //       HANDLER LIST
